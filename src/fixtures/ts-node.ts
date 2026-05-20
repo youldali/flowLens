@@ -29,6 +29,8 @@ const functionExpressionFixture = function expressionFixture() {
 };
 
 dependency();
+
+const variableFixture = 1;
 `,
   ts.ScriptTarget.Latest,
   true,
@@ -71,6 +73,7 @@ export const functionExpressionFixture = findNode(ts.isFunctionExpression);
 export const arrowFunctionFixture = findNode(ts.isArrowFunction);
 export const getAccessorDeclarationFixture = findNode(ts.isGetAccessorDeclaration);
 export const setAccessorDeclarationFixture = findNode(ts.isSetAccessorDeclaration);
+export const variableStatementNodeFixture = findNode(ts.isVariableStatement);
 
 export const create = createFixture<ts.Node>(nodeFixture);
 export const createSourceFile = createFixture<ts.SourceFile>(sourceFileFixture);
@@ -82,3 +85,4 @@ export const createFunctionExpression = createFixture<ts.FunctionExpression>(fun
 export const createArrowFunction = createFixture<ts.ArrowFunction>(arrowFunctionFixture);
 export const createGetAccessorDeclaration = createFixture<ts.GetAccessorDeclaration>(getAccessorDeclarationFixture);
 export const createSetAccessorDeclaration = createFixture<ts.SetAccessorDeclaration>(setAccessorDeclarationFixture);
+export const createVariableStatementNode = createFixture<ts.VariableStatement>(variableStatementNodeFixture);
