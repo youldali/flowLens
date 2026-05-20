@@ -1,0 +1,4 @@
+interface:
+  display_name: "FlowLens Tests"
+  short_description: "FlowLens test and fixture conventions"
+  default_prompt: "Use $flowlens-tests to add or update FlowLens unit tests and fixtures."
