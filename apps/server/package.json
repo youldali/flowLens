@@ -10,6 +10,7 @@
     "start": "node dist/cli.js",
     "dev": "node --loader ts-node/esm ./src/cli.ts",
     "flow-graph": "node --loader ts-node/esm ./src/cli.ts",
+    "integration-tests": "node --loader ts-node/esm ./src/cli.ts apps/server/integration-tests/invoice.ts",
     "test": "node --test"
   },
   "keywords": [],
