@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import ts from 'typescript';
 
 import * as NodeModule from './node.js';
-import { normalizePath } from './utils.js';
+import { normalizePath } from '@flowlens/common';
 import { createTypeChecker } from './mocks/typechecker.js';
 import {
   create as createNode,

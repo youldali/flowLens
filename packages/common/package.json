@@ -1,0 +1,19 @@
+{
+  "name": "@flowlens/common",
+  "version": "1.0.0",
+  "description": "Shared dependency-free FlowLens utilities.",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "node --test"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  }
+}

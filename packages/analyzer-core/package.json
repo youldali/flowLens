@@ -1,0 +1,25 @@
+{
+  "name": "@flowlens/analyzer-core",
+  "version": "1.0.0",
+  "description": "TypeScript AST parsing and graph generation for FlowLens.",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "pnpm build && node --test \"dist/src/**/*.test.js\""
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/src/index.d.ts",
+      "default": "./dist/src/index.js"
+    }
+  },
+  "dependencies": {
+    "@flowlens/common": "workspace:*",
+    "@flowlens/graph-model": "workspace:*",
+    "neverthrow": "^8.2.0",
+    "typescript": "^6.0.3"
+  }
+}

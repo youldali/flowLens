@@ -1,22 +1,14 @@
 import ts from 'typescript';
 import * as path from 'node:path';
 
-import { normalizePath } from './utils.js';
+import { normalizePath } from '@flowlens/common';
+import type {
+  GraphNode,
+  NodeId,
+} from '@flowlens/graph-model';
+export type { GraphNodeKind, NodeId } from '@flowlens/graph-model';
 
-export type GraphNodeKind =
-  | 'functionDeclaration'
-  | 'methodDeclaration'
-  | 'callExpression'
-  | 'file'
-  | 'if-statement';
-
-export type NodeId = string;
-
-export interface Node {
-  id: NodeId;
-  kind: GraphNodeKind;
-  name: string;
-  filePath: string;
+export interface Node extends GraphNode {
   tsNode: ts.Node;
 }
 

@@ -1,0 +1,27 @@
+{
+  "name": "server",
+  "version": "1.0.0",
+  "description": "",
+  "bin": {
+    "flow-graph": "./dist/cli.js"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/cli.js",
+    "dev": "node --loader ts-node/esm ./src/cli.ts",
+    "flow-graph": "node --loader ts-node/esm ./src/cli.ts",
+    "test": "node --test"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "dependencies": {
+    "@flowlens/analyzer-core": "workspace:*",
+    "@flowlens/common": "workspace:*",
+    "@flowlens/graph-model": "workspace:*"
+  },
+  "devDependencies": {
+    "fastify": "^5.7.4"
+  }
+}
