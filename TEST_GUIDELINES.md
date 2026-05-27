@@ -21,7 +21,7 @@ describe("create", () => {
 
 - Add test fixtures in `src/fixtures`.
 - Create domain elements such as nodes or edges through fixtures when a test needs them.
-- Fixture files must leverage the `createFixture` function defined in `src/fixtures/create-fixture.ts`.
+- Fixture files must leverage the `createFixture` function exported by `@flowlens/test-utils`.
 - Fixture files should expose a `create` function for the matching domain type.
 - See `src/fixtures/edge.ts` for an example.
 
@@ -30,7 +30,7 @@ Example:
 ```ts
 // src/fixtures/edge.ts
 import type { Edge } from '../edge.js';
-import { createFixture } from './create-fixture.js';
+import { createFixture } from '@flowlens/test-utils';
 
 const edgeFixture: Edge = {
   id: "source-node->target-node:calls",

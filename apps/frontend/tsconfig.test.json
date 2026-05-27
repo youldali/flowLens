@@ -1,0 +1,12 @@
+{
+  "extends": "./tsconfig.app.json",
+  "compilerOptions": {
+    "types": ["node", "vite/client"],
+    "paths": {
+      "@flowlens/graph-model": ["../../packages/graph-model/src/index.ts"],
+      "@flowlens/test-utils": ["../../packages/test-utils/src/index.ts"]
+    }
+  },
+  "include": ["src/**/*.test.ts"],
+  "exclude": []
+}

@@ -4,7 +4,7 @@ import type {
   FunctionDeclarationNode,
   Node,
 } from '../node.js';
-import { createFixture } from './create-fixture.js';
+import { createFixture } from '@flowlens/test-utils';
 import {
   callExpressionFixture,
   functionDeclarationFixture,

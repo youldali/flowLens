@@ -1,5 +1,5 @@
 import type { Edge } from '../edge.js';
-import { createFixture } from './create-fixture.js';
+import { createFixture } from '@flowlens/test-utils';
 
 const edgeFixture: Edge = {
   id: "source-node->target-node:calls",

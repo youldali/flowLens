@@ -7,9 +7,11 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
+    "test": "tsc -b ../../packages/test-utils/tsconfig.json && tsc -p tsconfig.test.json && node --test \"src/**/*.test.ts\"",
     "preview": "vite preview"
   },
   "dependencies": {
+    "@flowlens/graph-model": "workspace:*",
     "dagre": "^0.8.5",
     "react": "^19.2.6",
     "react-dom": "^19.2.6",
@@ -19,9 +21,11 @@
   "devDependencies": {
     "@babel/core": "^7.29.0",
     "@eslint/js": "^10.0.1",
+    "@flowlens/test-utils": "workspace:*",
     "@rolldown/plugin-babel": "^0.2.3",
     "@types/babel__core": "^7.20.5",
-    "@types/node": "^24.12.3",
+    "@types/dagre": "^0.7.53",
+    "@types/node": "^24.12.4",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^6.0.1",

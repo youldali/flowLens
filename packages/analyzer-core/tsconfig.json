@@ -9,6 +9,7 @@
   "exclude": ["node_modules", "dist", "saved"],
   "references": [
     { "path": "../common" },
-    { "path": "../graph-model" }
+    { "path": "../graph-model" },
+    { "path": "../test-utils" }
   ]
 }

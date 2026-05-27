@@ -1,0 +1,72 @@
+.graph-view {
+  position: relative;
+  width: 100%;
+  min-height: 640px;
+  height: min(76svh, 760px);
+  border: 1px solid var(--border);
+  background: var(--bg);
+  overflow: hidden;
+}
+
+.graph-view__empty {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  color: var(--text);
+  background: color-mix(in srgb, var(--bg) 88%, transparent);
+  pointer-events: none;
+}
+
+.graph-view .react-flow__node-default {
+  width: 220px;
+  min-height: 72px;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text-h);
+  background: var(--bg);
+  box-shadow: var(--shadow);
+  text-align: left;
+}
+
+.graph-view .react-flow__edge-path {
+  stroke: var(--text);
+  stroke-width: 2;
+}
+
+.graph-view .react-flow__edge-text {
+  fill: var(--text-h);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.graph-view .react-flow__edge-textbg {
+  fill: var(--bg);
+}
+
+.graph-view .react-flow__handle {
+  width: 8px;
+  height: 8px;
+  border: 2px solid var(--bg);
+  background: var(--accent);
+}
+
+.graph-view__node {
+  display: grid;
+  gap: 4px;
+}
+
+.graph-view__node-label {
+  overflow-wrap: anywhere;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.graph-view__node-meta {
+  overflow-wrap: anywhere;
+  color: var(--text);
+  font-size: 12px;
+  line-height: 1.3;
+}

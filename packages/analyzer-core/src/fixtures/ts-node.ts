@@ -1,6 +1,6 @@
 import ts from 'typescript';
 
-import { createFixture } from './create-fixture.js';
+import { createFixture } from '@flowlens/test-utils';
 
 export const sourceFileFixture = ts.createSourceFile(
   "fixture.ts",

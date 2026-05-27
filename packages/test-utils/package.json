@@ -1,0 +1,19 @@
+{
+  "name": "@flowlens/test-utils",
+  "version": "1.0.0",
+  "description": "Shared test helpers for FlowLens packages.",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "node --test"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  }
+}
