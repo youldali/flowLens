@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b tsconfig.app.json tsconfig.node.json && vite build",
+    "serve": "pnpm run build && vite preview",
     "lint": "eslint .",
     "test": "tsc -b ../../packages/test-utils/tsconfig.json && tsc -p tsconfig.test.json && node --test \"src/**/*.test.ts\"",
     "preview": "vite preview"

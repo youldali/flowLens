@@ -155,3 +155,12 @@ export function isNodeProcessable(node: ts.Node): boolean {
     ts.isCallExpression(node)
   );
 }
+
+export function toGraphNode(node: Node): GraphNode {
+  return {
+    id: node.id,
+    kind: node.kind,
+    name: node.name,
+    filePath: node.filePath,
+  };
+}

@@ -9,37 +9,28 @@ import { toReactFlow } from './toReactFlow.ts'
 describe('toReactFlow', () => {
   it('maps graph nodes and edges to React Flow elements', () => {
     const graph: Graph = {
-      nodes: new Map([
-        [
-          'src/index.ts',
-          {
-            id: 'src/index.ts',
-            kind: 'file',
-            name: 'index.ts',
-            filePath: 'src/index.ts',
-          },
-        ],
-        [
-          'src/index.ts:1:12',
-          {
-            id: 'src/index.ts:1:12',
-            kind: 'functionDeclaration',
-            name: 'main',
-            filePath: 'src/index.ts',
-          },
-        ],
-      ]),
-      edges: new Map([
-        [
-          'src/index.ts->src/index.ts:1:12:declares',
-          {
-            id: 'src/index.ts->src/index.ts:1:12:declares',
-            source: 'src/index.ts',
-            target: 'src/index.ts:1:12',
-            type: 'declares',
-          },
-        ],
-      ]),
+      nodes: [
+        {
+          id: 'src/index.ts',
+          kind: 'file',
+          name: 'index.ts',
+          filePath: 'src/index.ts',
+        },
+        {
+          id: 'src/index.ts:1:12',
+          kind: 'functionDeclaration',
+          name: 'main',
+          filePath: 'src/index.ts',
+        },
+      ],
+      edges: [
+        {
+          id: 'src/index.ts->src/index.ts:1:12:declares',
+          source: 'src/index.ts',
+          target: 'src/index.ts:1:12',
+          type: 'declares',
+        },
+      ],
     }
 
     assert.deepEqual(toReactFlow(graph), {

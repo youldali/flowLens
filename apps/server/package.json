@@ -3,14 +3,14 @@
   "version": "1.0.0",
   "description": "",
   "bin": {
-    "flow-graph": "./dist/cli.js"
+    "flow-graph": "./dist/src/cli.js"
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "start": "node dist/cli.js",
     "dev": "node --loader ts-node/esm ./src/cli.ts",
     "flow-graph": "node --loader ts-node/esm ./src/cli.ts",
-    "integration-tests": "node --loader ts-node/esm ./src/cli.ts apps/server/integration-tests/invoice.ts",
+    "integration-tests": "node --loader ts-node/esm ./src/cli/index.ts apps/server/integration-tests/invoiceService.ts",
     "test": "node --test"
   },
   "keywords": [],
@@ -20,9 +20,7 @@
   "dependencies": {
     "@flowlens/analyzer-core": "workspace:*",
     "@flowlens/common": "workspace:*",
-    "@flowlens/graph-model": "workspace:*"
-  },
-  "devDependencies": {
+    "@flowlens/graph-model": "workspace:*",
     "fastify": "^5.7.4"
   }
 }

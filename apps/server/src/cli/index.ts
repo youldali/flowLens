@@ -3,6 +3,7 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 
 import { GraphBuilder } from '@flowlens/analyzer-core';
+import { serveGraphViewer } from './server.js';
 
 const args = process.argv.slice(2);
 
@@ -21,7 +22,10 @@ if (args.length !== 1) {
   const graphBuilder = new GraphBuilder(tsconfigPath);
 
   graphBuilder.build(entryFilePath);
-  console.log(graphBuilder.extract());
+  const graph = graphBuilder.extract();
+  console.log(graph);
+
+  await serveGraphViewer(graph);
 }
 
 function findNearestTsconfig(startDir: string): string {

@@ -17,6 +17,18 @@
   margin: 0;
 }
 
+.app-status {
+  display: grid;
+  min-height: 320px;
+  place-items: center;
+  border: 1px solid var(--border);
+  color: var(--text);
+}
+
+.app-status--error {
+  color: #b42318;
+}
+
 @media (max-width: 768px) {
   .app-shell {
     padding: 20px;

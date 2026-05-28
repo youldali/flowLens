@@ -105,7 +105,6 @@ importers:
       '@flowlens/graph-model':
         specifier: workspace:*
         version: link:../../packages/graph-model
-    devDependencies:
       fastify:
         specifier: ^5.7.4
         version: 5.8.5

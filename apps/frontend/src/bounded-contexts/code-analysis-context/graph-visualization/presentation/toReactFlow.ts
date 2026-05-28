@@ -15,8 +15,8 @@ export interface ReactFlowGraph {
 
 export function toReactFlow(graph: Graph): ReactFlowGraph {
   return {
-    nodes: Array.from(graph.nodes.values()).map(toReactFlowNode),
-    edges: Array.from(graph.edges.values()).map((edge) => ({
+    nodes: graph.nodes.map(toReactFlowNode),
+    edges: graph.edges.map((edge) => ({
       id: String(edge.id),
       source: String(edge.source),
       target: String(edge.target),

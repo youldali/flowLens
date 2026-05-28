@@ -56,6 +56,23 @@ describe("deriveIdFromTsNode", () => {
   });
 });
 
+describe("toGraphNode", () => {
+  it("maps analyzer nodes to JSON-safe graph nodes", () => {
+    const graphNode = NodeModule.toGraphNode(createCallExpressionNode());
+
+    assert.deepEqual(graphNode, {
+      id: "fixture.ts:33:45",
+      kind: "callExpression",
+      name: "dependency",
+      filePath: "fixture.ts",
+    });
+    assert.equal(Object.hasOwn(graphNode, "tsNode"), false);
+    assert.equal(Object.hasOwn(graphNode, "signature"), false);
+    assert.equal(Object.hasOwn(graphNode, "declarationTsNode"), false);
+    assert.equal(Object.hasOwn(graphNode, "declarationFile"), false);
+  });
+});
+
 describe("NodeBuilder", () => {
   it("builds file nodes from source files", () => {
     const builder = new NodeModule.NodeBuilder(createTypeChecker());

@@ -24,6 +24,6 @@ export interface Edge {
 }
 
 export interface Graph<TNode = GraphNode, TEdge = Edge> {
-  nodes: Map<NodeId, TNode>;
-  edges: Map<EdgeId, TEdge>;
+  nodes: TNode[];
+  edges: TEdge[];
 }
