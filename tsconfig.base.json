@@ -6,6 +6,11 @@
     "sourceMap": true,
     "declaration": true,
     "declarationMap": true,
+    "paths": {
+      "@flowlens/analyzer-core": ["./packages/analyzer-core/src/index.ts"],
+      "@flowlens/common": ["./packages/common/src/index.ts"],
+      "@flowlens/graph-model": ["./packages/graph-model/src/index.ts"]
+    },
     "strict": true,
     "noUncheckedIndexedAccess": true,
     "exactOptionalPropertyTypes": true,

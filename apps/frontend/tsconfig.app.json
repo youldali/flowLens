@@ -1,4 +1,5 @@
 {
+  "extends": "../../tsconfig.base.json",
   "compilerOptions": {
     "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.app.tsbuildinfo",
     "target": "es2023",
@@ -6,9 +7,6 @@
     "module": "esnext",
     "types": ["vite/client"],
     "skipLibCheck": true,
-    "paths": {
-      "@flowlens/graph-model": ["../../packages/graph-model/src/index.ts"]
-    },
 
     /* Bundler mode */
     "moduleResolution": "bundler",
