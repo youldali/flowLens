@@ -1,3 +1,34 @@
+.graph-view-container {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  flex: 1;
+  padding: 32px;
+  box-sizing: border-box;
+}
+
+.graph-view-container__header {
+  display: grid;
+  gap: 8px;
+  text-align: left;
+}
+
+.graph-view-container__header h1 {
+  margin: 0;
+}
+
+.graph-view-container__status {
+  display: grid;
+  min-height: 320px;
+  place-items: center;
+  border: 1px solid var(--border);
+  color: var(--text);
+}
+
+.graph-view-container__status--error {
+  color: #b42318;
+}
+
 .graph-view {
   position: relative;
   width: 100%;
@@ -69,4 +100,10 @@
   color: var(--text);
   font-size: 12px;
   line-height: 1.3;
+}
+
+@media (max-width: 768px) {
+  .graph-view-container {
+    padding: 20px;
+  }
 }

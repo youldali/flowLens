@@ -1,3 +1,4 @@
+import { useQuery } from 'react-query'
 import type { Graph } from '@flowlens/graph-model'
 
 export async function fetchGraph(fetcher: typeof fetch = fetch): Promise<Graph> {
@@ -8,4 +9,8 @@ export async function fetchGraph(fetcher: typeof fetch = fetch): Promise<Graph> 
   }
 
   return await response.json() as Graph
+}
+
+export function useFetchGraph() {
+  return useQuery<Graph, Error>('graph', () => fetchGraph())
 }

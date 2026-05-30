@@ -10,9 +10,8 @@ import type { Graph } from '@flowlens/graph-model'
 import { layoutDagre, type LayoutDirection } from '../../presentation/layoutDagre'
 import { toReactFlow } from '../../presentation/toReactFlow'
 import { GraphNode } from './GraphNode'
-import './GraphView.css'
 
-export interface GraphViewProps {
+export interface GraphViewContentProps {
   graph: Graph
   className?: string
   direction?: LayoutDirection
@@ -26,13 +25,13 @@ const DEFAULT_NODE_TYPES = {
   default: GraphNode,
 } satisfies NodeTypes
 
-export function GraphView({
+export function GraphViewContent({
   graph,
   className,
   direction = DEFAULT_LAYOUT_DIRECTION,
   fitViewOptions = DEFAULT_FIT_VIEW_OPTIONS,
   nodeTypes = DEFAULT_NODE_TYPES,
-}: GraphViewProps) {
+}: GraphViewContentProps) {
   const { nodes, edges } = useMemo(() => {
     const flowGraph = toReactFlow(graph)
 
