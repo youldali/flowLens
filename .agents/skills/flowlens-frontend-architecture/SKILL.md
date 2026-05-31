@@ -103,6 +103,8 @@ Rules:
 
 - Components stay lean.
 - File name must match the exported component name.
+- Use CSS modules for component styles, colocated with the component as `<ComponentName>.module.css` when practical.
+- Use the `classnames` package for conditional class names or combining multiple class names.
 - Components may call API functions, call domain functions, manage UI state, and compose subcomponents.
 - Components must not implement domain rules, duplicate domain types, or normalize backend data.
 - Test components with React Testing Library by behavior, not implementation details.
@@ -195,6 +197,8 @@ When reviewing frontend code, flag:
 - Components normalizing backend data.
 - Feature-based or page-based modules where a domain module is needed.
 - Component files whose names do not match their component exports.
+- Plain CSS imports for component-scoped styles where CSS modules should be used.
+- Manual string interpolation, array joins, or ternaries for conditional or multiple class names instead of `classnames`.
 - Public imports of private subcomponents.
 - Cross-context imports without explicit domain contracts.
 - Duplicated domain models or UI-specific variants of canonical concepts.

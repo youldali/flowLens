@@ -23,6 +23,9 @@ importers:
       '@flowlens/graph-model':
         specifier: workspace:*
         version: link:../../packages/graph-model
+      classnames:
+        specifier: ^2.5.1
+        version: 2.5.1
       dagre:
         specifier: ^0.8.5
         version: 0.8.5
@@ -803,6 +806,9 @@ packages:
 
   classcat@5.0.5:
     resolution: {integrity: sha512-JhZUT7JFcQy/EzW605k/ktHtncoo9vnyW/2GspNYwFlN1C/WmjuV/xtS04e9SOkL2sTdw0VAZ2UGCcQ9lR6p6w==}
+
+  classnames@2.5.1:
+    resolution: {integrity: sha512-saHYOzhIQs6wy2sVxTM6bUDsQO4F50V9RQ22qBpEdCW+I+/Wmke2HOl6lS6dTpdxVhb88/I6+Hs+438c3lfUow==}
 
   concat-map@0.0.1:
     resolution: {integrity: sha512-/Srv4dswyQNBfohGpz9o6Yb3Gz3SrUDqBH5rTuhGR7ahtlbYKnVxw2bCFMRljaA7EXHaXZ8wsHdodFvbkhKmqg==}
@@ -2392,6 +2398,8 @@ snapshots:
   caniuse-lite@1.0.30001793: {}
 
   classcat@5.0.5: {}
+
+  classnames@2.5.1: {}
 
   concat-map@0.0.1: {}
 

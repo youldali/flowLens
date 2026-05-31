@@ -1,13 +1,14 @@
 import { Handle, Position, type NodeProps } from 'reactflow'
 import type { GraphViewNodeData } from '../../../presentation/toReactFlow'
+import styles from '../GraphView.module.css'
 
 export function GraphNode({ data }: NodeProps<GraphViewNodeData>) {
   return (
-    <div className="graph-view__node">
+    <div className={styles.node}>
       <Handle type="target" position={Position.Left} />
-      <span className="graph-view__node-label">{data.label}</span>
-      <span className="graph-view__node-meta">{data.kind}</span>
-      <span className="graph-view__node-meta">{data.filePath}</span>
+      <span className={styles.nodeLabel}>{data.label}</span>
+      <span className={styles.nodeMeta}>{data.kind}</span>
+      <span className={styles.nodeMeta}>{data.filePath}</span>
       <Handle type="source" position={Position.Right} />
     </div>
   )

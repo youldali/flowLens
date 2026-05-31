@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@flowlens/graph-model": "workspace:*",
+    "classnames": "^2.5.1",
     "dagre": "^0.8.5",
     "date-fns": "^4.3.0",
     "i18next": "^26.3.0",

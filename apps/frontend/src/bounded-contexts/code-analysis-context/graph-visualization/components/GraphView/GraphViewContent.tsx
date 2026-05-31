@@ -1,3 +1,4 @@
+import classNames from 'classnames'
 import { useMemo } from 'react'
 import ReactFlow, {
   Background,
@@ -10,6 +11,7 @@ import type { Graph } from '@flowlens/graph-model'
 import { layoutDagre, type LayoutDirection } from '../../presentation/layoutDagre'
 import { toReactFlow } from '../../presentation/toReactFlow'
 import { GraphNode } from './GraphNode'
+import styles from './GraphView.module.css'
 
 export interface GraphViewContentProps {
   graph: Graph
@@ -42,11 +44,11 @@ export function GraphViewContent({
   }, [direction, graph])
 
   const isEmpty = nodes.length === 0 && edges.length === 0
-  const graphViewClassName = className ? `graph-view ${className}` : 'graph-view'
+  const graphViewClassName = classNames(styles.graphView, className)
 
   return (
     <div className={graphViewClassName}>
-      {isEmpty ? <div className="graph-view__empty">No graph data</div> : null}
+      {isEmpty ? <div className={styles.empty}>No graph data</div> : null}
       <ReactFlow
         nodes={nodes}
         edges={edges}
