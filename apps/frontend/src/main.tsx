@@ -2,6 +2,7 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { QueryClient, QueryClientProvider } from 'react-query'
 import 'reactflow/dist/style.css'
+import './common/i18n'
 import './index.css'
 import App from './App.tsx'
 

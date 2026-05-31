@@ -1,0 +1,11 @@
+{
+    "graphVisualization": {
+        "title": "Code analysis graph",
+        "description": "React Flow view backed by the shared graph model.",
+        "loading": "Loading graph...",
+        "errors": {
+            "serverError": "The code analysis graph could not be loaded.",
+            "notFound": "No code analysis graph was found for this project."
+        }
+    }
+}

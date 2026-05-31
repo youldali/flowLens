@@ -1,0 +1,21 @@
+{
+    "misc": {
+        "loading": "Loading...",
+        "fetchError": "An error occurred while fetching data. Please try again later.",
+        "errors": {
+            "networkError": "A network error occurred. Please check your connection and try again.",
+            "serverError": "A server error occurred. Please try again later.",
+            "unknownError": "An unknown error occurred. Please try again later.",
+            "requestErrors": {
+                "badRequest": "The request could not be processed.",
+                "unauthorized": "You need to sign in before continuing.",
+                "forbidden": "You do not have permission to perform this action.",
+                "notFound": "The requested resource could not be found.",
+                "timeout": "The request timed out. Please try again.",
+                "payloadTooLarge": "The request is too large to process.",
+                "unsupportedMediaType": "The request format is not supported.",
+                "tooManyRequests": "Too many requests. Please try again later."
+            }
+        }
+    }
+}
