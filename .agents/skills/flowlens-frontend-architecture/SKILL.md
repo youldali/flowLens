@@ -89,6 +89,81 @@ Rules:
 - Do not place business rules here; call domain functions when validation or derivation is needed.
 - Test mapping behavior and HTTP interaction with mocked transport.
 
+GET API conventions:
+
+- For every GET API, expose one function that performs the fetch and one hook that uses `react-query` through that fetch function.
+- Name the fetch function after the resource/action, such as `fetchTeachers`.
+- Name the query hook `use<FetchFunctionName>`, such as `useFetchTeachers`.
+- The query hook must call the fetch function instead of duplicating HTTP logic.
+- GET fetch functions must normalize failures through `fromFetchError` from `@common/utils/queryError`.
+- GET fetch functions should throw `QueryError<TErrorData>` instead of generic `Error` values for fetch, network, request, and server failures.
+- GET query hooks must type their error as `QueryError<TErrorData>` and return `UseQueryResult<TData, QueryError<TErrorData>>`.
+- The `useQuery` key must follow the resource path.
+- Path segments become query key items.
+- Dynamic path parameters use the actual variable value, not the placeholder name.
+- Search parameters are grouped into an object as the last item of the query key.
+
+For `/university/:universityId/teachers?sort=asc`, use this key shape:
+
+```ts
+['university', universityId, 'teachers', { sort: 'asc' }]
+```
+
+Example:
+
+```ts
+import { fromFetchError, type QueryError } from '@common/utils/queryError'
+import { useQuery, type UseQueryResult } from 'react-query'
+
+import type { Teacher } from '../domain/teacher'
+
+type FetchTeachersOptions = {
+  universityId: string
+  sort: 'asc' | 'desc'
+}
+
+type FetchTeachersErrorData = {
+  message: string
+}
+
+export async function fetchTeachers({
+  universityId,
+  sort,
+}: FetchTeachersOptions): Promise<Teacher[]> {
+  const searchParams = new URLSearchParams({ sort })
+  const request = new Request(`/university/${universityId}/teachers?${searchParams}`, {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  })
+
+  try {
+    const response = await fetch(request)
+
+    if (!response.ok) {
+      throw await fromFetchError<FetchTeachersErrorData>(request, response)
+    }
+
+    return await response.json() as Teacher[]
+  } catch (error) {
+    throw await fromFetchError<FetchTeachersErrorData>(
+      request,
+      error instanceof Error ? error : new Error('Unknown error occurred while fetching teachers'),
+    )
+  }
+}
+
+export function useFetchTeachers(
+  options: FetchTeachersOptions,
+): UseQueryResult<Teacher[], QueryError<FetchTeachersErrorData>> {
+  return useQuery<Teacher[], QueryError<FetchTeachersErrorData>>(
+    ['university', options.universityId, 'teachers', { sort: options.sort }],
+    () => fetchTeachers(options),
+  )
+}
+```
+
 Canonical flow:
 
 ```text
@@ -108,6 +183,34 @@ Rules:
 - Components may call API functions, call domain functions, manage UI state, and compose subcomponents.
 - Components must not implement domain rules, duplicate domain types, or normalize backend data.
 - Test components with React Testing Library by behavior, not implementation details.
+- Components that render GET API data should use the API query hook and the shared `QuerySuspense` component, following the `GraphView.tsx` pattern.
+
+Example:
+
+```tsx
+import { QuerySuspense } from '@common/QuerySuspense'
+import { useFetchTeachers } from '../../apis/fetchTeachers'
+
+export function TeacherList({ universityId }: TeacherListProps) {
+  const teachersQuery = useFetchTeachers({ universityId, sort: 'asc' })
+
+  return (
+    <QuerySuspense
+      queryState={teachersQuery}
+      loading={<div>Loading teachers...</div>}
+      fallback={(error) => <div>{error.message}</div>}
+    >
+      {(teachers) => (
+        <ul>
+          {teachers.map((teacher) => (
+            <li key={teacher.id}>{teacher.name}</li>
+          ))}
+        </ul>
+      )}
+    </QuerySuspense>
+  )
+}
+```
 
 For complex components, use a private component folder:
 
@@ -194,6 +297,7 @@ When reviewing frontend code, flag:
 - Business rules inside components or pages.
 - Domain files importing React, API clients, routing, or browser globals.
 - API files returning raw DTOs.
+- GET API fetchers or query hooks using generic `Error` instead of `QueryError`.
 - Components normalizing backend data.
 - Feature-based or page-based modules where a domain module is needed.
 - Component files whose names do not match their component exports.
