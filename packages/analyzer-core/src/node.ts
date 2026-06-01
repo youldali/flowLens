@@ -1,5 +1,6 @@
 import ts from 'typescript';
 import * as path from 'node:path';
+import { err, ok, type Result } from 'neverthrow';
 
 import { normalizePath } from '@flowlens/common';
 import type {
@@ -31,7 +32,7 @@ export interface CallExpressionNode extends Node {
   declarationFile: string | undefined;
 }
 
-type ExecutableFunctionDeclaration = 
+export type ExecutableFunctionDeclaration = 
   | ts.FunctionDeclaration
   | ts.MethodDeclaration
   | ts.ConstructorDeclaration
@@ -50,6 +51,44 @@ export const isCallExpressionNode = (node: Node): node is CallExpressionNode => 
 
 export const isFileNode = (node: Node): node is FileNode => {
   return node.kind === 'file';
+}
+
+export function findNodeAtPosition(
+  sourceFile: ts.SourceFile,
+  position: number,
+): Result<ts.Node, "not-found"> {
+  let nodeAtPosition: ts.Node | undefined;
+
+  function visit(node: ts.Node): void {
+    if (
+      position < node.getStart(sourceFile) ||
+      position >= node.getEnd()
+    ) {
+      return;
+    }
+
+    nodeAtPosition = node;
+    ts.forEachChild(node, visit);
+  }
+
+  visit(sourceFile);
+  return !nodeAtPosition ? err("not-found") : ok(nodeAtPosition);
+}
+
+export function findEnclosingFunction(
+  node: ts.Node,
+): Result<ExecutableFunctionDeclaration, "not-found"> {
+  let current: ts.Node | undefined = node;
+
+  while (current) {
+    if (isExecutableFunction(current)) {
+      return ok(current);
+    }
+
+    current = current.parent;
+  }
+
+  return err("not-found");
 }
 
 export function createFileId(sourceFile: ts.SourceFile): NodeId {
@@ -131,7 +170,7 @@ export class NodeBuilder {
 /**
  * Narrow to ONLY real executable function-like nodes (have bodies)
  */
-function isExecutableFunction(
+export function isExecutableFunction(
   node: ts.Node
 ): node is ExecutableFunctionDeclaration {
   return ts.isFunctionLike(node) && (node as any).body && (node as any).body != null;
