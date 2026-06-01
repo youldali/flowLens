@@ -1,5 +1,5 @@
 import { Handle, Position, type NodeProps } from 'reactflow'
-import type { GraphViewNodeData } from '../../../presentation/toReactFlow'
+import type { GraphViewNodeData } from '@code-analysis-context/graph-visualization/adapters/ReactFlowAdapter/toReactFlow'
 import styles from '../GraphView.module.css'
 
 export function GraphNode({ data }: NodeProps<GraphViewNodeData>) {

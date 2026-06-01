@@ -1,7 +1,7 @@
 import classNames from 'classnames'
 import { useTranslation } from '@common/hooks/useTranslation'
 import { QuerySuspense } from '@common/QuerySuspense'
-import { useFetchGraph } from '../../apis/fetchGraph'
+import { useFetchGraph } from '@code-analysis-context/graph-visualization/apis/fetchGraph'
 import { GraphViewContent } from './GraphViewContent'
 import styles from './GraphView.module.css'
 

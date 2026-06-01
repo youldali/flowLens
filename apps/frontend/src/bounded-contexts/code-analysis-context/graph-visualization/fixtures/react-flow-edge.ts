@@ -1,7 +1,7 @@
 import type { Edge } from 'reactflow'
 import { createFixture } from '@flowlens/test-utils'
 
-import type { GraphViewNodeData } from '../presentation/toReactFlow.ts'
+import type { GraphViewNodeData } from '../adapters/ReactFlowAdapter/toReactFlow.ts'
 
 const edgeFixture: Edge<GraphViewNodeData> = {
   id: 'source->target',

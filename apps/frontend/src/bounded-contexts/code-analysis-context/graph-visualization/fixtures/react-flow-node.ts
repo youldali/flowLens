@@ -1,7 +1,7 @@
 import type { Node } from 'reactflow'
 import { createFixture } from '@flowlens/test-utils'
 
-import type { GraphViewNodeData } from '../presentation/toReactFlow.ts'
+import type { GraphViewNodeData } from '../adapters/ReactFlowAdapter/toReactFlow.ts'
 
 const nodeFixture: Node<GraphViewNodeData> = {
   id: 'fixture-node',

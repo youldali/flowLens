@@ -3,8 +3,8 @@ import { describe, it } from 'node:test'
 
 import { Position } from 'reactflow'
 
-import { create as createEdge } from '../fixtures/react-flow-edge.ts'
-import { create as createNode } from '../fixtures/react-flow-node.ts'
+import { create as createEdge } from '../../fixtures/react-flow-edge.ts'
+import { create as createNode } from '../../fixtures/react-flow-node.ts'
 import { layoutDagre } from './layoutDagre.ts'
 
 describe('layoutDagre', () => {
