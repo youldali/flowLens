@@ -12,7 +12,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@flowlens/graph-model": "workspace:*",
+    "@flowlens/analyzer-core": "workspace:*",
     "classnames": "^2.5.1",
     "dagre": "^0.8.5",
     "date-fns": "^4.3.0",

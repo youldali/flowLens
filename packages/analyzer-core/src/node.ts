@@ -3,11 +3,22 @@ import * as path from 'node:path';
 import { err, ok, type Result } from 'neverthrow';
 
 import { normalizePath } from '@flowlens/common';
-import type {
-  GraphNode,
-  NodeId,
-} from '@flowlens/graph-model';
-export type { GraphNodeKind, NodeId } from '@flowlens/graph-model';
+
+export type GraphNodeKind =
+  | 'functionDeclaration'
+  | 'methodDeclaration'
+  | 'callExpression'
+  | 'file'
+  | 'if-statement';
+
+export type NodeId = string;
+
+export interface GraphNode {
+  id: NodeId;
+  kind: GraphNodeKind;
+  name: string;
+  filePath: string;
+}
 
 export interface Node extends GraphNode {
   tsNode: ts.Node;

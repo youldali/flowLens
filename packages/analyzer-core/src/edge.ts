@@ -1,5 +1,14 @@
-import type { Edge, EdgeType, NodeId } from '@flowlens/graph-model';
-export type { Edge, EdgeId, EdgeType } from '@flowlens/graph-model';
+import type { NodeId } from './node.js';
+
+export type EdgeId = string;
+export type EdgeType = 'imports' | 'declares' | 'calls' | 'references';
+
+export interface Edge {
+  id: EdgeId;
+  source: NodeId;
+  target: NodeId;
+  type: EdgeType;
+}
 
 export function create(source: NodeId, target: NodeId, type: EdgeType): Edge {
   return {

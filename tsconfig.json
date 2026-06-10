@@ -1,7 +1,6 @@
 {
   "files": [],
   "references": [
-    { "path": "./packages/graph-model" },
     { "path": "./packages/test-utils" },
     { "path": "./packages/common" },
     { "path": "./packages/analyzer-core" },

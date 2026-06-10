@@ -18,7 +18,6 @@
   },
   "dependencies": {
     "@flowlens/common": "workspace:*",
-    "@flowlens/graph-model": "workspace:*",
     "@flowlens/test-utils": "workspace:*",
     "neverthrow": "^8.2.0",
     "typescript": "^6.0.3"

@@ -1,6 +1,6 @@
 import type { Edge as FlowEdge, Node as FlowNode } from 'reactflow'
 import { MarkerType } from 'reactflow'
-import type { Graph, GraphNode } from '@flowlens/graph-model'
+import type { Graph, GraphNode } from '@flowlens/analyzer-core'
 
 export interface GraphViewNodeData extends Record<string, unknown> {
   label: string

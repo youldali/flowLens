@@ -20,7 +20,6 @@
   "dependencies": {
     "@flowlens/analyzer-core": "workspace:*",
     "@flowlens/common": "workspace:*",
-    "@flowlens/graph-model": "workspace:*",
     "fastify": "^5.7.4"
   }
 }

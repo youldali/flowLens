@@ -8,7 +8,6 @@
   "exclude": ["node_modules", "dist"],
   "references": [
     { "path": "../../packages/analyzer-core" },
-    { "path": "../../packages/common" },
-    { "path": "../../packages/graph-model" }
+    { "path": "../../packages/common" }
   ]
 }

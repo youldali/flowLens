@@ -4,5 +4,17 @@ export {
   findNodeAtPosition,
   isExecutableFunction,
 } from './node.js';
-export type { ExecutableFunctionDeclaration } from './node.js';
-export type { FlowGraph } from '@flowlens/graph-model';
+export type {
+  ExecutableFunctionDeclaration,
+  GraphNode,
+  GraphNodeKind,
+  NodeId,
+} from './node.js';
+export type {
+  Edge,
+  EdgeId,
+  EdgeType,
+} from './edge.js';
+export type {
+  FlowGraph,
+} from './flow-graph.js';

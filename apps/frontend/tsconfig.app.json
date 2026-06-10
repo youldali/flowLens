@@ -19,9 +19,8 @@
       "@code-analysis-context": ["./src/bounded-contexts/code-analysis-context"],
       "@code-analysis-context/*": ["./src/bounded-contexts/code-analysis-context/*"],
       "@common/*": ["./src/common/*"],
-      "@flowlens/analyzer-core": ["../../packages/analyzer-core/src/index.ts"],
-      "@flowlens/common": ["../../packages/common/src/index.ts"],
-      "@flowlens/graph-model": ["../../packages/graph-model/src/index.ts"]
+      "@flowlens/analyzer-core": ["../../packages/analyzer-core/dist/src/index.d.ts"],
+      "@flowlens/common": ["../../packages/common/src/index.ts"]
     },
 
     /* Linting */

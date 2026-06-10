@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
 
 import { MarkerType } from 'reactflow'
-import type { Graph } from '@flowlens/graph-model'
+import type { Graph } from '@flowlens/analyzer-core'
 
 import { toReactFlow } from './toReactFlow.ts'
 

@@ -1,11 +1,19 @@
 import * as path from 'node:path';
 import * as ts from 'typescript';
 import { normalizePath } from '@flowlens/common';
-import type { FlowGraph } from '@flowlens/graph-model';
+import type { Edge } from './edge.js';
+import type { GraphNode } from './node.js';
 import * as NodeModule from './node.js';
 import * as EdgeModule from './edge.js';
 import { loadProjectConfig } from './project-config.js';
 import { Queue } from './queue.js';
+
+interface Graph<TNode = GraphNode, TEdge = Edge> {
+  nodes: TNode[];
+  edges: TEdge[];
+}
+
+export type FlowGraph = Graph<GraphNode, Edge>;
 
 type QueueItem = 
 | { node: ts.CallExpression; parentNode: ts.Node } 

@@ -7,7 +7,7 @@ import ReactFlow, {
   type FitViewOptions,
   type NodeTypes,
 } from 'reactflow'
-import type { Graph } from '@flowlens/graph-model'
+import type { Graph } from '@flowlens/analyzer-core'
 import {
   adaptToReactFlow,
   type ReactFlowAdapterOptions,

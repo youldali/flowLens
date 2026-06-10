@@ -9,8 +9,7 @@
     "paths": {
       "@flowlens/analyzer-core": ["./packages/analyzer-core/src/index.ts"],
       "@flowlens/common": ["./packages/common/src/index.ts"],
-      "@flowlens/common/testing": ["./packages/common/src/testing/index.ts"],
-      "@flowlens/graph-model": ["./packages/graph-model/src/index.ts"]
+      "@flowlens/common/testing": ["./packages/common/src/testing/index.ts"]
     },
     "strict": true,
     "noUncheckedIndexedAccess": true,

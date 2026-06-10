@@ -1,6 +1,6 @@
 import { useQuery, type UseQueryResult } from 'react-query'
 import { fromFetchError, type QueryError } from '@common/utils/queryError';
-import type { Graph } from '@flowlens/graph-model'
+import type { Graph } from '@flowlens/analyzer-core'
 
 export async function fetchGraph(fetcher: typeof fetch = fetch): Promise<Graph> {
   const request = new Request('/graph.json', {

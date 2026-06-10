@@ -20,9 +20,9 @@ importers:
 
   apps/frontend:
     dependencies:
-      '@flowlens/graph-model':
+      '@flowlens/analyzer-core':
         specifier: workspace:*
-        version: link:../../packages/graph-model
+        version: link:../../packages/analyzer-core
       classnames:
         specifier: ^2.5.1
         version: 2.5.1
@@ -123,9 +123,6 @@ importers:
       '@flowlens/common':
         specifier: workspace:*
         version: link:../../packages/common
-      '@flowlens/graph-model':
-        specifier: workspace:*
-        version: link:../../packages/graph-model
       fastify:
         specifier: ^5.7.4
         version: 5.8.5
@@ -147,9 +144,6 @@ importers:
       '@flowlens/common':
         specifier: workspace:*
         version: link:../common
-      '@flowlens/graph-model':
-        specifier: workspace:*
-        version: link:../graph-model
       '@flowlens/test-utils':
         specifier: workspace:*
         version: link:../test-utils
@@ -165,8 +159,6 @@ importers:
       neverthrow:
         specifier: ^8.2.0
         version: 8.2.0
-
-  packages/graph-model: {}
 
   packages/test-utils: {}
 
