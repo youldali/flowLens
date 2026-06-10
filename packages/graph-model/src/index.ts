@@ -23,7 +23,9 @@ export interface Edge {
   type: EdgeType;
 }
 
-export interface Graph<TNode = GraphNode, TEdge = Edge> {
+interface Graph<TNode = GraphNode, TEdge = Edge> {
   nodes: TNode[];
   edges: TEdge[];
 }
+
+export type FlowGraph = Graph<GraphNode, Edge>;

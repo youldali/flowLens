@@ -1,0 +1,16 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "build FlowLens VS Code extension",
+      "type": "shell",
+      "command": "/home/yannis/.local/share/fnm/node-versions/v26.1.0/installation/bin/pnpm",
+      "args": [
+        "--filter",
+        "flowlens-vscode-extension",
+        "build"
+      ],
+      "problemMatcher": "$tsc"
+    }
+  ]
+}

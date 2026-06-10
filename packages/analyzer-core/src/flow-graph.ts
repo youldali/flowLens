@@ -1,13 +1,11 @@
 import * as path from 'node:path';
 import * as ts from 'typescript';
 import { normalizePath } from '@flowlens/common';
-import type { Graph, GraphNode } from '@flowlens/graph-model';
+import type { FlowGraph } from '@flowlens/graph-model';
 import * as NodeModule from './node.js';
 import * as EdgeModule from './edge.js';
 import { loadProjectConfig } from './project-config.js';
 import { Queue } from './queue.js';
-
-export type AnalyzerGraph = Graph<GraphNode, EdgeModule.Edge>;
 
 type QueueItem = 
 | { node: ts.CallExpression; parentNode: ts.Node } 
@@ -162,7 +160,7 @@ export class GraphBuilder {
     return !path.includes('node_modules') && path.startsWith(this.rootDir);
   }
 
-  extract(): AnalyzerGraph {
+  extract(): FlowGraph {
     return {
       nodes: Array.from(this.nodes.values(), NodeModule.toGraphNode),
       edges: Array.from(this.edges.values()),
