@@ -2,10 +2,10 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import type { Graph } from '@flowlens/analyzer-core';
+import type { FlowGraph } from '@flowlens/analyzer-core';
 import Fastify from 'fastify';
 
-export async function serveGraphViewer(graph: Graph): Promise<void> {
+export async function serveGraphViewer(graph: FlowGraph): Promise<void> {
   const frontendDistPath = findFrontendDist();
 
   if (!frontendDistPath) {
