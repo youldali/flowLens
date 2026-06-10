@@ -3,7 +3,7 @@ import * as path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import type { FlowGraph } from '@flowlens/analyzer-core';
-import Fastify from 'fastify';
+import Fastify, { type FastifyReply } from 'fastify';
 
 export async function serveGraphViewer(graph: FlowGraph): Promise<void> {
   const frontendDistPath = findFrontendDist();
@@ -27,13 +27,33 @@ export async function serveGraphViewer(graph: FlowGraph): Promise<void> {
       return reply.code(404).send('Not found');
     }
 
-    return reply
-      .type(getContentType(filePath))
-      .send(fs.createReadStream(filePath));
+    return await sendStaticFile(reply, filePath);
   });
 
   const address = await app.listen({ host: '127.0.0.1', port: 0 });
   console.log(`FlowLens graph viewer: ${address}/`);
+}
+
+async function sendStaticFile(reply: FastifyReply, filePath: string): Promise<FastifyReply> {
+  if (path.basename(filePath) !== 'index.html') {
+    return reply
+      .type(getContentType(filePath))
+      .send(fs.createReadStream(filePath));
+  }
+
+  const indexHtml = await fs.promises.readFile(filePath, 'utf8');
+
+  return reply
+    .type(getContentType(filePath))
+    .send(injectRuntimeHost(indexHtml));
+}
+
+function injectRuntimeHost(indexHtml: string): string {
+  const script = '<script>window.__flowlensHost = "cli";</script>';
+
+  return indexHtml.includes('</head>')
+    ? indexHtml.replace('</head>', `    ${script}\n  </head>`)
+    : `${script}\n${indexHtml}`;
 }
 
 function findFrontendDist(): string | undefined {
