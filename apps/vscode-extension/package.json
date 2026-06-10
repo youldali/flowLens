@@ -11,7 +11,8 @@
   },
   "activationEvents": [
     "onLanguage:typescript",
-    "onLanguage:typescriptreact"
+    "onLanguage:typescriptreact",
+    "onCommand:flowlens.generateGraph"
   ],
   "contributes": {
     "commands": [
@@ -38,5 +39,9 @@
     "@types/vscode": "1.104.0",
     "typescript": "^6.0.3",
     "vscode": "^1.1.37"
+  },
+  "dependencies": {
+    "@flowlens/analyzer-core": "workspace:*",
+    "@flowlens/common": "workspace:*"
   }
 }

@@ -1,8 +1,8 @@
 #!/usr/bin/env node
-import * as fs from 'node:fs';
 import * as path from 'node:path';
 
 import { GraphBuilder } from '@flowlens/analyzer-core';
+import { findNearestTsconfig } from '@flowlens/common';
 import { serveGraphViewer } from './server.js';
 
 const args = process.argv.slice(2);
@@ -18,8 +18,13 @@ if (args.length !== 1) {
   const entryFile = args[0]!;
   const invocationDir = process.env.INIT_CWD ?? process.cwd();
   const entryFilePath = path.resolve(invocationDir, entryFile);
-  const tsconfigPath = findNearestTsconfig(path.dirname(entryFilePath));
-  const graphBuilder = new GraphBuilder(tsconfigPath);
+  const tsconfigPathResult = findNearestTsconfig(path.dirname(entryFilePath));
+
+  if (tsconfigPathResult.isErr()) {
+    throw new Error(`Could not find tsconfig.json at or above ${path.dirname(entryFilePath)}`);
+  }
+
+  const graphBuilder = new GraphBuilder(tsconfigPathResult.value);
 
   const buildResult = graphBuilder.fromFile(entryFilePath);
 
@@ -31,24 +36,4 @@ if (args.length !== 1) {
   console.log(graph);
 
   await serveGraphViewer(graph);
-}
-
-function findNearestTsconfig(startDir: string): string {
-  let currentDir = startDir;
-
-  while (true) {
-    const candidate = path.join(currentDir, 'tsconfig.json');
-
-    if (fs.existsSync(candidate)) {
-      return candidate;
-    }
-
-    const parentDir = path.dirname(currentDir);
-
-    if (parentDir === currentDir) {
-      throw new Error(`Could not find tsconfig.json at or above ${startDir}`);
-    }
-
-    currentDir = parentDir;
-  }
 }

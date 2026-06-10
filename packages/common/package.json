@@ -4,7 +4,7 @@
   "description": "Shared dependency-free FlowLens utilities.",
   "scripts": {
     "build": "tsc -p tsconfig.json",
-    "test": "node --test"
+    "test": "pnpm build && node --test \"dist/**/*.test.js\""
   },
   "keywords": [],
   "author": "",

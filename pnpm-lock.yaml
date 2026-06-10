@@ -128,6 +128,13 @@ importers:
         version: 5.8.5
 
   apps/vscode-extension:
+    dependencies:
+      '@flowlens/analyzer-core':
+        specifier: workspace:*
+        version: link:../../packages/analyzer-core
+      '@flowlens/common':
+        specifier: workspace:*
+        version: link:../../packages/common
     devDependencies:
       '@types/vscode':
         specifier: 1.104.0
