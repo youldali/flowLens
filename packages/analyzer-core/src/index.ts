@@ -16,5 +16,7 @@ export type {
   EdgeType,
 } from './edge.js';
 export type {
+  FromFilePositionError,
   FlowGraph,
+  SourceFileNotFoundError,
 } from './flow-graph.js';

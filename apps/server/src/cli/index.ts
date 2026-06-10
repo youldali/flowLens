@@ -21,7 +21,12 @@ if (args.length !== 1) {
   const tsconfigPath = findNearestTsconfig(path.dirname(entryFilePath));
   const graphBuilder = new GraphBuilder(tsconfigPath);
 
-  graphBuilder.build(entryFilePath);
+  const buildResult = graphBuilder.fromFile(entryFilePath);
+
+  if (buildResult.isErr()) {
+    throw new Error(`Could not build graph: ${buildResult.error.reason}`);
+  }
+
   const graph = graphBuilder.extract();
   console.log(graph);
 

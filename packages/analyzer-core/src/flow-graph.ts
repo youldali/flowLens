@@ -1,5 +1,6 @@
 import * as path from 'node:path';
 import * as ts from 'typescript';
+import { err, ok, type Result } from 'neverthrow';
 import { normalizePath } from '@flowlens/common';
 import type { Edge } from './edge.js';
 import type { GraphNode } from './node.js';
@@ -14,6 +15,11 @@ interface Graph<TNode = GraphNode, TEdge = Edge> {
 }
 
 export type FlowGraph = Graph<GraphNode, Edge>;
+export type SourceFileNotFoundError = { reason: 'source-file-not-found' };
+export type FromFilePositionError =
+  | SourceFileNotFoundError
+  | { reason: 'node-not-found' }
+  | { reason: 'enclosing-function-not-found' };
 
 type QueueItem = 
 | { node: ts.CallExpression; parentNode: ts.Node } 
@@ -50,9 +56,47 @@ export class GraphBuilder {
     this.nodeBuilder = new NodeModule.NodeBuilder(this.checker);
   }
 
-  build(entryFilePath: string): void {
-    const sourceFile = this.getSourceFileByPath(entryFilePath);
-    this.nodeQueue.enqueue({ node: sourceFile });
+  fromFile(entryFilePath: string): Result<void, SourceFileNotFoundError> {
+    const sourceFileResult = this.getSourceFileByPath(entryFilePath);
+
+    if (sourceFileResult.isErr()) {
+      return err(sourceFileResult.error);
+    }
+
+    this.build(sourceFileResult.value);
+    return ok(undefined);
+  }
+
+  fromFilePosition(
+    sourceFile: ts.SourceFile | string,
+    position: number,
+  ): Result<void, FromFilePositionError> {
+    const sourceFileResult = this.getSourceFileByPath(
+      typeof sourceFile === 'string' ? sourceFile : sourceFile.fileName,
+    );
+
+    if (sourceFileResult.isErr()) {
+      return err(sourceFileResult.error);
+    }
+
+    const nodeResult = NodeModule.findNodeAtPosition(sourceFileResult.value, position);
+
+    if (nodeResult.isErr()) {
+      return err({ reason: 'node-not-found' });
+    }
+
+    const enclosingFunctionResult = NodeModule.findEnclosingFunction(nodeResult.value);
+
+    if (enclosingFunctionResult.isErr()) {
+      return err({ reason: 'enclosing-function-not-found' });
+    }
+
+    this.build(enclosingFunctionResult.value, sourceFileResult.value);
+    return ok(undefined);
+  }
+
+  private build(startNode: ts.Node, parentNode?: ts.Node): void {
+    this.nodeQueue.enqueue({ node: startNode, parentNode });
     this.processQueue();
   }
 
@@ -137,20 +181,14 @@ export class GraphBuilder {
     }
   }
   
-  private getSourceFileByPath(filePath: string): ts.SourceFile {
+  private getSourceFileByPath(filePath: string): Result<ts.SourceFile, SourceFileNotFoundError> {
     const normalizedEntryPath = normalizePath(filePath);
     const sourceFile = this.program.getSourceFiles().find((candidate) => {
       const candidatePath = normalizePath(candidate.fileName)
       return candidatePath === normalizedEntryPath
     });
 
-    if (!sourceFile) {
-      throw new Error(
-        `Entry file is not part of the TypeScript program: ${filePath}`,
-      )
-    }
-
-    return sourceFile;
+    return sourceFile ? ok(sourceFile) : err({ reason: 'source-file-not-found' });
   }
 
   private addNode(node: NodeModule.Node): NodeModule.Node {
