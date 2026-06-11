@@ -7,7 +7,7 @@ import ReactFlow, {
   type FitViewOptions,
   type NodeTypes,
 } from 'reactflow'
-import type { Graph } from '@flowlens/analyzer-core'
+import type { FlowGraph } from '@flowlens/analyzer-core'
 import {
   adaptToReactFlow,
   type ReactFlowAdapterOptions,
@@ -16,7 +16,7 @@ import { GraphNode } from './GraphNode'
 import styles from './GraphView.module.css'
 
 export interface GraphViewContentProps {
-  graph: Graph
+  graph: FlowGraph
   className?: string
   direction?: ReactFlowAdapterOptions['direction']
   fitViewOptions?: FitViewOptions

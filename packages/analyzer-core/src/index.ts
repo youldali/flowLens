@@ -1,4 +1,4 @@
-export { GraphBuilder } from './flow-graph.js';
+export { GraphBuilder, isFlowGraph } from './flow-graph.js';
 export {
   findEnclosingFunction,
   findNodeAtPosition,

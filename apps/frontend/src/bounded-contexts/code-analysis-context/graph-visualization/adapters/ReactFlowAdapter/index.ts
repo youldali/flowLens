@@ -1,4 +1,4 @@
-import type { Graph } from '@flowlens/analyzer-core'
+import type { FlowGraph } from '@flowlens/analyzer-core'
 
 import { layoutDagre, type DagreLayoutOptions } from './layoutDagre.ts'
 import { toReactFlow, type ReactFlowGraph } from './toReactFlow.ts'
@@ -6,7 +6,7 @@ import { toReactFlow, type ReactFlowGraph } from './toReactFlow.ts'
 export type ReactFlowAdapterOptions = DagreLayoutOptions
 
 export function adaptToReactFlow(
-  graph: Graph,
+  graph: FlowGraph,
   options: ReactFlowAdapterOptions = {},
 ): ReactFlowGraph {
   const flowGraph = toReactFlow(graph)

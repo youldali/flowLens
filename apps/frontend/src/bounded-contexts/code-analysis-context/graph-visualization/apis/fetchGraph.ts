@@ -1,8 +1,8 @@
 import { useQuery, type UseQueryResult } from 'react-query'
 import { fromFetchError, type QueryError } from '@common/utils/queryError';
-import type { Graph } from '@flowlens/analyzer-core'
+import type { FlowGraph } from '@flowlens/analyzer-core'
 
-export async function fetchGraph(fetcher: typeof fetch = fetch): Promise<Graph> {
+export async function fetchGraph(fetcher: typeof fetch = fetch): Promise<FlowGraph> {
   const request = new Request('/graph.json', {
     method: 'GET',
     headers: {
@@ -17,12 +17,12 @@ export async function fetchGraph(fetcher: typeof fetch = fetch): Promise<Graph> 
     throw fromFetchError(request, response);
   }
 
-  return await response.json() as Graph
+  return await response.json() as FlowGraph
   } catch (error) {
     throw fromFetchError(request, error instanceof Error ? error : new Error('Unknown error occurred while fetching graph'));
   }
 }
 
-export function useFetchGraph(): UseQueryResult<Graph, QueryError<unknown>> {
-  return useQuery<Graph, QueryError<unknown>>('graph', () => fetchGraph())
+export function useFetchGraph(): UseQueryResult<FlowGraph, QueryError<unknown>> {
+  return useQuery<FlowGraph, QueryError<unknown>>('graph', () => fetchGraph())
 }

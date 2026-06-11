@@ -4,7 +4,7 @@ import * as path from 'node:path';
 import { describe, it } from 'node:test';
 import ts from 'typescript';
 
-import { GraphBuilder } from './flow-graph.js';
+import { GraphBuilder, isFlowGraph } from './flow-graph.js';
 import { create as createEdge } from './fixtures/edge.js';
 import { createCallExpressionNode } from './fixtures/node.js';
 import { assertErr, assertOk } from '@flowlens/common/testing';
@@ -13,6 +13,25 @@ const tsconfigPath = path.resolve("tsconfig.json");
 const entryFilePath = path.resolve("src/fixtures/graph-builder-entry.ts");
 
 const createGraphBuilder = (): GraphBuilder => new GraphBuilder(tsconfigPath);
+
+describe("isFlowGraph", () => {
+  it("returns true for objects with node and edge arrays", () => {
+    const graph = {
+      nodes: [createCallExpressionNode()],
+      edges: [createEdge()],
+    };
+
+    assert.equal(isFlowGraph(graph), true);
+  });
+
+  it("returns false for values without node and edge arrays", () => {
+    assert.equal(isFlowGraph(undefined), false);
+    assert.equal(isFlowGraph(null), false);
+    assert.equal(isFlowGraph({ nodes: [], edges: undefined }), false);
+    assert.equal(isFlowGraph({ nodes: {}, edges: [] }), false);
+    assert.equal(isFlowGraph({ nodes: [], links: [] }), false);
+  });
+});
 
 describe("GraphBuilder.extract", () => {
   it("returns a JSON-safe graph without analyzer-only node fields", () => {

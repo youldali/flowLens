@@ -21,6 +21,17 @@ export type FromFilePositionError =
   | { reason: 'node-not-found' }
   | { reason: 'enclosing-function-not-found' };
 
+export function isFlowGraph(value: unknown): value is FlowGraph {
+  return (
+    typeof value === 'object'
+    && value !== null
+    && 'nodes' in value
+    && 'edges' in value
+    && Array.isArray(value.nodes)
+    && Array.isArray(value.edges)
+  )
+}
+
 type QueueItem = 
 | { node: ts.CallExpression; parentNode: ts.Node } 
 | { node: ts.FunctionDeclaration | ts.MethodDeclaration; parentNode: ts.Node } 

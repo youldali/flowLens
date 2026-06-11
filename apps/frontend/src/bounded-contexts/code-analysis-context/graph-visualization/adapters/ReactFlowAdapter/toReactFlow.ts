@@ -1,6 +1,6 @@
 import type { Edge as FlowEdge, Node as FlowNode } from 'reactflow'
 import { MarkerType } from 'reactflow'
-import type { Graph, GraphNode } from '@flowlens/analyzer-core'
+import type { FlowGraph, GraphNode } from '@flowlens/analyzer-core'
 
 export interface GraphViewNodeData extends Record<string, unknown> {
   label: string
@@ -13,7 +13,7 @@ export interface ReactFlowGraph {
   edges: FlowEdge[]
 }
 
-export function toReactFlow(graph: Graph): ReactFlowGraph {
+export function toReactFlow(graph: FlowGraph): ReactFlowGraph {
   return {
     nodes: graph.nodes.map(toReactFlowNode),
     edges: graph.edges.map((edge) => ({
