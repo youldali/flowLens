@@ -31,9 +31,9 @@
     }
   },
   "scripts": {
-    "build": "tsc -p tsconfig.json",
+    "build": "node ./scripts/build-frontend.js && node ./scripts/copy-frontend-dist.js && tsc -p tsconfig.json",
     "watch": "tsc -w -p tsconfig.json",
-    "vscode:prepublish": "pnpm run build"
+    "vscode:prepublish": "node ./scripts/build-frontend.js && node ./scripts/copy-frontend-dist.js && tsc -p tsconfig.json"
   },
   "devDependencies": {
     "@types/vscode": "1.104.0",
