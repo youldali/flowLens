@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react'
-import { isFlowGraph, type FlowGraph } from '@flowlens/analyzer-core'
+import { useVsCodeApi } from '@common/hooks/useVsCodeApi'
+import { isFlowGraph, type FlowGraph } from '@flowlens/analyzer-core/flow-graph-contract'
 
 export function useGraph(): FlowGraph | undefined {
   const [graph, setGraph] = useState<FlowGraph>()
+  const vscodeApi = useVsCodeApi()
 
   useEffect(() => {
     const handleMessage = (event: MessageEvent<unknown>) => {
@@ -14,9 +16,10 @@ export function useGraph(): FlowGraph | undefined {
     }
 
     window.addEventListener('message', handleMessage)
+    vscodeApi.postMessage({ type: 'flowlens.ready' })
 
     return () => window.removeEventListener('message', handleMessage)
-  }, [])
+  }, [vscodeApi])
 
   return graph
 }

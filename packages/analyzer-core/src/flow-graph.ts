@@ -3,34 +3,20 @@ import * as ts from 'typescript';
 import { err, ok, type Result } from 'neverthrow';
 import { normalizePath } from '@flowlens/common';
 import type { Edge } from './edge.js';
-import type { GraphNode } from './node.js';
 import * as NodeModule from './node.js';
 import * as EdgeModule from './edge.js';
 import { loadProjectConfig } from './project-config.js';
 import { Queue } from './queue.js';
+import type { FlowGraph } from './flow-graph-contract.js';
 
-interface Graph<TNode = GraphNode, TEdge = Edge> {
-  nodes: TNode[];
-  edges: TEdge[];
-}
+export { isFlowGraph } from './flow-graph-contract.js';
+export type { FlowGraph } from './flow-graph-contract.js';
 
-export type FlowGraph = Graph<GraphNode, Edge>;
 export type SourceFileNotFoundError = { reason: 'source-file-not-found' };
 export type FromFilePositionError =
   | SourceFileNotFoundError
   | { reason: 'node-not-found' }
   | { reason: 'enclosing-function-not-found' };
-
-export function isFlowGraph(value: unknown): value is FlowGraph {
-  return (
-    typeof value === 'object'
-    && value !== null
-    && 'nodes' in value
-    && 'edges' in value
-    && Array.isArray(value.nodes)
-    && Array.isArray(value.edges)
-  )
-}
 
 type QueueItem = 
 | { node: ts.CallExpression; parentNode: ts.Node } 

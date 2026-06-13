@@ -1,4 +1,5 @@
-export { GraphBuilder, isFlowGraph } from './flow-graph.js';
+export { GraphBuilder } from './flow-graph.js';
+export { isFlowGraph } from './flow-graph-contract.js';
 export {
   findEnclosingFunction,
   findNodeAtPosition,
@@ -17,6 +18,8 @@ export type {
 } from './edge.js';
 export type {
   FromFilePositionError,
-  FlowGraph,
   SourceFileNotFoundError,
 } from './flow-graph.js';
+export type {
+  FlowGraph,
+} from './flow-graph-contract.js';

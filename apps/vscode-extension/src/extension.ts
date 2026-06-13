@@ -139,7 +139,7 @@ class FlowLensGraphWebview {
       return;
     }
 
-    await this.panel.webview.postMessage({ graph: this.pendingGraph });
+    await this.panel.webview.postMessage({ type: "flowgraph", graph: this.pendingGraph });
   }
 
   private async getWebviewHtml(webview: vscode.Webview): Promise<string> {
@@ -148,26 +148,26 @@ class FlowLensGraphWebview {
     const nonce = getNonce();
     const csp = [
       "default-src 'none'",
+      `connect-src ${webview.cspSource}`,
       `img-src ${webview.cspSource} data:`,
       `style-src ${webview.cspSource} 'unsafe-inline'`,
       `script-src 'nonce-${nonce}'`,
       `font-src ${webview.cspSource}`,
     ].join("; ");
+    const assetBase = webview.asWebviewUri(this.frontendDistUri).toString();
     const runtimeScript = [
       `<meta http-equiv="Content-Security-Policy" content="${csp}">`,
       `<script nonce="${nonce}">`,
       "window.__vscodeApi = acquireVsCodeApi();",
       'window.__flowlensHost = "vscode";',
-      "window.addEventListener('load', () => {",
-      "  window.setTimeout(() => window.__vscodeApi.postMessage({ type: 'flowlens.ready' }), 0);",
-      "});",
+      `window.__flowlensAssetBase = ${JSON.stringify(assetBase)};`,
       "</script>",
     ].join("\n");
     const htmlWithWebviewUris = rewriteRootRelativeUris(indexHtml, webview, this.frontendDistUri);
     const htmlWithNonce = htmlWithWebviewUris.replaceAll("<script ", `<script nonce="${nonce}" `);
 
-    return htmlWithNonce.includes("</head>")
-      ? htmlWithNonce.replace("</head>", `${runtimeScript}\n  </head>`)
+    return htmlWithNonce.includes("<head>")
+      ? htmlWithNonce.replace("<head>", `<head>\n${runtimeScript}`)
       : `${runtimeScript}\n${htmlWithNonce}`;
   }
 }

@@ -2,6 +2,8 @@ import i18n from 'i18next';
 import HttpBackend from 'i18next-http-backend';
 import { initReactI18next } from 'react-i18next';
 
+import { getConfig } from './config';
+
 export const SUPPORTED_LANGUAGES = ['en'] as const;
 export type Language = (typeof SUPPORTED_LANGUAGES)[number];
 
@@ -17,7 +19,7 @@ export type I18nNamespace = (typeof SUPPORTED_NAMESPACES)[number];
 
 void i18n.use(HttpBackend).use(initReactI18next).init({
   backend: {
-    loadPath: '/locales/{{lng}}/{{ns}}.json',
+    loadPath: getLocalesLoadPath(),
   },
   defaultNS: DEFAULT_NAMESPACE,
   fallbackLng: DEFAULT_LANGUAGE,
@@ -34,3 +36,9 @@ void i18n.use(HttpBackend).use(initReactI18next).init({
 });
 
 export { i18n };
+
+function getLocalesLoadPath(): string {
+  const { assetBaseUrl } = getConfig();
+
+  return `${assetBaseUrl}/locales/{{lng}}/{{ns}}.json`;
+}

@@ -3,24 +3,31 @@ import { spawn } from "node:child_process";
 const packageManager = process.env.npm_execpath;
 
 if (!packageManager) {
-  throw new Error("Could not determine package manager from npm_execpath.");
+  throw new Error(
+    "Could not determine package manager from npm_execpath. Run this script through a package.json script, for example with `pnpm run ...`, instead of invoking it directly with node or pnpm exec.",
+  );
 }
 
-const build = spawn(
-  process.execPath,
-  [packageManager, "--filter", "frontend", "build"],
-  { stdio: "inherit" },
-);
+await runPackageScript("@flowlens/analyzer-core", "build");
+await runPackageScript("frontend", "build");
 
-build.on("exit", (code, signal) => {
-  if (signal) {
-    process.kill(process.pid, signal);
-    return;
-  }
+function runPackageScript(filter, script) {
+  return new Promise((resolve, reject) => {
+    const child = spawn(
+      process.execPath,
+      [packageManager, "--filter", filter, script],
+      { stdio: "inherit" },
+    );
 
-  process.exit(code ?? 1);
-});
+    child.on("exit", (code, signal) => {
+      if (signal) {
+        process.kill(process.pid, signal);
+        return;
+      }
 
-build.on("error", (error) => {
-  throw error;
-});
+      code === 0 ? resolve() : reject(new Error(`${filter} ${script} failed with exit code ${code ?? 1}.`));
+    });
+
+    child.on("error", reject);
+  });
+}

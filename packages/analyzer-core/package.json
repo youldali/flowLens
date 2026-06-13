@@ -14,6 +14,10 @@
     ".": {
       "types": "./dist/src/index.d.ts",
       "default": "./dist/src/index.js"
+    },
+    "./flow-graph-contract": {
+      "types": "./dist/src/flow-graph-contract.d.ts",
+      "default": "./dist/src/flow-graph-contract.js"
     }
   },
   "dependencies": {
