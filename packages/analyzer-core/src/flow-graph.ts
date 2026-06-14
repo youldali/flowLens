@@ -2,11 +2,10 @@ import * as path from 'node:path';
 import * as ts from 'typescript';
 import { err, ok, type Result } from 'neverthrow';
 import { normalizePath } from '@flowlens/common';
-import type { Edge } from './edge.js';
+import { Queue } from '@flowlens/common/queue';
 import * as NodeModule from './node.js';
 import * as EdgeModule from './edge.js';
 import { loadProjectConfig } from './project-config.js';
-import { Queue } from './queue.js';
 import type { FlowGraph } from './flow-graph-contract.js';
 
 export { isFlowGraph } from './flow-graph-contract.js';
