@@ -24,6 +24,7 @@
     "@flowlens/common": "workspace:*",
     "@flowlens/test-utils": "workspace:*",
     "neverthrow": "^8.2.0",
-    "typescript": "^6.0.3"
+    "typescript": "^6.0.3",
+    "zod": "^4.1.13"
   }
 }

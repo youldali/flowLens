@@ -6,10 +6,15 @@ import { Queue } from '@flowlens/common/queue';
 import * as NodeModule from './node.js';
 import * as EdgeModule from './edge.js';
 import { loadProjectConfig } from './project-config.js';
-import type { FlowGraph } from './flow-graph-contract.js';
 
 export { isFlowGraph } from './flow-graph-contract.js';
-export type { FlowGraph } from './flow-graph-contract.js';
+
+export interface Graph<TNode = NodeModule.GraphNode, TEdge = EdgeModule.Edge> {
+  nodes: TNode[];
+  edges: TEdge[];
+}
+
+export type FlowGraph = Graph<NodeModule.GraphNode, EdgeModule.Edge>;
 
 export type SourceFileNotFoundError = { reason: 'source-file-not-found' };
 export type FromFilePositionError =

@@ -18,8 +18,6 @@ export type {
 } from './edge.js';
 export type {
   FromFilePositionError,
+  FlowGraph,
   SourceFileNotFoundError,
 } from './flow-graph.js';
-export type {
-  FlowGraph,
-} from './flow-graph-contract.js';

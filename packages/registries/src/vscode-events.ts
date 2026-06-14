@@ -1,26 +1,7 @@
 import { z } from 'zod';
 import { err, ok, type Result } from 'neverthrow';
-import type { FlowGraph } from '@flowlens/analyzer-core/flow-graph-contract';
+import { flowGraphSchema } from '@flowlens/analyzer-core/flow-graph-contract';
 import { createEventSchema, type EventDefinition, type EventFromDefinition } from './event-definition.js';
-
-export const graphNodeSchema = z.object({
-  id: z.string(),
-  kind: z.enum(['functionDeclaration', 'methodDeclaration', 'callExpression', 'file', 'if-statement']),
-  name: z.string(),
-  filePath: z.string(),
-});
-
-export const edgeSchema = z.object({
-  id: z.string(),
-  source: z.string(),
-  target: z.string(),
-  type: z.enum(['imports', 'declares', 'calls', 'references']),
-});
-
-export const flowGraphSchema = z.object({
-  nodes: z.array(graphNodeSchema),
-  edges: z.array(edgeSchema),
-}) satisfies z.ZodType<FlowGraph>;
 
 export const eventRegistry = {
   flowgraph: {
