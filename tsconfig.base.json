@@ -9,7 +9,10 @@
     "paths": {
       "@flowlens/analyzer-core": ["./packages/analyzer-core/src/index.ts"],
       "@flowlens/common": ["./packages/common/src/index.ts"],
-      "@flowlens/common/testing": ["./packages/common/src/testing/index.ts"]
+      "@flowlens/common/testing": ["./packages/common/src/testing/index.ts"],
+      "@flowlens/registries": ["./packages/registries/src/index.ts"],
+      "@flowlens/registries/vscode-events": ["./packages/registries/src/vscode-events.ts"],
+      "@flowlens/test-utils": ["./packages/test-utils/src/index.ts"]
     },
     "strict": true,
     "noUncheckedIndexedAccess": true,

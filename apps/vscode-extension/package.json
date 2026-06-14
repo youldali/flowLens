@@ -42,6 +42,7 @@
   },
   "dependencies": {
     "@flowlens/analyzer-core": "workspace:*",
-    "@flowlens/common": "workspace:*"
+    "@flowlens/common": "workspace:*",
+    "@flowlens/registries": "workspace:*"
   }
 }

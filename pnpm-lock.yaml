@@ -23,6 +23,9 @@ importers:
       '@flowlens/analyzer-core':
         specifier: workspace:*
         version: link:../../packages/analyzer-core
+      '@flowlens/registries':
+        specifier: workspace:*
+        version: link:../../packages/registries
       classnames:
         specifier: ^2.5.1
         version: 2.5.1
@@ -135,6 +138,9 @@ importers:
       '@flowlens/common':
         specifier: workspace:*
         version: link:../../packages/common
+      '@flowlens/registries':
+        specifier: workspace:*
+        version: link:../../packages/registries
     devDependencies:
       '@types/vscode':
         specifier: 1.104.0
@@ -166,6 +172,24 @@ importers:
       neverthrow:
         specifier: ^8.2.0
         version: 8.2.0
+
+  packages/registries:
+    dependencies:
+      '@flowlens/analyzer-core':
+        specifier: workspace:*
+        version: link:../analyzer-core
+      '@flowlens/common':
+        specifier: workspace:*
+        version: link:../common
+      '@flowlens/test-utils':
+        specifier: workspace:*
+        version: link:../test-utils
+      neverthrow:
+        specifier: ^8.2.0
+        version: 8.2.0
+      zod:
+        specifier: ^4.1.13
+        version: 4.4.3
 
   packages/test-utils: {}
 

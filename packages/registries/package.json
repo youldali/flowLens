@@ -1,0 +1,30 @@
+{
+  "name": "@flowlens/registries",
+  "version": "1.0.0",
+  "description": "Shared FlowLens message and event registries.",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "pnpm build && node --test \"dist/**/*.test.js\""
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./vscode-events": {
+      "types": "./dist/vscode-events.d.ts",
+      "default": "./dist/vscode-events.js"
+    }
+  },
+  "dependencies": {
+    "@flowlens/analyzer-core": "workspace:*",
+    "@flowlens/common": "workspace:*",
+    "@flowlens/test-utils": "workspace:*",
+    "neverthrow": "^8.2.0",
+    "zod": "^4.1.13"
+  }
+}

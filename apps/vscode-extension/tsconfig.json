@@ -11,6 +11,7 @@
   "exclude": ["node_modules", "dist"],
   "references": [
     { "path": "../../packages/analyzer-core" },
-    { "path": "../../packages/common" }
+    { "path": "../../packages/common" },
+    { "path": "../../packages/registries" }
   ]
 }

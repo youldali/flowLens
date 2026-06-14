@@ -14,13 +14,28 @@ Follow these conventions when adding or updating tests and fixtures in the FlowL
 - Each unit test file must have one top-level `describe` block named after the function under test.
 - Nest all tests for that function inside the function-level `describe` block.
 - Keep the test count proportional to the function. If one test covers the behavior, write one test.
+- When asserting `neverthrow` `Result` values, prefer `assertOk` and `assertErr` from `@flowlens/common/testing` over raw boolean assertions such as `assert.equal(result.isErr(), true)`.
+- After `assertOk(result)` or `assertErr(result)`, assert against `result.value` or `result.error` directly.
 
 Example:
 
 ```ts
+import assert from 'node:assert/strict';
+import { assertErr, assertOk } from '@flowlens/common/testing';
+
 describe("create", () => {
   it("creates the expected value", () => {
-    // assertions
+    const result = create();
+
+    assertOk(result);
+    assert.equal(result.value.id, "fixture-id");
+  });
+
+  it("returns validation-failed for invalid input", () => {
+    const result = create({ id: "" });
+
+    assertErr(result);
+    assert.deepEqual(result.error, { reason: "validation-failed" });
   });
 });
 ```

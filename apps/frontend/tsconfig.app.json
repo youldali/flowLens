@@ -20,7 +20,9 @@
       "@code-analysis-context/*": ["./src/bounded-contexts/code-analysis-context/*"],
       "@common/*": ["./src/common/*"],
       "@flowlens/analyzer-core": ["../../packages/analyzer-core/dist/src/index.d.ts"],
-      "@flowlens/common": ["../../packages/common/src/index.ts"]
+      "@flowlens/common": ["../../packages/common/src/index.ts"],
+      "@flowlens/registries": ["../../packages/registries/src/index.ts"],
+      "@flowlens/registries/vscode-events": ["../../packages/registries/src/vscode-events.ts"]
     },
 
     /* Linting */

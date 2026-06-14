@@ -4,6 +4,7 @@ import * as vscode from "vscode";
 
 import { GraphBuilder, type FlowGraph } from "@flowlens/analyzer-core";
 import { findNearestTsconfig } from "@flowlens/common";
+import { createVsCodeEvent, isViewReadyEvent } from "@flowlens/registries/vscode-events";
 
 const supportedLanguageIds = new Set(["typescript", "typescriptreact"]);
 
@@ -118,7 +119,7 @@ class FlowLensGraphWebview {
     });
 
     panel.webview.onDidReceiveMessage((message: unknown) => {
-      if (!isReadyMessage(message)) {
+      if (!isViewReadyEvent(message)) {
         return;
       }
 
@@ -139,7 +140,7 @@ class FlowLensGraphWebview {
       return;
     }
 
-    await this.panel.webview.postMessage({ type: "flowgraph", graph: this.pendingGraph });
+    await this.panel.webview.postMessage(createVsCodeEvent("flowgraph", { graph: this.pendingGraph }));
   }
 
   private async getWebviewHtml(webview: vscode.Webview): Promise<string> {
@@ -181,15 +182,6 @@ function rewriteRootRelativeUris(
     const assetUri = vscode.Uri.file(path.join(frontendDistUri.fsPath, ...assetPath.split("/")));
     return `${attribute}="${webview.asWebviewUri(assetUri).toString()}"`;
   });
-}
-
-function isReadyMessage(message: unknown): message is { type: "flowlens.ready" } {
-  return (
-    typeof message === "object"
-    && message !== null
-    && "type" in message
-    && message.type === "flowlens.ready"
-  );
 }
 
 function getNonce(): string {

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useVsCodeApi } from '@common/hooks/useVsCodeApi'
-import { isFlowGraph, type FlowGraph } from '@flowlens/analyzer-core/flow-graph-contract'
+import type { FlowGraph } from '@flowlens/analyzer-core/flow-graph-contract'
+import { createVsCodeEvent, parseVsCodeEvent } from '@flowlens/registries/vscode-events'
 
 export function useGraph(): FlowGraph | undefined {
   const [graph, setGraph] = useState<FlowGraph>()
@@ -16,7 +17,7 @@ export function useGraph(): FlowGraph | undefined {
     }
 
     window.addEventListener('message', handleMessage)
-    vscodeApi.postMessage({ type: 'flowlens.ready' })
+    vscodeApi.postMessage(createVsCodeEvent('view.ready', {}))
 
     return () => window.removeEventListener('message', handleMessage)
   }, [vscodeApi])
@@ -25,18 +26,6 @@ export function useGraph(): FlowGraph | undefined {
 }
 
 function getGraphFromMessage(message: unknown): FlowGraph | undefined {
-  if (isFlowGraph(message)) {
-    return message
-  }
-
-  return isMessageWithGraph(message) ? message.graph : undefined
-}
-
-function isMessageWithGraph(message: unknown): message is { graph: FlowGraph } {
-  return (
-    typeof message === 'object'
-    && message !== null
-    && 'graph' in message
-    && isFlowGraph(message.graph)
-  )
+  const graphMessageResult = parseVsCodeEvent(message, 'flowgraph')
+  return graphMessageResult.isOk() ? graphMessageResult.value.payload.graph : undefined
 }

@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@flowlens/analyzer-core": "workspace:*",
+    "@flowlens/registries": "workspace:*",
     "classnames": "^2.5.1",
     "dagre": "^0.8.5",
     "date-fns": "^4.3.0",
