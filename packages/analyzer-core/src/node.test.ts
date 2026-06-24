@@ -238,6 +238,19 @@ describe("NodeBuilder", () => {
     });
   });
 
+  it("builds arrow function nodes from their variable declaration name", () => {
+    const builder = new NodeModule.NodeBuilder(createTypeChecker());
+
+    assert.deepEqual(builder.buildFunctionDeclarationNode(arrowFunctionFixture), {
+      id: NodeModule.deriveIdFromTsNode(arrowFunctionFixture),
+      name: "arrowFixture",
+      filePath: normalizePath(sourceFileFixture.fileName),
+      kind: "functionDeclaration",
+      signature: undefined,
+      tsNode: arrowFunctionFixture,
+    });
+  });
+
   it("builds call expression nodes with resolved declaration data", () => {
     const signature = {
       declaration: functionDeclarationFixture,

@@ -144,9 +144,9 @@ export class NodeBuilder {
 
     return {
       id: deriveIdFromTsNode(node),
-      name: node.name!.getText(sourceFile),
+      name: getExecutableFunctionName(node, sourceFile),
       filePath: normalizePath(sourceFile.fileName),
-      kind: ts.isFunctionDeclaration(node) ? 'functionDeclaration' : 'methodDeclaration',
+      kind: getExecutableFunctionKind(node),
       signature,
       ...(jsdoc ? { jsdoc } : {}),
       tsNode: node,
@@ -195,6 +195,35 @@ export function isExecutableFunction(
   //   ts.isGetAccessorDeclaration(node) ||
   //   ts.isSetAccessorDeclaration(node)
   // );
+}
+
+function getExecutableFunctionName(
+  node: ExecutableFunctionDeclaration,
+  sourceFile: ts.SourceFile,
+): string {
+  if ("name" in node && node.name) {
+    return node.name.getText(sourceFile);
+  }
+
+  const parent = node.parent;
+
+  if (parent && ts.isVariableDeclaration(parent)) {
+    return parent.name.getText(sourceFile);
+  }
+
+  if (parent && ts.isPropertyAssignment(parent)) {
+    return parent.name.getText(sourceFile);
+  }
+
+  return ts.isConstructorDeclaration(node) ? "constructor" : "anonymous";
+}
+
+function getExecutableFunctionKind(
+  node: ExecutableFunctionDeclaration,
+): FunctionDeclarationNode["kind"] {
+  return ts.isMethodDeclaration(node) || ts.isConstructorDeclaration(node) || ts.isAccessor(node)
+    ? "methodDeclaration"
+    : "functionDeclaration";
 }
 
 export function isNodeProcessable(node: ts.Node): boolean {
