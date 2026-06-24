@@ -1,3 +1,7 @@
+allowBuilds:
+  '@vscode/vsce-sign': true
+  esbuild: true
+  keytar: true
 nodeVersion: "26.1.0"
 packages:
   - "apps/*"

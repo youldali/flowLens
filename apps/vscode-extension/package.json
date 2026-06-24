@@ -1,11 +1,38 @@
 {
-  "name": "flowlens-vscode-extension",
-  "version": "0.0.0",
+  "name": "flowlens",
+  "version": "0.1.0",
+  "publisher": "flowlens",
   "displayName": "FlowLens",
-  "description": "VS Code integration for FlowLens.",
-  "private": true,
+  "description": "Visualize TypeScript code flow graphs from inside VS Code.",
   "type": "module",
   "main": "./dist/extension.js",
+  "license": "ISC",
+  "icon": "assets/icon.png",
+  "preview": true,
+  "categories": [
+    "Visualization",
+    "Programming Languages",
+    "Other"
+  ],
+  "keywords": [
+    "typescript",
+    "flow graph",
+    "code analysis",
+    "visualization",
+    "dependency graph"
+  ],
+  "galleryBanner": {
+    "color": "#102A43",
+    "theme": "dark"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/youldali/flowLens.git"
+  },
+  "homepage": "https://github.com/youldali/flowLens/tree/main/apps/vscode-extension#readme",
+  "bugs": {
+    "url": "https://github.com/youldali/flowLens/issues"
+  },
   "engines": {
     "vscode": "^1.104.0"
   },
@@ -31,18 +58,19 @@
     }
   },
   "scripts": {
-    "build": "node ./scripts/build-frontend.js && node ./scripts/copy-frontend-dist.js && tsc -p tsconfig.json",
+    "build": "node ./scripts/build-frontend.js && node ./scripts/copy-frontend-dist.js && tsc --noEmit -p tsconfig.json && node ./scripts/bundle-extension.js",
+    "package": "node ./scripts/package-vsix.js",
     "watch": "tsc -w -p tsconfig.json",
-    "vscode:prepublish": "node ./scripts/build-frontend.js && node ./scripts/copy-frontend-dist.js && tsc -p tsconfig.json"
+    "vscode:prepublish": "node ./scripts/vscode-prepublish.js"
   },
   "devDependencies": {
     "@types/vscode": "1.104.0",
-    "typescript": "^6.0.3",
-    "vscode": "^1.1.37"
-  },
-  "dependencies": {
+    "@vscode/vsce": "^3.6.2",
+    "esbuild": "^0.25.12",
     "@flowlens/analyzer-core": "workspace:*",
     "@flowlens/common": "workspace:*",
-    "@flowlens/registries": "workspace:*"
+    "@flowlens/registries": "workspace:*",
+    "typescript": "^6.0.3",
+    "vscode": "^1.1.37"
   }
 }

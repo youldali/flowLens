@@ -1,0 +1,13 @@
+.vscode/**
+.vscode-test/**
+assets/*.svg
+dist/**/*.d.ts
+dist/**/*.d.ts.map
+dist/**/*.js.map
+dist/**/*.tsbuildinfo
+dist/webview.js
+node_modules/**
+scripts/**
+src/**
+tsconfig.json
+*.vsix
