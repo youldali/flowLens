@@ -133,6 +133,23 @@ describe("GraphBuilder.fromFilePosition", () => {
     assert.equal(nodeNames.includes("otherFlow"), false);
   });
 
+  it("builds from the enclosing class method", () => {
+    const graphBuilder = createGraphBuilder();
+    const sourceText = fs.readFileSync(entryFilePath, "utf8");
+    const position = sourceText.indexOf("return value;", sourceText.indexOf("class FlowService"));
+
+    const result = graphBuilder.fromFilePosition(entryFilePath, position);
+
+    assertOk(result);
+
+    const graph = graphBuilder.extract();
+    const nodeNames = graph.nodes.map((node) => node.name);
+
+    assert.equal(nodeNames.includes("run"), true);
+    assert.equal(nodeNames.includes("dependency"), true);
+    assert.equal(nodeNames.includes("selectedFlow"), false);
+  });
+
   it("returns source-file-not-found when the SourceFile is outside the program", () => {
     const graphBuilder = createGraphBuilder();
     const sourceFile = ts.createSourceFile(

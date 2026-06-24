@@ -24,7 +24,7 @@ export type FromFilePositionError =
 
 type QueueItem = 
 | { node: ts.CallExpression; parentNode: ts.Node } 
-| { node: ts.FunctionDeclaration | ts.MethodDeclaration; parentNode: ts.Node } 
+| { node: NodeModule.ExecutableFunctionDeclaration; parentNode: ts.Node } 
 | { node: ts.SourceFile; parentNode?: undefined }
 | { node: ts.Node; parentNode?: ts.Node | undefined };
 
@@ -129,7 +129,7 @@ export class GraphBuilder {
       this.visitCallExpression(node, parentNode);
     }
 
-    if(ts.isFunctionDeclaration(node) || ts.isMethodDeclaration(node)) {
+    if(NodeModule.isExecutableFunction(node)) {
       this.visitFunctionDeclaration(node, parentNode);
     }
 
@@ -154,12 +154,6 @@ export class GraphBuilder {
 
     if (parentNode) {
       this.addEdge(parentNode, node, 'calls');
-
-      console.group(`Enqueuing declaration for call expression: ${callExpressionNode.name}`);
-      console.log(`parentNode: ${parentNode.getText()}`, NodeModule.deriveIdFromTsNode(parentNode), parentNode.kind);
-      console.log(`node: ${node.getText()}`, NodeModule.deriveIdFromTsNode(node), node.kind);
-      console.log(`calls`);
-      console.groupEnd();
     }
 
     const declarationTsNode = callExpressionNode.declarationTsNode;
@@ -173,7 +167,7 @@ export class GraphBuilder {
     }
   }
 
-  private visitFunctionDeclaration(node: ts.FunctionDeclaration | ts.MethodDeclaration, parentNode: ts.Node | undefined): void {
+  private visitFunctionDeclaration(node: NodeModule.ExecutableFunctionDeclaration, parentNode: ts.Node | undefined): void {
     const functionDeclarationGraphNode = this.nodeBuilder.buildFunctionDeclarationNode(node);
     this.addNode(functionDeclarationGraphNode);
 
