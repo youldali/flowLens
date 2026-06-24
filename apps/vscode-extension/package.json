@@ -5,7 +5,7 @@
   "displayName": "FlowLens Code Graph",
   "description": "Visualize TypeScript code flow graphs from inside VS Code.",
   "type": "module",
-  "main": "./dist/extension.js",
+  "main": "./dist/extension.cjs",
   "license": "ISC",
   "icon": "assets/icon.png",
   "preview": true,

@@ -7,7 +7,7 @@
       "command": "/home/yannis/.local/share/fnm/node-versions/v26.1.0/installation/bin/pnpm",
       "args": [
         "--filter",
-        "flowlens-vscode-extension",
+        "flowlens-vscode",
         "build"
       ],
       "problemMatcher": "$tsc"
