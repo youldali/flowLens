@@ -33,7 +33,7 @@ FlowLens opens a graph view beside the editor and reports how many nodes and edg
 
 ## Publishing
 
-This package is prepared for manual Marketplace publishing under publisher `flowlens`.
+This package is prepared for manual Marketplace publishing under publisher `flowlens` with extension ID `flowlens.flowlens-vscode`.
 
 ```sh
 pnpm --filter ./apps/vscode-extension package
@@ -45,5 +45,5 @@ For command-line publishing, authenticate and publish the packaged VSIX:
 
 ```sh
 pnpm --dir apps/vscode-extension exec vsce login flowlens
-pnpm --dir apps/vscode-extension exec vsce publish --packagePath flowlens-0.1.0.vsix
+pnpm --dir apps/vscode-extension exec vsce publish --packagePath flowlens-vscode-0.1.0.vsix
 ```
