@@ -2,7 +2,7 @@
   "name": "flowlens-vscode",
   "version": "0.1.0",
   "publisher": "flowlens",
-  "displayName": "FlowLens",
+  "displayName": "FlowLens Code Graph",
   "description": "Visualize TypeScript code flow graphs from inside VS Code.",
   "type": "module",
   "main": "./dist/extension.js",
