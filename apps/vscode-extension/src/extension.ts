@@ -55,7 +55,7 @@ export function activate(context: vscode.ExtensionContext): void {
         return;
       }
 
-      const graph = graphBuilder.extract();
+      const graph = graphBuilder.toJSON();
 
       console.log("FlowLens generated graph", { ...payload, graph });
       await graphWebview.showGraph(graph);

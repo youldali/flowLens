@@ -9,9 +9,10 @@ export type {
   ExecutableFunctionDeclaration,
 } from './tsNode.js';
 export type {
-  GraphNode,
+  AnalyzerNode,
   GraphNodeKind,
   NodeId,
+  SerializedGraphNode,
 } from './node.js';
 export type {
   Edge,
@@ -19,6 +20,7 @@ export type {
   EdgeType,
 } from './edge.js';
 export type {
+  AnalyzerGraph,
   FromFilePositionError,
   FlowGraph,
   SourceFileNotFoundError,

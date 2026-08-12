@@ -48,20 +48,20 @@ describe("isFileNode", () => {
   });
 });
 
-describe("toGraphNode", () => {
+describe("toSerializedGraphNode", () => {
   it("maps analyzer nodes to JSON-safe graph nodes", () => {
-    const graphNode = NodeModule.toGraphNode(createCallExpressionNode());
+    const serializedGraphNode = NodeModule.toSerializedGraphNode(createCallExpressionNode());
 
-    assert.deepEqual(graphNode, {
+    assert.deepEqual(serializedGraphNode, {
       id: "fixture.ts:33:45",
       kind: "callExpression",
       name: "dependency",
       filePath: "fixture.ts",
     });
-    assert.equal(Object.hasOwn(graphNode, "tsNode"), false);
-    assert.equal(Object.hasOwn(graphNode, "signature"), false);
-    assert.equal(Object.hasOwn(graphNode, "declarationTsNode"), false);
-    assert.equal(Object.hasOwn(graphNode, "declarationFile"), false);
+    assert.equal(Object.hasOwn(serializedGraphNode, "tsNode"), false);
+    assert.equal(Object.hasOwn(serializedGraphNode, "signature"), false);
+    assert.equal(Object.hasOwn(serializedGraphNode, "declarationTsNode"), false);
+    assert.equal(Object.hasOwn(serializedGraphNode, "declarationFile"), false);
   });
 });
 

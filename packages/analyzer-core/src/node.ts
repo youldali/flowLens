@@ -13,29 +13,29 @@ export type GraphNodeKind =
 
 export type NodeId = string;
 
-export interface GraphNode {
+export interface SerializedGraphNode {
   id: NodeId;
   kind: GraphNodeKind;
   name: string;
   filePath: string;
 }
 
-export interface Node extends GraphNode {
+export interface AnalyzerNode extends SerializedGraphNode {
   tsNode: ts.Node;
 }
 
-export interface FileNode extends Node {
+export interface FileNode extends AnalyzerNode {
   kind: 'file';
 }
 
-export interface FunctionDeclarationNode extends Node {
+export interface FunctionDeclarationNode extends AnalyzerNode {
   kind: 'functionDeclaration' | 'methodDeclaration';
   signature: ts.Signature | undefined;
   jsdoc?: string;
   tsNode: TsModule.ExecutableFunctionDeclaration;
 }
 
-export interface CallExpressionNode extends Node {
+export interface CallExpressionNode extends AnalyzerNode {
   kind: 'callExpression';
   tsNode: ts.CallExpression;
   signature: ts.Signature | undefined;
@@ -47,11 +47,11 @@ export interface CallExpressionNodeWithDeclaration extends CallExpressionNode {
   declarationTsNode: TsModule.ExecutableFunctionDeclaration;
 }
 
-export const isFunctionDeclarationNode = (node: Node): node is FunctionDeclarationNode => {
+export const isFunctionDeclarationNode = (node: AnalyzerNode): node is FunctionDeclarationNode => {
   return node.kind === 'functionDeclaration' || node.kind === 'methodDeclaration';
 }
 
-export const isCallExpressionNode = (node: Node): node is CallExpressionNode => {
+export const isCallExpressionNode = (node: AnalyzerNode): node is CallExpressionNode => {
   return node.kind === 'callExpression';
 }
 
@@ -59,7 +59,7 @@ export const hasCallExpressionDeclaration = (node: CallExpressionNode): node is 
   return node.declarationTsNode !== undefined;
 }
 
-export const isFileNode = (node: Node): node is FileNode => {
+export const isFileNode = (node: AnalyzerNode): node is FileNode => {
   return node.kind === 'file';
 }
 
@@ -130,7 +130,7 @@ export class NodeBuilder {
   }
 }
 
-export function toGraphNode(node: Node): GraphNode {
+export function toSerializedGraphNode(node: AnalyzerNode): SerializedGraphNode {
   return {
     id: node.id,
     kind: node.kind,

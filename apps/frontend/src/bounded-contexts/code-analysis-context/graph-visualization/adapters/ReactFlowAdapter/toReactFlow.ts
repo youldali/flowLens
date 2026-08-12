@@ -1,10 +1,10 @@
 import type { Edge as FlowEdge, Node as FlowNode } from 'reactflow'
 import { MarkerType } from 'reactflow'
-import type { FlowGraph, GraphNode } from '@flowlens/analyzer-core'
+import type { FlowGraph, SerializedGraphNode } from '@flowlens/analyzer-core'
 
 export interface GraphViewNodeData extends Record<string, unknown> {
   label: string
-  kind: GraphNode['kind']
+  kind: SerializedGraphNode['kind']
   filePath: string
 }
 
@@ -30,7 +30,7 @@ export function toReactFlow(graph: FlowGraph): ReactFlowGraph {
   }
 }
 
-function toReactFlowNode(node: GraphNode): FlowNode<GraphViewNodeData> {
+function toReactFlowNode(node: SerializedGraphNode): FlowNode<GraphViewNodeData> {
   return {
     id: String(node.id),
     data: {

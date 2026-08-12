@@ -10,12 +10,13 @@ import { loadProjectConfig } from './project-config.js';
 
 export { isFlowGraph } from './flow-graph-contract.js';
 
-export interface Graph<TNode = NodeModule.GraphNode, TEdge = EdgeModule.Edge> {
+export interface Graph<TNode = NodeModule.SerializedGraphNode, TEdge = EdgeModule.Edge> {
   nodes: TNode[];
   edges: TEdge[];
 }
 
-export type FlowGraph = Graph<NodeModule.GraphNode, EdgeModule.Edge>;
+export type AnalyzerGraph = Graph<NodeModule.AnalyzerNode, EdgeModule.Edge>;
+export type FlowGraph = Graph<NodeModule.SerializedGraphNode, EdgeModule.Edge>;
 
 export type SourceFileNotFoundError = { reason: 'source-file-not-found' };
 export type FromFilePositionError =
@@ -32,7 +33,7 @@ type QueueItem =
 export class GraphBuilder {
   private readonly program: ts.Program
   private readonly checker: ts.TypeChecker
-  private readonly nodes = new Map<NodeModule.NodeId, NodeModule.Node>();
+  private readonly nodes = new Map<NodeModule.NodeId, NodeModule.AnalyzerNode>();
   private readonly edges: Map<EdgeModule.EdgeId, EdgeModule.Edge> = new Map()
   private readonly visitedNodes = new Set<ts.Node>();
   private readonly nodeQueue = new Queue<QueueItem>();
@@ -187,7 +188,7 @@ export class GraphBuilder {
     return sourceFile ? ok(sourceFile) : err({ reason: 'source-file-not-found' });
   }
 
-  private addNode(node: NodeModule.Node): NodeModule.Node {
+  private addNode(node: NodeModule.AnalyzerNode): NodeModule.AnalyzerNode {
     return this.nodes.getOrInsert(node.id, node);
   }
 
@@ -202,9 +203,16 @@ export class GraphBuilder {
     return !path.includes('node_modules') && path.startsWith(this.rootDir);
   }
 
-  extract(): FlowGraph {
+  extract(): AnalyzerGraph {
     return {
-      nodes: Array.from(this.nodes.values(), NodeModule.toGraphNode),
+      nodes: Array.from(this.nodes.values()),
+      edges: Array.from(this.edges.values()),
+    }
+  }
+
+  toJSON(): FlowGraph {
+    return {
+      nodes: Array.from(this.nodes.values(), NodeModule.toSerializedGraphNode),
       edges: Array.from(this.edges.values()),
     }
   }

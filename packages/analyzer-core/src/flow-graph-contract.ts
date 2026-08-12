@@ -1,16 +1,16 @@
 import { z } from 'zod';
 import type { Edge } from './edge.js';
 import type { FlowGraph } from './flow-graph.js';
-import type { GraphNode } from './node.js';
+import type { SerializedGraphNode } from './node.js';
 
 export type { FlowGraph, Graph } from './flow-graph.js';
 
-export const graphNodeSchema = z.object({
+export const serializedGraphNodeSchema = z.object({
   id: z.string(),
   kind: z.enum(['functionDeclaration', 'methodDeclaration', 'callExpression', 'file', 'if-statement']),
   name: z.string(),
   filePath: z.string(),
-}) satisfies z.ZodType<GraphNode>;
+}) satisfies z.ZodType<SerializedGraphNode>;
 
 export const edgeSchema = z.object({
   id: z.string(),
@@ -20,7 +20,7 @@ export const edgeSchema = z.object({
 }) satisfies z.ZodType<Edge>;
 
 export const flowGraphSchema = z.object({
-  nodes: z.array(graphNodeSchema),
+  nodes: z.array(serializedGraphNodeSchema),
   edges: z.array(edgeSchema),
 }) satisfies z.ZodType<FlowGraph>;
 

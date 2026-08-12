@@ -1,8 +1,8 @@
 import type {
+  AnalyzerNode,
   CallExpressionNode,
   FileNode,
   FunctionDeclarationNode,
-  Node,
 } from '../node.js';
 import { createFixture } from '@flowlens/test-utils';
 import {
@@ -11,7 +11,7 @@ import {
   sourceFileFixture,
 } from './ts-node.js';
 
-const nodeFixture: Node = {
+const nodeFixture: AnalyzerNode = {
   id: "fixture-node",
   kind: "file",
   name: "fixture.ts",
@@ -50,7 +50,7 @@ const callExpressionNodeFixture: CallExpressionNode = {
   declarationFile: "fixture.ts",
 };
 
-export const create = createFixture<Node>(nodeFixture);
+export const create = createFixture<AnalyzerNode>(nodeFixture);
 export const createFileNode = createFixture<FileNode>(fileNodeFixture);
 export const createFunctionDeclarationNode = createFixture<FunctionDeclarationNode>(functionDeclarationNodeFixture);
 export const createCallExpressionNode = createFixture<CallExpressionNode>(callExpressionNodeFixture);
