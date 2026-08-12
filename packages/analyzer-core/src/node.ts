@@ -1,8 +1,8 @@
 import ts from 'typescript';
 import * as path from 'node:path';
-import { err, ok, type Result } from 'neverthrow';
 
 import { normalizePath } from '@flowlens/common';
+import * as TsModule from './tsNode.js';
 
 export type GraphNodeKind =
   | 'functionDeclaration'
@@ -32,29 +32,20 @@ export interface FunctionDeclarationNode extends Node {
   kind: 'functionDeclaration' | 'methodDeclaration';
   signature: ts.Signature | undefined;
   jsdoc?: string;
-  tsNode: ExecutableFunctionDeclaration;
+  tsNode: TsModule.ExecutableFunctionDeclaration;
 }
 
 export interface CallExpressionNode extends Node {
   kind: 'callExpression';
   tsNode: ts.CallExpression;
   signature: ts.Signature | undefined;
-  declarationTsNode: ExecutableFunctionDeclaration | undefined;
+  declarationTsNode: TsModule.ExecutableFunctionDeclaration | undefined;
   declarationFile: string | undefined;
 }
 
 export interface CallExpressionNodeWithDeclaration extends CallExpressionNode {
-  declarationTsNode: ExecutableFunctionDeclaration;
+  declarationTsNode: TsModule.ExecutableFunctionDeclaration;
 }
-
-export type ExecutableFunctionDeclaration = 
-  | ts.FunctionDeclaration
-  | ts.MethodDeclaration
-  | ts.ConstructorDeclaration
-  | ts.FunctionExpression
-  | ts.ArrowFunction
-  | ts.GetAccessorDeclaration
-  | ts.SetAccessorDeclaration;
 
 export const isFunctionDeclarationNode = (node: Node): node is FunctionDeclarationNode => {
   return node.kind === 'functionDeclaration' || node.kind === 'methodDeclaration';
@@ -72,53 +63,6 @@ export const isFileNode = (node: Node): node is FileNode => {
   return node.kind === 'file';
 }
 
-export function findNodeAtPosition(
-  sourceFile: ts.SourceFile,
-  position: number,
-): Result<ts.Node, "not-found"> {
-  let nodeAtPosition: ts.Node | undefined;
-
-  function visit(node: ts.Node): void {
-    if (
-      position < node.getStart(sourceFile) ||
-      position >= node.getEnd()
-    ) {
-      return;
-    }
-
-    nodeAtPosition = node;
-    ts.forEachChild(node, visit);
-  }
-
-  visit(sourceFile);
-  return !nodeAtPosition ? err("not-found") : ok(nodeAtPosition);
-}
-
-export function findEnclosingFunction(
-  node: ts.Node,
-): Result<ExecutableFunctionDeclaration, "not-found"> {
-  let current: ts.Node | undefined = node;
-
-  while (current) {
-    if (isExecutableFunction(current)) {
-      return ok(current);
-    }
-
-    current = current.parent;
-  }
-
-  return err("not-found");
-}
-
-export function createFileId(sourceFile: ts.SourceFile): NodeId {
-  return normalizePath(sourceFile.fileName);
-}
-
-export function deriveIdFromTsNode(node: ts.Node): NodeId {
-  const sourceFile = node.getSourceFile();
-  return `${sourceFile.fileName}:${node.pos}:${node.end}`;
-}
-
 export class NodeBuilder {
   private readonly checker: ts.TypeChecker
 
@@ -133,7 +77,7 @@ export class NodeBuilder {
     const declarationTsNode = this.findDeclarationForCallExpression(node);
 
     return {
-      id: deriveIdFromTsNode(node),
+      id: TsModule.deriveIdFromTsNode(node),
       name: node.expression.getText(sourceFile),
       filePath: normalizePath(sourceFile.fileName),
       kind: "callExpression",
@@ -144,17 +88,17 @@ export class NodeBuilder {
     }
   }
 
-  buildFunctionDeclarationNode(node: ExecutableFunctionDeclaration): FunctionDeclarationNode {
+  buildFunctionDeclarationNode(node: TsModule.ExecutableFunctionDeclaration): FunctionDeclarationNode {
     const sourceFile = node.getSourceFile();
     const symbol = this.checker.getSymbolAtLocation(node);
     const signature = symbol ? this.checker.getSignaturesOfType(this.checker.getTypeOfSymbolAtLocation(symbol, node), ts.SignatureKind.Call)[0] : undefined;
     const jsdoc = symbol ? ts.displayPartsToString(symbol.getDocumentationComment(this.checker)) : undefined;
 
     return {
-      id: deriveIdFromTsNode(node),
-      name: getExecutableFunctionName(node, sourceFile),
+      id: TsModule.deriveIdFromTsNode(node),
+      name: TsModule.getExecutableFunctionName(node, sourceFile),
       filePath: normalizePath(sourceFile.fileName),
-      kind: getExecutableFunctionKind(node),
+      kind: TsModule.getExecutableFunctionKind(node),
       signature,
       ...(jsdoc ? { jsdoc } : {}),
       tsNode: node,
@@ -163,7 +107,7 @@ export class NodeBuilder {
 
   buildFileNode (sourceFile: ts.SourceFile): FileNode {
     return {
-      id: createFileId(sourceFile),
+      id: TsModule.createFileId(sourceFile),
       name: path.basename(sourceFile.fileName),
       filePath: normalizePath(sourceFile.fileName),
       kind: 'file',
@@ -171,7 +115,7 @@ export class NodeBuilder {
     }
   }
 
-  private findDeclarationForCallExpression(node: ts.CallExpression): ExecutableFunctionDeclaration | undefined {
+  private findDeclarationForCallExpression(node: ts.CallExpression): TsModule.ExecutableFunctionDeclaration | undefined {
     const symbol = this.checker.getSymbolAtLocation(node);
     const signature = this.checker.getResolvedSignature(node);
     const declaration = signature?.declaration;
@@ -181,66 +125,9 @@ export class NodeBuilder {
     }
     else if (symbol) {
       const declarations = symbol?.getDeclarations() ?? [];
-      return declarations.find(isExecutableFunction);
+      return declarations.find(TsModule.isExecutableFunction);
     }
   }
-}
-
-/**
- * Narrow to ONLY real executable function-like nodes (have bodies)
- */
-export function isExecutableFunction(
-  node: ts.Node
-): node is ExecutableFunctionDeclaration {
-  return ts.isFunctionLike(node) && (node as any).body && (node as any).body != null;
-  
-  // return (
-  //   ts.isFunctionDeclaration(node) ||
-  //   ts.isMethodDeclaration(node) ||
-  //   ts.isConstructorDeclaration(node) ||
-  //   ts.isFunctionExpression(node) ||
-  //   ts.isArrowFunction(node) ||
-  //   ts.isGetAccessorDeclaration(node) ||
-  //   ts.isSetAccessorDeclaration(node)
-  // );
-}
-
-function getExecutableFunctionName(
-  node: ExecutableFunctionDeclaration,
-  sourceFile: ts.SourceFile,
-): string {
-  if ("name" in node && node.name) {
-    return node.name.getText(sourceFile);
-  }
-
-  const parent = node.parent;
-
-  if (parent && ts.isVariableDeclaration(parent)) {
-    return parent.name.getText(sourceFile);
-  }
-
-  if (parent && ts.isPropertyAssignment(parent)) {
-    return parent.name.getText(sourceFile);
-  }
-
-  return ts.isConstructorDeclaration(node) ? "constructor" : "anonymous";
-}
-
-function getExecutableFunctionKind(
-  node: ExecutableFunctionDeclaration,
-): FunctionDeclarationNode["kind"] {
-  return ts.isMethodDeclaration(node) || ts.isConstructorDeclaration(node) || ts.isAccessor(node)
-    ? "methodDeclaration"
-    : "functionDeclaration";
-}
-
-export function isNodeProcessable(node: ts.Node): boolean {
-  return (
-    ts.isSourceFile(node) ||
-    isExecutableFunction(node) ||
-    ts.isMethodDeclaration(node) ||
-    ts.isCallExpression(node)
-  );
 }
 
 export function toGraphNode(node: Node): GraphNode {

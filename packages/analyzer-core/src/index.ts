@@ -4,9 +4,11 @@ export {
   findEnclosingFunction,
   findNodeAtPosition,
   isExecutableFunction,
-} from './node.js';
+} from './tsNode.js';
 export type {
   ExecutableFunctionDeclaration,
+} from './tsNode.js';
+export type {
   GraphNode,
   GraphNodeKind,
   NodeId,

@@ -4,6 +4,7 @@ import { err, ok, type Result } from 'neverthrow';
 import { normalizePath } from '@flowlens/common';
 import { Queue } from '@flowlens/common/queue';
 import * as NodeModule from './node.js';
+import * as TsNodeModule from './tsNode.js';
 import * as EdgeModule from './edge.js';
 import { loadProjectConfig } from './project-config.js';
 
@@ -24,7 +25,7 @@ export type FromFilePositionError =
 
 type QueueItem = 
 | { node: ts.CallExpression; parentNode: ts.Node } 
-| { node: NodeModule.ExecutableFunctionDeclaration; parentNode: ts.Node } 
+| { node: TsNodeModule.ExecutableFunctionDeclaration; parentNode: ts.Node } 
 | { node: ts.SourceFile; parentNode?: undefined }
 | { node: ts.Node; parentNode?: ts.Node | undefined };
 
@@ -80,13 +81,13 @@ export class GraphBuilder {
       return err(sourceFileResult.error);
     }
 
-    const nodeResult = NodeModule.findNodeAtPosition(sourceFileResult.value, position);
+    const nodeResult = TsNodeModule.findNodeAtPosition(sourceFileResult.value, position);
 
     if (nodeResult.isErr()) {
       return err({ reason: 'node-not-found' });
     }
 
-    const enclosingFunctionResult = NodeModule.findEnclosingFunction(nodeResult.value);
+    const enclosingFunctionResult = TsNodeModule.findEnclosingFunction(nodeResult.value);
 
     if (enclosingFunctionResult.isErr()) {
       return err({ reason: 'enclosing-function-not-found' });
@@ -129,7 +130,7 @@ export class GraphBuilder {
       this.visitCallExpression(node, parentNode);
     }
 
-    if(NodeModule.isExecutableFunction(node)) {
+    if(TsNodeModule.isExecutableFunction(node)) {
       this.visitFunctionDeclaration(node, parentNode);
     }
 
@@ -138,7 +139,7 @@ export class GraphBuilder {
     }
 
     // For any node, we want to keep traversing its children to find more nodes and edges, but we only want to create graph nodes and edges for specific kinds of nodes (e.g. call expressions, function declarations, source files)
-    const nextParent = NodeModule.isNodeProcessable(node) ? node : parentNode;
+    const nextParent = TsNodeModule.isNodeProcessable(node) ? node : parentNode;
 
     ts.forEachChild(node, (child) => this.nodeQueue.enqueue({ node: child, parentNode: nextParent }));
   }
@@ -167,7 +168,7 @@ export class GraphBuilder {
     }
   }
 
-  private visitFunctionDeclaration(node: NodeModule.ExecutableFunctionDeclaration, parentNode: ts.Node | undefined): void {
+  private visitFunctionDeclaration(node: TsNodeModule.ExecutableFunctionDeclaration, parentNode: ts.Node | undefined): void {
     const functionDeclarationGraphNode = this.nodeBuilder.buildFunctionDeclarationNode(node);
     this.addNode(functionDeclarationGraphNode);
 
@@ -191,7 +192,7 @@ export class GraphBuilder {
   }
 
   private addEdge(source: ts.Node, target: ts.Node, type: EdgeModule.EdgeType): EdgeModule.Edge {
-    const edge = EdgeModule.create(NodeModule.deriveIdFromTsNode(source), NodeModule.deriveIdFromTsNode(target), type);
+    const edge = EdgeModule.create(TsNodeModule.deriveIdFromTsNode(source), TsNodeModule.deriveIdFromTsNode(target), type);
     return this.edges.getOrInsert(edge.id, edge);
   }
 
