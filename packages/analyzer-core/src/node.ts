@@ -43,6 +43,10 @@ export interface CallExpressionNode extends Node {
   declarationFile: string | undefined;
 }
 
+export interface CallExpressionNodeWithDeclaration extends CallExpressionNode {
+  declarationTsNode: ExecutableFunctionDeclaration;
+}
+
 export type ExecutableFunctionDeclaration = 
   | ts.FunctionDeclaration
   | ts.MethodDeclaration
@@ -58,6 +62,10 @@ export const isFunctionDeclarationNode = (node: Node): node is FunctionDeclarati
 
 export const isCallExpressionNode = (node: Node): node is CallExpressionNode => {
   return node.kind === 'callExpression';
+}
+
+export const hasCallExpressionDeclaration = (node: CallExpressionNode): node is CallExpressionNodeWithDeclaration => {
+  return node.declarationTsNode !== undefined;
 }
 
 export const isFileNode = (node: Node): node is FileNode => {

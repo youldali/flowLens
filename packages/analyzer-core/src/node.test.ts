@@ -35,6 +35,13 @@ describe("isCallExpressionNode", () => {
   });
 });
 
+describe("hasCallExpressionDeclaration", () => {
+  it("identifies call expression nodes with resolved declarations", () => {
+    assert.equal(NodeModule.hasCallExpressionDeclaration(createCallExpressionNode()), true);
+    assert.equal(NodeModule.hasCallExpressionDeclaration(createCallExpressionNode({ declarationTsNode: undefined })), false);
+  });
+});
+
 describe("isFileNode", () => {
   it("identifies file nodes", () => {
     assert.equal(NodeModule.isFileNode(createFileNode()), true);

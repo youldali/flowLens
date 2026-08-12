@@ -45,5 +45,5 @@ For command-line publishing, authenticate and publish the packaged VSIX:
 
 ```sh
 pnpm --dir apps/vscode-extension exec vsce login flowlens
-pnpm --dir apps/vscode-extension exec vsce publish --packagePath flowlens-vscode-0.1.0.vsix
+pnpm --dir apps/vscode-extension exec vsce publish --packagePath flowlens-vscode-0.1.1.vsix
 ```
