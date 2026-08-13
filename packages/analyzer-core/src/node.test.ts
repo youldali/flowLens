@@ -57,6 +57,7 @@ describe("toSerializedGraphNode", () => {
       kind: "callExpression",
       name: "dependency",
       filePath: "fixture.ts",
+      sourceOrigin: "project",
     });
     assert.equal(Object.hasOwn(serializedGraphNode, "tsNode"), false);
     assert.equal(Object.hasOwn(serializedGraphNode, "signature"), false);
@@ -74,6 +75,7 @@ describe("NodeBuilder", () => {
       name: "fixture.ts",
       filePath: normalizePath(sourceFileFixture.fileName),
       kind: "file",
+      sourceOrigin: "project",
       tsNode: sourceFileFixture,
     });
   });
@@ -105,6 +107,7 @@ describe("NodeBuilder", () => {
       name: "fixtureFunction",
       filePath: normalizePath(sourceFileFixture.fileName),
       kind: "functionDeclaration",
+      sourceOrigin: "project",
       signature,
       jsdoc: "Fixture docs",
       tsNode: functionDeclarationFixture,
@@ -119,6 +122,7 @@ describe("NodeBuilder", () => {
       name: "arrowFixture",
       filePath: normalizePath(sourceFileFixture.fileName),
       kind: "functionDeclaration",
+      sourceOrigin: "project",
       signature: undefined,
       tsNode: arrowFunctionFixture,
     });
@@ -140,10 +144,36 @@ describe("NodeBuilder", () => {
       name: "dependency",
       filePath: normalizePath(sourceFileFixture.fileName),
       kind: "callExpression",
+      sourceOrigin: "project",
       signature,
       declarationFile: normalizePath(sourceFileFixture.fileName),
       declarationTsNode: functionDeclarationFixture,
       tsNode: callExpressionFixture,
     });
+  });
+
+  it("marks unresolved call expression nodes with unknown source origin", () => {
+    const builder = new NodeModule.NodeBuilder(createTypeChecker());
+
+    assert.equal(builder.buildCallExpressionNode(callExpressionFixture).sourceOrigin, "unknown");
+  });
+
+  it("marks call expression nodes with external declarations as external", () => {
+    const externalSourceFile = ts.createSourceFile(
+      "/typescript/lib/lib.es5.d.ts",
+      "interface Array<T> { map<U>(): U[] }",
+      ts.ScriptTarget.Latest,
+      true,
+      ts.ScriptKind.TS,
+    );
+    const externalDeclaration = externalSourceFile.statements[0];
+    const signature = {
+      declaration: externalDeclaration,
+    } as ts.Signature;
+    const builder = new NodeModule.NodeBuilder(createTypeChecker({
+      getResolvedSignature: () => signature,
+    }));
+
+    assert.equal(builder.buildCallExpressionNode(callExpressionFixture).sourceOrigin, "external");
   });
 });

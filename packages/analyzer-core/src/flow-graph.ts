@@ -56,7 +56,7 @@ export class GraphBuilder {
 
     this.program = ts.createProgram(createProgramOptions)
     this.checker = this.program.getTypeChecker()
-    this.nodeBuilder = new NodeModule.NodeBuilder(this.checker);
+    this.nodeBuilder = new NodeModule.NodeBuilder(this.checker, this.rootDir);
   }
 
   fromFile(entryFilePath: string): Result<void, SourceFileNotFoundError> {

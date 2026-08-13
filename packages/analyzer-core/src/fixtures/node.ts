@@ -16,6 +16,7 @@ const nodeFixture: AnalyzerNode = {
   kind: "file",
   name: "fixture.ts",
   filePath: "fixture.ts",
+  sourceOrigin: "project",
   tsNode: sourceFileFixture,
 };
 

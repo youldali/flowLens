@@ -2,25 +2,27 @@ import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
 
 import { MarkerType } from 'reactflow'
-import type { Graph } from '@flowlens/analyzer-core'
+import type { FlowGraph } from '@flowlens/analyzer-core'
 
 import { toReactFlow } from './toReactFlow.ts'
 
 describe('toReactFlow', () => {
   it('maps graph nodes and edges to React Flow elements', () => {
-    const graph: Graph = {
+    const graph: FlowGraph = {
       nodes: [
         {
           id: 'src/index.ts',
           kind: 'file',
           name: 'index.ts',
           filePath: 'src/index.ts',
+          sourceOrigin: 'project',
         },
         {
           id: 'src/index.ts:1:12',
           kind: 'functionDeclaration',
           name: 'main',
           filePath: 'src/index.ts',
+          sourceOrigin: 'project',
         },
       ],
       edges: [

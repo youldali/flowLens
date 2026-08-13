@@ -10,6 +10,7 @@ export const serializedGraphNodeSchema = z.object({
   kind: z.enum(['functionDeclaration', 'methodDeclaration', 'callExpression', 'file', 'if-statement']),
   name: z.string(),
   filePath: z.string(),
+  sourceOrigin: z.enum(['project', 'external', 'unknown']),
 }) satisfies z.ZodType<SerializedGraphNode>;
 
 export const edgeSchema = z.object({

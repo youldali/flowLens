@@ -2,6 +2,7 @@ export { GraphBuilder } from './flow-graph.js';
 export { isFlowGraph } from './flow-graph-contract.js';
 export {
   removeNodes,
+  toProjectSourceGraph,
   toReadableAnalyzerGraph,
 } from './transformer/index.js';
 export {
@@ -20,6 +21,7 @@ export type {
   GraphNodeKind,
   NodeId,
   SerializedGraphNode,
+  SourceOrigin,
 } from './node.js';
 export type {
   Edge,

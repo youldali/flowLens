@@ -75,6 +75,7 @@ describe("GraphBuilder.toJSON", () => {
           kind: "callExpression",
           name: "dependency",
           filePath: "fixture.ts",
+          sourceOrigin: "project",
         },
       ],
       edges: [edge],
@@ -169,6 +170,23 @@ describe("GraphBuilder.fromFilePosition", () => {
     assert.equal(nodeNames.includes("run"), true);
     assert.equal(nodeNames.includes("dependency"), true);
     assert.equal(nodeNames.includes("selectedFlow"), false);
+  });
+
+  it("marks native call expressions as external while preserving internal calls", () => {
+    const graphBuilder = createGraphBuilder();
+    const sourceText = fs.readFileSync(entryFilePath, "utf8");
+    const position = sourceText.indexOf("values.map");
+
+    const result = graphBuilder.fromFilePosition(entryFilePath, position);
+
+    assertOk(result);
+
+    const graph = graphBuilder.extract();
+    const mapCallNode = graph.nodes.find((node) => node.name === "values.map");
+    const dependencyCallNode = graph.nodes.find((node) => node.name === "dependency");
+
+    assert.equal(mapCallNode?.sourceOrigin, "external");
+    assert.equal(dependencyCallNode?.sourceOrigin, "project");
   });
 
   it("returns source-file-not-found when the SourceFile is outside the program", () => {

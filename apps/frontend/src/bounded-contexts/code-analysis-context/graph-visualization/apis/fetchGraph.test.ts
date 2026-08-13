@@ -1,18 +1,19 @@
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
 
-import type { Graph } from '@flowlens/analyzer-core'
+import type { FlowGraph } from '@flowlens/analyzer-core'
 import { fetchGraph } from './fetchGraph.ts'
 
 describe('fetchGraph', () => {
   it('loads graph data from the graph endpoint', async () => {
-    const graph: Graph = {
+    const graph: FlowGraph = {
       nodes: [
         {
           id: 'src/index.ts',
           kind: 'file',
           name: 'index.ts',
           filePath: 'src/index.ts',
+          sourceOrigin: 'project',
         },
       ],
       edges: [],

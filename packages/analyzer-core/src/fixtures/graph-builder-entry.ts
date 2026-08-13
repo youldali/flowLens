@@ -18,4 +18,8 @@ export class FlowService {
   }
 }
 
+export function externalNativeFlow(values: number[]): number[] {
+  return values.map((value) => dependency() + value);
+}
+
 export const topLevelValue = 1;

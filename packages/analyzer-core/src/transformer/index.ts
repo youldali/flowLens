@@ -13,3 +13,10 @@ export function toReadableAnalyzerGraph(graph: AnalyzerGraph): AnalyzerGraph {
     removeNodes((node) => node.kind === 'file'),
   );
 }
+
+export function toProjectSourceGraph(graph: AnalyzerGraph): AnalyzerGraph {
+  return pipe(
+    graph,
+    removeNodes((node) => node.sourceOrigin === 'external'),
+  );
+}
