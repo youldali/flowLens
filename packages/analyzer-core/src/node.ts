@@ -12,7 +12,12 @@ export type GraphNodeKind =
   | 'if-statement';
 
 export type NodeId = string;
-export type SourceOrigin = 'project' | 'external' | 'unknown';
+export type SourceOrigin =
+  | 'project'
+  | 'external'
+  | 'native-js-api'
+  | 'native-node-api'
+  | 'unknown';
 
 export interface SerializedGraphNode {
   id: NodeId;
@@ -77,15 +82,16 @@ export class NodeBuilder {
   buildCallExpressionNode = (node: ts.CallExpression): CallExpressionNode => {
     const sourceFile = node.getSourceFile();
     const signature = this.checker.getResolvedSignature(node);
-    const declarationFile = signature?.declaration ? normalizePath(signature.declaration.getSourceFile().fileName) : undefined;
     const declarationTsNode = this.findDeclarationForCallExpression(node);
+    const declarationSourceFile = this.findDeclarationSourceFile(node, signature, declarationTsNode);
+    const declarationFile = declarationSourceFile ? normalizePath(declarationSourceFile.fileName) : undefined;
 
     return {
       id: TsModule.deriveIdFromTsNode(node),
       name: node.expression.getText(sourceFile),
       filePath: normalizePath(sourceFile.fileName),
       kind: "callExpression",
-      sourceOrigin: this.getCallExpressionSourceOrigin(signature, declarationTsNode),
+      sourceOrigin: declarationSourceFile ? this.getSourceFileOrigin(declarationSourceFile) : 'unknown',
       signature,
       declarationFile,
       declarationTsNode,
@@ -122,38 +128,70 @@ export class NodeBuilder {
     }
   }
 
-  private getCallExpressionSourceOrigin(
+  private findDeclarationSourceFile(
+    node: ts.CallExpression,
     signature: ts.Signature | undefined,
     declarationTsNode: TsModule.ExecutableFunctionDeclaration | undefined,
-  ): SourceOrigin {
-    if (declarationTsNode) {
-      return this.getSourceFileOrigin(declarationTsNode.getSourceFile());
-    }
+  ): ts.SourceFile | undefined {
+    const declarations = [
+      signature?.declaration,
+      declarationTsNode,
+      ...this.getSymbolDeclarations(node.expression),
+      ...this.getPropertyAccessNameDeclarations(node),
+    ].filter((declaration): declaration is ts.Declaration => declaration !== undefined);
 
-    return signature?.declaration
-      ? this.getSourceFileOrigin(signature.declaration.getSourceFile())
-      : 'unknown';
+    return declarations[0]?.getSourceFile();
+  }
+
+  private getSymbolDeclarations(node: ts.Node): ts.Declaration[] {
+    return this.checker.getSymbolAtLocation(node)?.getDeclarations() ?? [];
+  }
+
+  private getPropertyAccessNameDeclarations(node: ts.CallExpression): ts.Declaration[] {
+    return ts.isPropertyAccessExpression(node.expression)
+      ? this.getSymbolDeclarations(node.expression.name)
+      : [];
   }
 
   private getSourceFileOrigin(sourceFile: ts.SourceFile): SourceOrigin {
     const sourcePath = normalizePath(sourceFile.fileName);
-    return !sourcePath.includes('node_modules') && sourcePath.startsWith(this.rootDir)
-      ? 'project'
-      : 'external';
+
+    if (!sourcePath.includes('node_modules') && sourcePath.startsWith(this.rootDir)) {
+      return 'project';
+    }
+
+    if (this.isNativeJsApiSourceFile(sourcePath)) {
+      return 'native-js-api';
+    }
+
+    return this.isNativeNodeApiSourceFile(sourcePath) ? 'native-node-api' : 'external';
   }
 
   private findDeclarationForCallExpression(node: ts.CallExpression): TsModule.ExecutableFunctionDeclaration | undefined {
-    const symbol = this.checker.getSymbolAtLocation(node);
     const signature = this.checker.getResolvedSignature(node);
     const declaration = signature?.declaration;
 
     if (declaration && "body" in declaration && declaration.body) {
       return declaration;
     }
-    else if (symbol) {
-      const declarations = symbol?.getDeclarations() ?? [];
-      return declarations.find(TsModule.isExecutableFunction);
-    }
+
+    const declarations = [
+      ...this.getSymbolDeclarations(node.expression),
+      ...this.getPropertyAccessNameDeclarations(node),
+    ];
+
+    return declarations.find(TsModule.isExecutableFunction);
+  }
+
+  private isNativeJsApiSourceFile(sourcePath: string): boolean {
+    const typescriptLibPath = normalizePath(path.dirname(ts.getDefaultLibFilePath({ target: ts.ScriptTarget.ESNext })));
+    return path.dirname(sourcePath) === typescriptLibPath
+      && path.basename(sourcePath).startsWith('lib.')
+      && sourcePath.endsWith('.d.ts');
+  }
+
+  private isNativeNodeApiSourceFile(sourcePath: string): boolean {
+    return sourcePath.includes('/node_modules/@types/node/');
   }
 }
 

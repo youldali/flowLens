@@ -1,3 +1,5 @@
+import * as fs from 'node:fs';
+
 export function selectedFlow(): number {
   const value = dependency();
   return value;
@@ -20,6 +22,14 @@ export class FlowService {
 
 export function externalNativeFlow(values: number[]): number[] {
   return values.map((value) => dependency() + value);
+}
+
+export function nativeJsApiFlow(entries: [string, number][]): Record<string, number> {
+  return Object.fromEntries(entries);
+}
+
+export function nativeNodeApiFlow(): boolean {
+  return fs.existsSync('/tmp');
 }
 
 export const topLevelValue = 1;

@@ -17,7 +17,17 @@ const createGraphBuilder = (): GraphBuilder => new GraphBuilder(tsconfigPath);
 describe("isFlowGraph", () => {
   it("returns true for objects with node and edge arrays", () => {
     const graph = {
-      nodes: [createCallExpressionNode()],
+      nodes: [
+        createCallExpressionNode(),
+        createCallExpressionNode({
+          id: "native-js-api",
+          sourceOrigin: "native-js-api",
+        }),
+        createCallExpressionNode({
+          id: "native-node-api",
+          sourceOrigin: "native-node-api",
+        }),
+      ],
       edges: [createEdge()],
     };
 
@@ -172,7 +182,7 @@ describe("GraphBuilder.fromFilePosition", () => {
     assert.equal(nodeNames.includes("selectedFlow"), false);
   });
 
-  it("marks native call expressions as external while preserving internal calls", () => {
+  it("marks native JavaScript call expressions while preserving internal calls", () => {
     const graphBuilder = createGraphBuilder();
     const sourceText = fs.readFileSync(entryFilePath, "utf8");
     const position = sourceText.indexOf("values.map");
@@ -185,8 +195,38 @@ describe("GraphBuilder.fromFilePosition", () => {
     const mapCallNode = graph.nodes.find((node) => node.name === "values.map");
     const dependencyCallNode = graph.nodes.find((node) => node.name === "dependency");
 
-    assert.equal(mapCallNode?.sourceOrigin, "external");
+    assert.equal(mapCallNode?.sourceOrigin, "native-js-api");
     assert.equal(dependencyCallNode?.sourceOrigin, "project");
+  });
+
+  it("marks Object.fromEntries as native JavaScript API", () => {
+    const graphBuilder = createGraphBuilder();
+    const sourceText = fs.readFileSync(entryFilePath, "utf8");
+    const position = sourceText.indexOf("Object.fromEntries");
+
+    const result = graphBuilder.fromFilePosition(entryFilePath, position);
+
+    assertOk(result);
+
+    const graph = graphBuilder.extract();
+    const fromEntriesCallNode = graph.nodes.find((node) => node.name === "Object.fromEntries");
+
+    assert.equal(fromEntriesCallNode?.sourceOrigin, "native-js-api");
+  });
+
+  it("marks Node call expressions as native Node API", () => {
+    const graphBuilder = createGraphBuilder();
+    const sourceText = fs.readFileSync(entryFilePath, "utf8");
+    const position = sourceText.indexOf("fs.existsSync");
+
+    const result = graphBuilder.fromFilePosition(entryFilePath, position);
+
+    assertOk(result);
+
+    const graph = graphBuilder.extract();
+    const existsSyncCallNode = graph.nodes.find((node) => node.name === "fs.existsSync");
+
+    assert.equal(existsSyncCallNode?.sourceOrigin, "native-node-api");
   });
 
   it("returns source-file-not-found when the SourceFile is outside the program", () => {

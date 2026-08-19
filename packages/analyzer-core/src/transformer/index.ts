@@ -17,6 +17,6 @@ export function toReadableAnalyzerGraph(graph: AnalyzerGraph): AnalyzerGraph {
 export function toProjectSourceGraph(graph: AnalyzerGraph): AnalyzerGraph {
   return pipe(
     graph,
-    removeNodes((node) => node.sourceOrigin === 'external'),
+    removeNodes((node) => node.sourceOrigin !== 'project' && node.sourceOrigin !== 'unknown'),
   );
 }

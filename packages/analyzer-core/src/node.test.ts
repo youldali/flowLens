@@ -1,5 +1,6 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
+import * as path from 'node:path';
 import ts from 'typescript';
 
 import * as NodeModule from './node.js';
@@ -175,5 +176,43 @@ describe("NodeBuilder", () => {
     }));
 
     assert.equal(builder.buildCallExpressionNode(callExpressionFixture).sourceOrigin, "external");
+  });
+
+  it("marks TypeScript standard library call expression nodes as native JavaScript API", () => {
+    const nativeSourceFile = ts.createSourceFile(
+      path.join(path.dirname(ts.getDefaultLibFilePath({ target: ts.ScriptTarget.ESNext })), "lib.es2019.object.d.ts"),
+      "interface ObjectConstructor { fromEntries(): object }",
+      ts.ScriptTarget.Latest,
+      true,
+      ts.ScriptKind.TS,
+    );
+    const nativeDeclaration = nativeSourceFile.statements[0];
+    const signature = {
+      declaration: nativeDeclaration,
+    } as ts.Signature;
+    const builder = new NodeModule.NodeBuilder(createTypeChecker({
+      getResolvedSignature: () => signature,
+    }));
+
+    assert.equal(builder.buildCallExpressionNode(callExpressionFixture).sourceOrigin, "native-js-api");
+  });
+
+  it("marks Node API call expression nodes as native Node API", () => {
+    const nativeSourceFile = ts.createSourceFile(
+      "/workspace/node_modules/@types/node/fs.d.ts",
+      "export function existsSync(): boolean",
+      ts.ScriptTarget.Latest,
+      true,
+      ts.ScriptKind.TS,
+    );
+    const nativeDeclaration = nativeSourceFile.statements[0];
+    const signature = {
+      declaration: nativeDeclaration,
+    } as ts.Signature;
+    const builder = new NodeModule.NodeBuilder(createTypeChecker({
+      getResolvedSignature: () => signature,
+    }));
+
+    assert.equal(builder.buildCallExpressionNode(callExpressionFixture).sourceOrigin, "native-node-api");
   });
 });
