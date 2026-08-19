@@ -1,4 +1,4 @@
-import type { FlowGraph } from '@flowlens/analyzer-core'
+import type { FlowGraph } from '@flowlens/analyzer-core/flow-graph'
 
 import { layoutDagre, type DagreLayoutOptions } from './layoutDagre.ts'
 import { toReactFlow, type ReactFlowGraph } from './toReactFlow.ts'

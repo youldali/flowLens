@@ -11,13 +11,29 @@
   "license": "ISC",
   "type": "module",
   "exports": {
-    ".": {
-      "types": "./dist/src/index.d.ts",
-      "default": "./dist/src/index.js"
+    "./edge": {
+      "types": "./dist/src/edge.d.ts",
+      "default": "./dist/src/edge.js"
+    },
+    "./flow-graph": {
+      "types": "./dist/src/flow-graph.d.ts",
+      "default": "./dist/src/flow-graph.js"
     },
     "./flow-graph-contract": {
       "types": "./dist/src/flow-graph-contract.d.ts",
       "default": "./dist/src/flow-graph-contract.js"
+    },
+    "./node": {
+      "types": "./dist/src/node.d.ts",
+      "default": "./dist/src/node.js"
+    },
+    "./transformer": {
+      "types": "./dist/src/transformer/index.d.ts",
+      "default": "./dist/src/transformer/index.js"
+    },
+    "./tsNode": {
+      "types": "./dist/src/tsNode.d.ts",
+      "default": "./dist/src/tsNode.js"
     }
   },
   "dependencies": {

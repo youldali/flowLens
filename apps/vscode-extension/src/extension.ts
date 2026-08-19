@@ -1,7 +1,7 @@
 import * as path from "node:path";
 import * as vscode from "vscode";
 
-import { GraphBuilder } from "@flowlens/analyzer-core";
+import { GraphBuilder } from "@flowlens/analyzer-core/flow-graph";
 import { findNearestTsconfig } from "@flowlens/common";
 
 import { FlowLensGraphWebview } from "./webview.js";

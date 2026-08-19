@@ -2,7 +2,7 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import type { FlowGraph } from '@flowlens/analyzer-core';
+import type { FlowGraph } from '@flowlens/analyzer-core/flow-graph';
 import Fastify, { type FastifyReply } from 'fastify';
 
 export async function serveGraphViewer(graph: FlowGraph): Promise<void> {

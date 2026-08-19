@@ -2,7 +2,7 @@ import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import * as vscode from "vscode";
 
-import type { FlowGraph } from "@flowlens/analyzer-core";
+import type { FlowGraph } from "@flowlens/analyzer-core/flow-graph";
 import { createVsCodeEvent, isViewReadyEvent } from "@flowlens/registries/vscode-events";
 
 export class FlowLensGraphWebview {

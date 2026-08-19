@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import * as path from 'node:path';
 
-import { GraphBuilder } from '@flowlens/analyzer-core';
+import { GraphBuilder } from '@flowlens/analyzer-core/flow-graph';
 import { findNearestTsconfig } from '@flowlens/common';
 import { serveGraphViewer } from './server.js';
 
