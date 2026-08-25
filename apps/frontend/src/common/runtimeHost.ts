@@ -25,6 +25,7 @@ export const RuntimeHostContext = createContext<RuntimeHostContextValue | undefi
 
 export function detectRuntime(): RuntimeHost {
   if (typeof window === 'undefined') {
+    // Non-browser execution cannot inspect host globals, so use the default frontend runtime.
     return 'web-app'
   }
 

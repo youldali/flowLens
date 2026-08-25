@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict'
-import { describe, it } from 'node:test'
+import { describe, it } from 'vitest'
 
 import type { FlowGraph } from '@flowlens/analyzer-core/flow-graph'
 import { fetchGraph } from './fetchGraph.ts'
@@ -19,7 +19,7 @@ describe('fetchGraph', () => {
       edges: [],
     }
     const fetcher: typeof fetch = async (url) => {
-      assert.equal(url, '/graph.json')
+      assert.equal(url instanceof Request ? url.url : url, 'http://localhost/graph.json')
       return Response.json(graph)
     }
 
@@ -34,7 +34,20 @@ describe('fetchGraph', () => {
 
     await assert.rejects(
       fetchGraph(fetcher),
-      /Failed to load graph: 500 Internal Server Error/,
+      /API request failure: Server error, Internal Server Error, 500 GET http:\/\/localhost\/graph\.json/,
     )
+  })
+
+  it('uses the configured base URL when provided', async () => {
+    const graph: FlowGraph = {
+      nodes: [],
+      edges: [],
+    }
+    const fetcher: typeof fetch = async (url) => {
+      assert.equal(url instanceof Request ? url.url : url, 'https://flowlens.test/graph.json')
+      return Response.json(graph)
+    }
+
+    assert.deepEqual(await fetchGraph(fetcher, { baseUrl: 'https://flowlens.test' }), graph)
   })
 })
