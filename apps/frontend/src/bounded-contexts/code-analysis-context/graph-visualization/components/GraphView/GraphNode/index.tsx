@@ -8,6 +8,7 @@ export function GraphNode({ data }: NodeProps<GraphViewNodeData>) {
       <Handle type="target" position={Position.Left} />
       <span className={styles.nodeLabel}>{data.label}</span>
       <span className={styles.nodeMeta}>{data.kind}</span>
+      <span className={styles.nodeSourceOrigin}>{data.sourceOrigin}</span>
       <span className={styles.nodeMeta}>{data.filePath}</span>
       <Handle type="source" position={Position.Right} />
     </div>

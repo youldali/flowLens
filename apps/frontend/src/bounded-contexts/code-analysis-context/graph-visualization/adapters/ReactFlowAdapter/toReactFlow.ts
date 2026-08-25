@@ -7,6 +7,7 @@ export interface GraphViewNodeData extends Record<string, unknown> {
   label: string
   kind: SerializedGraphNode['kind']
   filePath: string
+  sourceOrigin: SerializedGraphNode['sourceOrigin']
 }
 
 export interface ReactFlowGraph {
@@ -38,6 +39,7 @@ function toReactFlowNode(node: SerializedGraphNode): FlowNode<GraphViewNodeData>
       label: node.name,
       kind: node.kind,
       filePath: node.filePath,
+      sourceOrigin: node.sourceOrigin,
     },
     position: { x: 0, y: 0 },
   }

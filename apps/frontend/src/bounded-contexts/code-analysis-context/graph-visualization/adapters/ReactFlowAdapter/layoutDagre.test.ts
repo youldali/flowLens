@@ -10,8 +10,8 @@ import { layoutDagre } from './layoutDagre.ts'
 describe('layoutDagre', () => {
   it('lays out connected nodes from left to right by default', () => {
     const nodes = [
-      createNode({ id: 'source', data: { label: 'source', kind: 'file', filePath: 'source.ts' } }),
-      createNode({ id: 'target', data: { label: 'target', kind: 'file', filePath: 'target.ts' } }),
+      createNode({ id: 'source', data: { label: 'source', kind: 'file', filePath: 'source.ts', sourceOrigin: 'project' } }),
+      createNode({ id: 'target', data: { label: 'target', kind: 'file', filePath: 'target.ts', sourceOrigin: 'project' } }),
     ]
     const edges = [createEdge({ source: 'source', target: 'target' })]
 
@@ -30,8 +30,8 @@ describe('layoutDagre', () => {
 
   it('uses vertical connector positions for top-to-bottom layouts', () => {
     const nodes = [
-      createNode({ id: 'source', data: { label: 'source', kind: 'file', filePath: 'source.ts' } }),
-      createNode({ id: 'target', data: { label: 'target', kind: 'file', filePath: 'target.ts' } }),
+      createNode({ id: 'source', data: { label: 'source', kind: 'file', filePath: 'source.ts', sourceOrigin: 'project' } }),
+      createNode({ id: 'target', data: { label: 'target', kind: 'file', filePath: 'target.ts', sourceOrigin: 'project' } }),
     ]
     const edges = [createEdge({ source: 'source', target: 'target' })]
 
