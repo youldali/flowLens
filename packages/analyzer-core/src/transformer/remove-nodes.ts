@@ -1,12 +1,12 @@
 import { create as createEdge } from '../edge.js';
 import type { Edge } from '../edge.js';
-import type { AnalyzerGraph } from '../flow-graph.js';
-import type { AnalyzerNode, NodeId } from '../node.js';
+import type { FlowGraph } from '../flow-graph.js';
+import type { NodeId, SerializedGraphNode } from '../node.js';
 import type { GraphTransformer } from './index.js';
 
-export function removeNodes(
-  predicate: (node: AnalyzerNode) => boolean,
-): GraphTransformer<AnalyzerGraph> {
+export function removeNodes<TGraph extends FlowGraph>(
+  predicate: (node: TGraph['nodes'][number]) => boolean,
+): GraphTransformer<TGraph> {
   return (graph) => {
     const { removedNodeIds, newGraphNodes } = computeNewNodes(graph.nodes, predicate);
     const newGraphEdges = computeNewEdges(graph.edges, removedNodeIds);
@@ -14,14 +14,14 @@ export function removeNodes(
     return {
       nodes: newGraphNodes,
       edges: newGraphEdges,
-    };
+    } as TGraph;
   };
 }
 
-function computeNewNodes(
-  nodes: AnalyzerNode[],
-  predicate: (node: AnalyzerNode) => boolean,
-): { removedNodeIds: Set<NodeId>; newGraphNodes: AnalyzerNode[] } {
+function computeNewNodes<TNode extends SerializedGraphNode>(
+  nodes: TNode[],
+  predicate: (node: TNode) => boolean,
+): { removedNodeIds: Set<NodeId>; newGraphNodes: TNode[] } {
   const removedNodeIds = new Set(nodes
     .filter(predicate)
     .map((node) => node.id));

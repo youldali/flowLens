@@ -1,22 +1,26 @@
 import { pipe } from '@flowlens/common';
 
-import type { AnalyzerGraph, Graph } from '../flow-graph.js';
+import type { AnalyzerGraph, FlowGraph } from '../flow-graph.js';
 import { removeNodes } from './remove-nodes.js';
 
 export { removeNodes } from './remove-nodes.js';
 
-export type GraphTransformer<TGraph extends Graph = AnalyzerGraph> = (graph: TGraph) => TGraph;
+export type GraphTransformer<TGraph extends FlowGraph = AnalyzerGraph> = (graph: TGraph) => TGraph;
 
-export function toReadableAnalyzerGraph(graph: AnalyzerGraph): AnalyzerGraph {
+export function toReadableGraph<TGraph extends FlowGraph>(graph: TGraph): TGraph {
   return pipe(
     graph,
-    removeNodes((node) => node.kind === 'file'),
+    removeNodes<TGraph>((node) => node.kind === 'file'),
   );
 }
 
-export function toProjectSourceGraph(graph: AnalyzerGraph): AnalyzerGraph {
+export function toReadableAnalyzerGraph(graph: AnalyzerGraph): AnalyzerGraph {
+  return toReadableGraph(graph);
+}
+
+export function toProjectSourceGraph<TGraph extends FlowGraph>(graph: TGraph): TGraph {
   return pipe(
     graph,
-    removeNodes((node) => node.sourceOrigin !== 'project' && node.sourceOrigin !== 'unknown'),
+    removeNodes<TGraph>((node) => node.sourceOrigin !== 'project' && node.sourceOrigin !== 'unknown'),
   );
 }
