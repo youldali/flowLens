@@ -2,12 +2,12 @@
 .vscode-test/**
 assets/*.svg
 dist/extension.js
+dist/**/*.js
 dist/**/*.d.ts
 dist/**/*.d.ts.map
 dist/**/*.js.map
 dist/**/*.tsbuildinfo
 dist/webview.js
-node_modules/**
 scripts/**
 src/**
 tsconfig.json

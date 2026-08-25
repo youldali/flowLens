@@ -60,17 +60,21 @@
   "scripts": {
     "build": "node ./scripts/build-frontend.js && node ./scripts/copy-frontend-dist.js && tsc --noEmit -p tsconfig.json && node ./scripts/bundle-extension.js",
     "package": "node ./scripts/package-vsix.js",
+    "test": "tsx --test \"src/**/*.test.ts\"",
     "watch": "tsc -w -p tsconfig.json",
     "vscode:prepublish": "node ./scripts/vscode-prepublish.js"
   },
+  "dependencies": {
+    "typescript": "^6.0.3"
+  },
   "devDependencies": {
-    "@types/vscode": "1.104.0",
-    "@vscode/vsce": "^3.6.2",
-    "esbuild": "^0.25.12",
     "@flowlens/analyzer-core": "workspace:*",
     "@flowlens/common": "workspace:*",
     "@flowlens/registries": "workspace:*",
-    "typescript": "^6.0.3",
+    "@types/vscode": "1.104.0",
+    "@vscode/vsce": "^3.6.2",
+    "esbuild": "^0.25.12",
+    "tsx": "^4.23.12",
     "vscode": "^1.1.37"
   }
 }

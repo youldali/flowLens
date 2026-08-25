@@ -1,11 +1,11 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import * as path from 'node:path';
 import ts from 'typescript';
 
 import * as NodeModule from './node.js';
 import * as TsNodeModule from './tsNode.js';
 import { normalizePath } from '@flowlens/common';
+import { createProgram } from './mocks/program.js';
 import { createTypeChecker } from './mocks/typechecker.js';
 import {
   create as createNode,
@@ -180,7 +180,7 @@ describe("NodeBuilder", () => {
 
   it("marks TypeScript standard library call expression nodes as native JavaScript API", () => {
     const nativeSourceFile = ts.createSourceFile(
-      path.join(path.dirname(ts.getDefaultLibFilePath({ target: ts.ScriptTarget.ESNext })), "lib.es2019.object.d.ts"),
+      "/packaged-extension/node_modules/typescript/lib/lib.es2019.object.d.ts",
       "interface ObjectConstructor { fromEntries(): object }",
       ts.ScriptTarget.Latest,
       true,
@@ -190,9 +190,12 @@ describe("NodeBuilder", () => {
     const signature = {
       declaration: nativeDeclaration,
     } as ts.Signature;
+    const program = createProgram({
+      isSourceFileDefaultLibrary: (sourceFile: ts.SourceFile) => sourceFile === nativeSourceFile,
+    });
     const builder = new NodeModule.NodeBuilder(createTypeChecker({
       getResolvedSignature: () => signature,
-    }));
+    }), process.cwd(), program);
 
     assert.equal(builder.buildCallExpressionNode(callExpressionFixture).sourceOrigin, "native-js-api");
   });

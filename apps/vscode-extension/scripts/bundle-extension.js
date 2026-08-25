@@ -3,7 +3,7 @@ import * as esbuild from "esbuild";
 await esbuild.build({
   bundle: true,
   entryPoints: ["src/extension.ts"],
-  external: ["vscode"],
+  external: ["vscode", "typescript"],
   format: "cjs",
   logLevel: "info",
   minify: true,

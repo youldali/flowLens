@@ -72,10 +72,12 @@ export const isFileNode = (node: AnalyzerNode): node is FileNode => {
 
 export class NodeBuilder {
   private readonly checker: ts.TypeChecker
+  private readonly program: ts.Program | undefined
   private readonly rootDir: string
 
-  constructor(checker: ts.TypeChecker, rootDir: string = process.cwd()) {
+  constructor(checker: ts.TypeChecker, rootDir: string = process.cwd(), program?: ts.Program) {
     this.checker = checker;
+    this.program = program;
     this.rootDir = normalizePath(rootDir);
   }
 
@@ -156,12 +158,12 @@ export class NodeBuilder {
   private getSourceFileOrigin(sourceFile: ts.SourceFile): SourceOrigin {
     const sourcePath = normalizePath(sourceFile.fileName);
 
-    if (!sourcePath.includes('node_modules') && sourcePath.startsWith(this.rootDir)) {
-      return 'project';
+    if (this.isNativeJsApiSourceFile(sourceFile)) {
+      return 'native-js-api';
     }
 
-    if (this.isNativeJsApiSourceFile(sourcePath)) {
-      return 'native-js-api';
+    if (!sourcePath.includes('node_modules') && sourcePath.startsWith(this.rootDir)) {
+      return 'project';
     }
 
     return this.isNativeNodeApiSourceFile(sourcePath) ? 'native-node-api' : 'external';
@@ -183,11 +185,8 @@ export class NodeBuilder {
     return declarations.find(TsModule.isExecutableFunction);
   }
 
-  private isNativeJsApiSourceFile(sourcePath: string): boolean {
-    const typescriptLibPath = normalizePath(path.dirname(ts.getDefaultLibFilePath({ target: ts.ScriptTarget.ESNext })));
-    return path.dirname(sourcePath) === typescriptLibPath
-      && path.basename(sourcePath).startsWith('lib.')
-      && sourcePath.endsWith('.d.ts');
+  private isNativeJsApiSourceFile(sourceFile: ts.SourceFile): boolean {
+    return this.program?.isSourceFileDefaultLibrary(sourceFile) ?? false;
   }
 
   private isNativeNodeApiSourceFile(sourcePath: string): boolean {
