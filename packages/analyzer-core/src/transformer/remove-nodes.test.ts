@@ -50,6 +50,56 @@ describe("removeNodes", () => {
     ]);
   });
 
+  it("bridges one removed node to every kept outgoing target", () => {
+    const source = createNode("source");
+    const removed = createNode("removed");
+    const targetA = createNode("target-a");
+    const targetB = createNode("target-b");
+    const graph = createGraph({
+      nodes: [source, removed, targetA, targetB],
+      edges: [
+        createEdge(source.id, removed.id, 'calls'),
+        createEdge(removed.id, targetA.id, 'references'),
+        createEdge(removed.id, targetB.id, 'declares'),
+      ],
+    });
+
+    const result = removeNodes((node) => node.id === removed.id)(graph);
+
+    assert.deepEqual(result.nodes, [source, targetA, targetB]);
+    assert.deepEqual(result.edges, [
+      createEdge(source.id, targetA.id, 'calls'),
+      createEdge(source.id, targetB.id, 'calls'),
+    ]);
+  });
+
+  it("bridges through branching chains of removed nodes", () => {
+    const source = createNode("source");
+    const removedA = createNode("removed-a");
+    const removedB = createNode("removed-b");
+    const removedC = createNode("removed-c");
+    const targetA = createNode("target-a");
+    const targetB = createNode("target-b");
+    const graph = createGraph({
+      nodes: [source, removedA, removedB, removedC, targetA, targetB],
+      edges: [
+        createEdge(source.id, removedA.id, 'calls'),
+        createEdge(removedA.id, removedB.id, 'references'),
+        createEdge(removedA.id, removedC.id, 'references'),
+        createEdge(removedB.id, targetA.id, 'declares'),
+        createEdge(removedC.id, targetB.id, 'declares'),
+      ],
+    });
+
+    const result = removeNodes((node) => node.id.startsWith("removed"))(graph);
+
+    assert.deepEqual(result.nodes, [source, targetA, targetB]);
+    assert.deepEqual(result.edges, [
+      createEdge(source.id, targetA.id, 'calls'),
+      createEdge(source.id, targetB.id, 'calls'),
+    ]);
+  });
+
   it("preserves existing edges between kept nodes", () => {
     const source = createNode("source");
     const target = createNode("target");

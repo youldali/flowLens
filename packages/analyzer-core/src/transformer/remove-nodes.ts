@@ -42,9 +42,9 @@ function computeNewEdges(edges: Edge[], removedNodeIds: Set<NodeId>): Edge[] {
       continue;
     }
 
-    const target = findBridgeTarget(edge.target, edges, removedNodeIds);
+    const targets = findBridgeTargets(edge.target, edges, removedNodeIds);
 
-    if (target) {
+    for (const target of targets) {
       const bridgedEdge = createEdge(edge.source, target, edge.type);
       newEdgesMap.set(bridgedEdge.id, bridgedEdge);
     }
@@ -57,33 +57,34 @@ function isEdgeSkippedForBridge(edge: Edge, removedNodeIds: Set<NodeId>): boolea
   return removedNodeIds.has(edge.source) || !removedNodeIds.has(edge.target);
 }
 
-function findBridgeTarget(
+function findBridgeTargets(
   removedNodeId: NodeId,
   edges: Edge[],
   removedNodeIds: Set<NodeId>,
-): NodeId | undefined {
+): NodeId[] {
+  const bridgeTargets = new Set<NodeId>();
   const visitedRemovedNodes = new Set<NodeId>();
-  let currentNodeId: NodeId | undefined = removedNodeId;
+  const nodeIdsToVisit: NodeId[] = [removedNodeId];
 
-  while (currentNodeId !== undefined) {
+  for (let visitIndex = 0; visitIndex < nodeIdsToVisit.length; visitIndex += 1) {
+    const currentNodeId = nodeIdsToVisit[visitIndex]!;
     if (visitedRemovedNodes.has(currentNodeId)) {
-      return undefined;
+      continue;
     }
 
     visitedRemovedNodes.add(currentNodeId);
 
-    const outgoingEdge = edges.find((edge) => edge.source === currentNodeId);
+    const outgoingEdges = edges.filter((edge) => edge.source === currentNodeId);
 
-    if (outgoingEdge === undefined) {
-      return undefined;
+    for (const outgoingEdge of outgoingEdges) {
+      if (!removedNodeIds.has(outgoingEdge.target)) {
+        bridgeTargets.add(outgoingEdge.target);
+        continue;
+      }
+
+      nodeIdsToVisit.push(outgoingEdge.target);
     }
-
-    if (!removedNodeIds.has(outgoingEdge.target)) {
-      return outgoingEdge.target;
-    }
-
-    currentNodeId = outgoingEdge.target;
   }
 
-  return undefined;
+  return Array.from(bridgeTargets);
 }
