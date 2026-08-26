@@ -1,6 +1,7 @@
 import { useTranslation } from '@common/hooks/useTranslation'
 import { GraphViewContent } from '../GraphViewContent'
 import { GraphViewHeader } from '../GraphViewHeader'
+import { GraphTransformerSelector } from '../GraphTransformerSelector'
 import styles from '../GraphView.module.css'
 import { useGraph } from './useGraph'
 
@@ -11,6 +12,7 @@ export function FromVsCode() {
   return (
     <main className={styles.container}>
       <GraphViewHeader />
+      <GraphTransformerSelector />
       {graph ? (
         <GraphViewContent graph={graph} />
       ) : (

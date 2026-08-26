@@ -12,8 +12,8 @@ import {
   adaptToReactFlow,
   type ReactFlowAdapterOptions,
 } from '@code-analysis-context/graph-visualization/adapters/ReactFlowAdapter'
-import { toProjectSourceGraph } from '@flowlens/analyzer-core/transformer'
 import { GraphNode } from './GraphNode'
+import { useTransformer } from './useTransformer'
 import styles from './GraphView.module.css'
 
 export interface GraphViewContentProps {
@@ -37,7 +37,7 @@ export function GraphViewContent({
   fitViewOptions = DEFAULT_FIT_VIEW_OPTIONS,
   nodeTypes = DEFAULT_NODE_TYPES,
 }: GraphViewContentProps) {
-  const displayGraph = useMemo(() => toProjectSourceGraph(graph), [graph])
+  const displayGraph = useTransformer(graph)
   const { nodes, edges } = useMemo(
     () => adaptToReactFlow(displayGraph, { direction }),
     [direction, displayGraph],

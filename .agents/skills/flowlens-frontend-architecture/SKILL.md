@@ -40,6 +40,11 @@ apis -> domain
 bounded-contexts are isolated by default
 ```
 
+Store imports:
+
+- Keep shared module-level frontend state outside component folders, such as `<module>/store/`.
+- When graph-visualization components import that store, use `@code-analysis-context/graph-visualization/store` instead of relative parent traversal.
+
 Forbidden:
 
 - `domain` importing React, component code, browser APIs, API clients, or routing code.

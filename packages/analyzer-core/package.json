@@ -23,6 +23,14 @@
       "types": "./dist/src/flow-graph-contract.d.ts",
       "default": "./dist/src/flow-graph-contract.js"
     },
+    "./fixtures/edge": {
+      "types": "./dist/src/fixtures/edge.d.ts",
+      "default": "./dist/src/fixtures/edge.js"
+    },
+    "./fixtures/node": {
+      "types": "./dist/src/fixtures/node.d.ts",
+      "default": "./dist/src/fixtures/node.js"
+    },
     "./node": {
       "types": "./dist/src/node.d.ts",
       "default": "./dist/src/node.js"
