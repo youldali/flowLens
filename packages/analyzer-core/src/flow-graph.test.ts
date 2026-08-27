@@ -34,12 +34,58 @@ describe("isFlowGraph", () => {
     assert.equal(isFlowGraph(graph), true);
   });
 
+  it("returns true for edges with call expression metadata", () => {
+    const graph = {
+      nodes: [createCallExpressionNode()],
+      edges: [
+        createEdge({
+          metadata: {
+            kind: "call-expression",
+            callSite: {
+              filePath: "src/source.ts",
+              start: 12,
+              end: 24,
+              text: "dependency()",
+            },
+          },
+        }),
+      ],
+    };
+
+    assert.equal(isFlowGraph(graph), true);
+  });
+
   it("returns false for values without node and edge arrays", () => {
     assert.equal(isFlowGraph(undefined), false);
     assert.equal(isFlowGraph(null), false);
     assert.equal(isFlowGraph({ nodes: [], edges: undefined }), false);
     assert.equal(isFlowGraph({ nodes: {}, edges: [] }), false);
     assert.equal(isFlowGraph({ nodes: [], links: [] }), false);
+  });
+
+  it("returns false for invalid call expression metadata", () => {
+    const graph = {
+      nodes: [createCallExpressionNode()],
+      edges: [
+        {
+          id: "source-node->target-node:calls:call-expression:src/source.ts:12:24",
+          source: "source-node",
+          target: "target-node",
+          type: "calls",
+          metadata: {
+            kind: "call-expression",
+            callSite: {
+              filePath: "src/source.ts",
+              start: 12,
+              end: 24,
+              tsNode: {},
+            },
+          },
+        },
+      ],
+    };
+
+    assert.equal(isFlowGraph(graph), false);
   });
 });
 

@@ -1,4 +1,4 @@
-import type { Edge } from '../edge.js';
+import type { CallExpressionEdgeMetadata, Edge } from '../edge.js';
 import { createFixture } from '@flowlens/test-utils';
 
 const edgeFixture: Edge = {
@@ -8,4 +8,15 @@ const edgeFixture: Edge = {
   type: "calls",
 };
 
+const callExpressionEdgeMetadataFixture: CallExpressionEdgeMetadata = {
+  kind: 'call-expression',
+  callSite: {
+    filePath: 'src/source.ts',
+    start: 12,
+    end: 24,
+    text: 'dependency()',
+  },
+};
+
 export const create = createFixture<Edge>(edgeFixture);
+export const createCallExpressionEdgeMetadata = createFixture<CallExpressionEdgeMetadata>(callExpressionEdgeMetadataFixture);

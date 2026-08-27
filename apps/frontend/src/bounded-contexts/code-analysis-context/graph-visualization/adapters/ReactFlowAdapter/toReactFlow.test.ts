@@ -73,4 +73,52 @@ describe('toReactFlow', () => {
       ],
     })
   })
+
+  it('maps graph edge metadata to React Flow edge data', () => {
+    const graph: FlowGraph = {
+      nodes: [],
+      edges: [
+        {
+          id: 'src/index.ts:1:12->src/dependency.ts:1:12:calls:call-expression:src/index.ts:12:24',
+          source: 'src/index.ts:1:12',
+          target: 'src/dependency.ts:1:12',
+          type: 'calls',
+          metadata: {
+            kind: 'call-expression',
+            callSite: {
+              filePath: 'src/index.ts',
+              start: 12,
+              end: 24,
+              text: 'dependency()',
+            },
+          },
+        },
+      ],
+    }
+
+    assert.deepEqual(toReactFlow(graph).edges, [
+      {
+        id: 'src/index.ts:1:12->src/dependency.ts:1:12:calls:call-expression:src/index.ts:12:24',
+        source: 'src/index.ts:1:12',
+        target: 'src/dependency.ts:1:12',
+        label: 'calls',
+        markerEnd: {
+          type: MarkerType.ArrowClosed,
+        },
+        type: 'smoothstep',
+        animated: false,
+        data: {
+          metadata: {
+            kind: 'call-expression',
+            callSite: {
+              filePath: 'src/index.ts',
+              start: 12,
+              end: 24,
+              text: 'dependency()',
+            },
+          },
+        },
+      },
+    ])
+  })
 })

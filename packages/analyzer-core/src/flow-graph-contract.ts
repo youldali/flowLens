@@ -13,11 +13,26 @@ export const serializedGraphNodeSchema = z.object({
   sourceOrigin: z.enum(['project', 'external', 'native-js-api', 'native-node-api', 'unknown']),
 }) satisfies z.ZodType<SerializedGraphNode>;
 
+export const callExpressionEdgeMetadataSchema = z.object({
+  kind: z.literal('call-expression'),
+  callSite: z.object({
+    filePath: z.string(),
+    start: z.number().int().nonnegative(),
+    end: z.number().int().nonnegative(),
+    text: z.string().optional(),
+  }).strict(),
+}).strict();
+
+export const edgeMetadataSchema = z.discriminatedUnion('kind', [
+  callExpressionEdgeMetadataSchema,
+]);
+
 export const edgeSchema = z.object({
   id: z.string(),
   source: z.string(),
   target: z.string(),
   type: z.enum(['imports', 'declares', 'calls', 'references']),
+  metadata: edgeMetadataSchema.optional(),
 }) satisfies z.ZodType<Edge>;
 
 export const flowGraphSchema = z.object({
