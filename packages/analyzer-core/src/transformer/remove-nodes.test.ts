@@ -3,9 +3,10 @@ import { describe, it } from 'node:test';
 
 import { create as createEdge } from '../edge.js';
 import type { AnalyzerGraph, FlowGraph } from '../flow-graph.js';
+import { createCallExpressionEdgeMetadata } from '../fixtures/edge.js';
 import { createFunctionDeclarationNode, createSerializedNode } from '../fixtures/node.js';
 import type { AnalyzerNode } from '../node.js';
-import { removeNodes } from './index.js';
+import { removeNodes } from './remove-nodes.js';
 
 describe("removeNodes", () => {
   it("removes one node and bridges kept neighbors with the upstream edge type", () => {
@@ -137,6 +138,36 @@ describe("removeNodes", () => {
 
     assert.deepEqual(result.edges, [
       createEdge(source.id, target.id, 'calls'),
+    ]);
+  });
+
+  it("uses a custom bridge edge factory when provided", () => {
+    const source = createNode("source");
+    const removed = createNode("removed");
+    const target = createNode("target");
+    const metadata = createCallExpressionEdgeMetadata();
+    const graph = createGraph({
+      nodes: [source, removed, target],
+      edges: [
+        createEdge(source.id, removed.id, 'calls'),
+        createEdge(removed.id, target.id, 'references'),
+      ],
+    });
+
+    const result = removeNodes(
+      (node) => node.id === removed.id,
+      {
+        createBridgeEdge: ({ incomingEdge, outgoingEdge }) => createEdge(
+          incomingEdge.source,
+          outgoingEdge.target,
+          incomingEdge.type,
+          metadata,
+        ),
+      },
+    )(graph);
+
+    assert.deepEqual(result.edges, [
+      createEdge(source.id, target.id, 'calls', metadata),
     ]);
   });
 

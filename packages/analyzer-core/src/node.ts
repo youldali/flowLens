@@ -2,6 +2,7 @@ import ts from 'typescript';
 import * as path from 'node:path';
 
 import { normalizePath } from '@flowlens/common';
+import type { FlowGraph } from './flow-graph.js';
 import * as TsModule from './tsNode.js';
 
 export type GraphNodeKind =
@@ -25,6 +26,9 @@ export interface SerializedGraphNode {
   name: string;
   filePath: string;
   sourceOrigin: SourceOrigin;
+  start?: number | undefined;
+  end?: number | undefined;
+  text?: string | undefined;
 }
 
 export interface AnalyzerNode extends SerializedGraphNode {
@@ -44,6 +48,9 @@ export interface FunctionDeclarationNode extends AnalyzerNode {
 
 export interface CallExpressionNode extends AnalyzerNode {
   kind: 'callExpression';
+  start: number;
+  end: number;
+  text: string;
   tsNode: ts.CallExpression;
   signature: ts.Signature | undefined;
   declarationTsNode: TsModule.ExecutableFunctionDeclaration | undefined;
@@ -60,6 +67,21 @@ export const isFunctionDeclarationNode = (node: AnalyzerNode): node is FunctionD
 
 export const isCallExpressionNode = (node: AnalyzerNode): node is CallExpressionNode => {
   return node.kind === 'callExpression';
+}
+
+export const isCallExpressionNodeWithCallSite = (
+  node: SerializedGraphNode,
+): node is SerializedGraphNode & { kind: 'callExpression'; start: number; end: number; text: string } => {
+  return (
+    node.kind === 'callExpression' &&
+    typeof node.start === 'number' &&
+    typeof node.end === 'number' &&
+    typeof node.text === 'string'
+  );
+}
+
+export const hasOutgoingReferenceEdge = (graph: FlowGraph, node: SerializedGraphNode): boolean => {
+  return graph.edges.some((edge) => edge.source === node.id && edge.type === 'references');
 }
 
 export const hasCallExpressionDeclaration = (node: CallExpressionNode): node is CallExpressionNodeWithDeclaration => {
@@ -94,6 +116,9 @@ export class NodeBuilder {
       filePath: normalizePath(sourceFile.fileName),
       kind: "callExpression",
       sourceOrigin: declarationSourceFile ? this.getSourceFileOrigin(declarationSourceFile) : 'unknown',
+      start: node.pos,
+      end: node.end,
+      text: node.getText(sourceFile),
       signature,
       declarationFile,
       declarationTsNode,
@@ -195,11 +220,20 @@ export class NodeBuilder {
 }
 
 export function toSerializedGraphNode(node: AnalyzerNode): SerializedGraphNode {
-  return {
+  const serializedNode: SerializedGraphNode = {
     id: node.id,
     kind: node.kind,
     name: node.name,
     filePath: node.filePath,
     sourceOrigin: node.sourceOrigin,
   };
+
+  return isCallExpressionNode(node)
+    ? {
+      ...serializedNode,
+      start: node.start,
+      end: node.end,
+      text: node.text,
+    }
+    : serializedNode;
 }

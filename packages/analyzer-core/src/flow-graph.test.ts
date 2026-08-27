@@ -34,6 +34,40 @@ describe("isFlowGraph", () => {
     assert.equal(isFlowGraph(graph), true);
   });
 
+  it("returns true for non-call nodes without call-site fields", () => {
+    const graph = {
+      nodes: [
+        {
+          id: "fixture.ts:1:49",
+          kind: "functionDeclaration",
+          name: "fixtureFunction",
+          filePath: "fixture.ts",
+          sourceOrigin: "project",
+        },
+      ],
+      edges: [],
+    };
+
+    assert.equal(isFlowGraph(graph), true);
+  });
+
+  it("returns false for call expression nodes without call-site fields", () => {
+    const graph = {
+      nodes: [
+        {
+          id: "fixture.ts:33:45",
+          kind: "callExpression",
+          name: "dependency",
+          filePath: "fixture.ts",
+          sourceOrigin: "project",
+        },
+      ],
+      edges: [],
+    };
+
+    assert.equal(isFlowGraph(graph), false);
+  });
+
   it("returns true for edges with call expression metadata", () => {
     const graph = {
       nodes: [createCallExpressionNode()],
@@ -132,6 +166,9 @@ describe("GraphBuilder.toJSON", () => {
           name: "dependency",
           filePath: "fixture.ts",
           sourceOrigin: "project",
+          start: node.start,
+          end: node.end,
+          text: node.text,
         },
       ],
       edges: [edge],

@@ -5,13 +5,33 @@ import type { SerializedGraphNode } from './node.js';
 
 export type { FlowGraph, Graph } from './flow-graph.js';
 
-export const serializedGraphNodeSchema = z.object({
+const serializedGraphNodeBaseSchema = z.object({
   id: z.string(),
-  kind: z.enum(['functionDeclaration', 'methodDeclaration', 'callExpression', 'file', 'if-statement']),
   name: z.string(),
   filePath: z.string(),
   sourceOrigin: z.enum(['project', 'external', 'native-js-api', 'native-node-api', 'unknown']),
-}) satisfies z.ZodType<SerializedGraphNode>;
+});
+
+export const serializedGraphNodeSchema = z.discriminatedUnion('kind', [
+  serializedGraphNodeBaseSchema.extend({
+    kind: z.literal('functionDeclaration'),
+  }),
+  serializedGraphNodeBaseSchema.extend({
+    kind: z.literal('methodDeclaration'),
+  }),
+  serializedGraphNodeBaseSchema.extend({
+    kind: z.literal('callExpression'),
+    start: z.number().int().nonnegative(),
+    end: z.number().int().nonnegative(),
+    text: z.string(),
+  }),
+  serializedGraphNodeBaseSchema.extend({
+    kind: z.literal('file'),
+  }),
+  serializedGraphNodeBaseSchema.extend({
+    kind: z.literal('if-statement'),
+  }),
+]) satisfies z.ZodType<SerializedGraphNode>;
 
 export const callExpressionEdgeMetadataSchema = z.object({
   kind: z.literal('call-expression'),

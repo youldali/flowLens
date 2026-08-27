@@ -5,6 +5,8 @@ import ts from 'typescript';
 import * as NodeModule from './node.js';
 import * as TsNodeModule from './tsNode.js';
 import { normalizePath } from '@flowlens/common';
+import { create as createEdge } from './edge.js';
+import type { FlowGraph } from './flow-graph.js';
 import { createProgram } from './mocks/program.js';
 import { createTypeChecker } from './mocks/typechecker.js';
 import {
@@ -12,6 +14,7 @@ import {
   createCallExpressionNode,
   createFileNode,
   createFunctionDeclarationNode,
+  createSerializedNode,
 } from './fixtures/node.js';
 import {
   arrowFunctionFixture,
@@ -32,6 +35,39 @@ describe("isCallExpressionNode", () => {
   it("identifies call expression nodes", () => {
     assert.equal(NodeModule.isCallExpressionNode(createCallExpressionNode()), true);
     assert.equal(NodeModule.isCallExpressionNode(createFileNode()), false);
+  });
+});
+
+describe("isCallExpressionNodeWithCallSite", () => {
+  it("identifies call expression nodes with complete call-site data", () => {
+    assert.equal(NodeModule.isCallExpressionNodeWithCallSite(createSerializedNode({
+      kind: "callExpression",
+      start: 1,
+      end: 2,
+      text: "dependency()",
+    })), true);
+    assert.equal(NodeModule.isCallExpressionNodeWithCallSite(createSerializedNode({
+      kind: "callExpression",
+      start: 1,
+      end: 2,
+    })), false);
+  });
+});
+
+describe("hasOutgoingReferenceEdge", () => {
+  it("identifies nodes with outgoing reference edges", () => {
+    const node = createSerializedNode();
+    const graph: FlowGraph = {
+      nodes: [node],
+      edges: [
+        createEdge(node.id, "target-node", "references"),
+        createEdge(node.id, "called-node", "calls"),
+        createEdge("source-node", node.id, "references"),
+      ],
+    };
+
+    assert.equal(NodeModule.hasOutgoingReferenceEdge(graph, node), true);
+    assert.equal(NodeModule.hasOutgoingReferenceEdge({ ...graph, edges: graph.edges.slice(1) }, node), false);
   });
 });
 
@@ -59,6 +95,9 @@ describe("toSerializedGraphNode", () => {
       name: "dependency",
       filePath: "fixture.ts",
       sourceOrigin: "project",
+      start: callExpressionFixture.pos,
+      end: callExpressionFixture.end,
+      text: callExpressionFixture.getText(sourceFileFixture),
     });
     assert.equal(Object.hasOwn(serializedGraphNode, "tsNode"), false);
     assert.equal(Object.hasOwn(serializedGraphNode, "signature"), false);
@@ -146,6 +185,9 @@ describe("NodeBuilder", () => {
       filePath: normalizePath(sourceFileFixture.fileName),
       kind: "callExpression",
       sourceOrigin: "project",
+      start: callExpressionFixture.pos,
+      end: callExpressionFixture.end,
+      text: callExpressionFixture.getText(sourceFileFixture),
       signature,
       declarationFile: normalizePath(sourceFileFixture.fileName),
       declarationTsNode: functionDeclarationFixture,
