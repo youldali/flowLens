@@ -14,7 +14,6 @@ import {
   createCallExpressionNode,
   createFileNode,
   createFunctionDeclarationNode,
-  createSerializedNode,
 } from './fixtures/node.js';
 import {
   arrowFunctionFixture,
@@ -40,13 +39,13 @@ describe("isCallExpressionNode", () => {
 
 describe("isCallExpressionNodeWithCallSite", () => {
   it("identifies call expression nodes with complete call-site data", () => {
-    assert.equal(NodeModule.isCallExpressionNodeWithCallSite(createSerializedNode({
+    assert.equal(NodeModule.isCallExpressionNodeWithCallSite(createNode({
       kind: "callExpression",
       start: 1,
       end: 2,
       text: "dependency()",
     })), true);
-    assert.equal(NodeModule.isCallExpressionNodeWithCallSite(createSerializedNode({
+    assert.equal(NodeModule.isCallExpressionNodeWithCallSite(createNode({
       kind: "callExpression",
       start: 1,
       end: 2,
@@ -56,7 +55,7 @@ describe("isCallExpressionNodeWithCallSite", () => {
 
 describe("hasOutgoingReferenceEdge", () => {
   it("identifies nodes with outgoing reference edges", () => {
-    const node = createSerializedNode();
+    const node = createNode();
     const graph: FlowGraph = {
       nodes: [node],
       edges: [
@@ -78,11 +77,11 @@ describe("isFileNode", () => {
   });
 });
 
-describe("NodeBuilder", () => {
+describe("NodeAdapter", () => {
   it("builds file nodes from source files", () => {
-    const builder = new NodeModule.NodeBuilder(createTypeChecker());
+    const adapter = new NodeModule.NodeAdapter(createTypeChecker());
 
-    assert.deepEqual(builder.buildFileNode(sourceFileFixture), {
+    assert.deepEqual(adapter.buildFileNode(sourceFileFixture), {
       id: normalizePath(sourceFileFixture.fileName),
       name: "fixture.ts",
       filePath: normalizePath(sourceFileFixture.fileName),
@@ -95,14 +94,14 @@ describe("NodeBuilder", () => {
     const symbol = {
       getDocumentationComment: () => [{ text: "Fixture docs", kind: "text" }],
     } as unknown as ts.Symbol;
-    const builder = new NodeModule.NodeBuilder(createTypeChecker({
+    const adapter = new NodeModule.NodeAdapter(createTypeChecker({
       getSymbolAtLocation: (node) => {
         assert.equal(node, functionDeclarationFixture);
         return symbol;
       },
     }));
 
-    assert.deepEqual(builder.buildFunctionDeclarationNode(functionDeclarationFixture), {
+    assert.deepEqual(adapter.buildFunctionDeclarationNode(functionDeclarationFixture), {
       id: TsNodeModule.deriveIdFromTsNode(functionDeclarationFixture),
       name: "fixtureFunction",
       filePath: normalizePath(sourceFileFixture.fileName),
@@ -113,9 +112,9 @@ describe("NodeBuilder", () => {
   });
 
   it("builds arrow function nodes from their variable declaration name", () => {
-    const builder = new NodeModule.NodeBuilder(createTypeChecker());
+    const adapter = new NodeModule.NodeAdapter(createTypeChecker());
 
-    assert.deepEqual(builder.buildFunctionDeclarationNode(arrowFunctionFixture), {
+    assert.deepEqual(adapter.buildFunctionDeclarationNode(arrowFunctionFixture), {
       id: TsNodeModule.deriveIdFromTsNode(arrowFunctionFixture),
       name: "arrowFixture",
       filePath: normalizePath(sourceFileFixture.fileName),
@@ -128,14 +127,14 @@ describe("NodeBuilder", () => {
     const signature = {
       declaration: functionDeclarationFixture,
     } as ts.Signature;
-    const builder = new NodeModule.NodeBuilder(createTypeChecker({
+    const adapter = new NodeModule.NodeAdapter(createTypeChecker({
       getResolvedSignature: (node) => {
         assert.equal(node, callExpressionFixture);
         return signature;
       },
     }));
 
-    assert.deepEqual(builder.buildCallExpressionNode(callExpressionFixture), {
+    assert.deepEqual(adapter.buildCallExpressionNode(callExpressionFixture), {
       id: TsNodeModule.deriveIdFromTsNode(callExpressionFixture),
       name: "dependency",
       filePath: normalizePath(sourceFileFixture.fileName),
@@ -146,13 +145,13 @@ describe("NodeBuilder", () => {
       text: callExpressionFixture.getText(sourceFileFixture),
       declarationFile: normalizePath(sourceFileFixture.fileName),
     });
-    assert.equal(builder.findDeclarationForCallExpression(callExpressionFixture), functionDeclarationFixture);
+    assert.equal(adapter.findDeclarationForCallExpression(callExpressionFixture), functionDeclarationFixture);
   });
 
   it("marks unresolved call expression nodes with unknown source origin", () => {
-    const builder = new NodeModule.NodeBuilder(createTypeChecker());
+    const adapter = new NodeModule.NodeAdapter(createTypeChecker());
 
-    assert.equal(builder.buildCallExpressionNode(callExpressionFixture).sourceOrigin, "unknown");
+    assert.equal(adapter.buildCallExpressionNode(callExpressionFixture).sourceOrigin, "unknown");
   });
 
   it("marks call expression nodes with external declarations as external", () => {
@@ -167,11 +166,11 @@ describe("NodeBuilder", () => {
     const signature = {
       declaration: externalDeclaration,
     } as ts.Signature;
-    const builder = new NodeModule.NodeBuilder(createTypeChecker({
+    const adapter = new NodeModule.NodeAdapter(createTypeChecker({
       getResolvedSignature: () => signature,
     }));
 
-    assert.equal(builder.buildCallExpressionNode(callExpressionFixture).sourceOrigin, "external");
+    assert.equal(adapter.buildCallExpressionNode(callExpressionFixture).sourceOrigin, "external");
   });
 
   it("marks TypeScript standard library call expression nodes as native JavaScript API", () => {
@@ -189,11 +188,11 @@ describe("NodeBuilder", () => {
     const program = createProgram({
       isSourceFileDefaultLibrary: (sourceFile: ts.SourceFile) => sourceFile === nativeSourceFile,
     });
-    const builder = new NodeModule.NodeBuilder(createTypeChecker({
+    const adapter = new NodeModule.NodeAdapter(createTypeChecker({
       getResolvedSignature: () => signature,
     }), process.cwd(), program);
 
-    assert.equal(builder.buildCallExpressionNode(callExpressionFixture).sourceOrigin, "native-js-api");
+    assert.equal(adapter.buildCallExpressionNode(callExpressionFixture).sourceOrigin, "native-js-api");
   });
 
   it("marks Node API call expression nodes as native Node API", () => {
@@ -208,10 +207,10 @@ describe("NodeBuilder", () => {
     const signature = {
       declaration: nativeDeclaration,
     } as ts.Signature;
-    const builder = new NodeModule.NodeBuilder(createTypeChecker({
+    const adapter = new NodeModule.NodeAdapter(createTypeChecker({
       getResolvedSignature: () => signature,
     }));
 
-    assert.equal(builder.buildCallExpressionNode(callExpressionFixture).sourceOrigin, "native-node-api");
+    assert.equal(adapter.buildCallExpressionNode(callExpressionFixture).sourceOrigin, "native-node-api");
   });
 });

@@ -1,7 +1,7 @@
 import * as path from "node:path";
 import * as vscode from "vscode";
 
-import { GraphBuilder } from "@flowlens/analyzer-core/flow-graph";
+import { GraphAdapter } from "@flowlens/analyzer-core/flow-graph";
 import { findNearestTsconfig } from "@flowlens/common";
 
 import { FlowLensGraphWebview } from "./webview.js";
@@ -45,8 +45,8 @@ export function activate(context: vscode.ExtensionContext): void {
         return;
       }
 
-      const graphBuilder = new GraphBuilder(tsconfigPathResult.value);
-      const buildResult = graphBuilder.fromFilePosition(filePath, offset);
+      const graphAdapter = new GraphAdapter(tsconfigPathResult.value);
+      const buildResult = graphAdapter.fromFilePosition(filePath, offset);
 
       if (buildResult.isErr()) {
         const message = `FlowLens: Could not generate graph (${buildResult.error.reason}).`;
@@ -55,7 +55,7 @@ export function activate(context: vscode.ExtensionContext): void {
         return;
       }
 
-      const graph = graphBuilder.extract();
+      const graph = graphAdapter.extract();
 
       console.log("FlowLens generated graph", { ...payload, graph });
       await graphWebview.showGraph(graph);

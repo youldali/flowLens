@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import * as path from 'node:path';
 
-import { GraphBuilder } from '@flowlens/analyzer-core/flow-graph';
+import { GraphAdapter } from '@flowlens/analyzer-core/flow-graph';
 import { findNearestTsconfig } from '@flowlens/common';
 import { serveGraphViewer } from './server.js';
 
@@ -24,15 +24,15 @@ if (args.length !== 1) {
     throw new Error(`Could not find tsconfig.json at or above ${path.dirname(entryFilePath)}`);
   }
 
-  const graphBuilder = new GraphBuilder(tsconfigPathResult.value);
+  const graphAdapter = new GraphAdapter(tsconfigPathResult.value);
 
-  const buildResult = graphBuilder.fromFile(entryFilePath);
+  const buildResult = graphAdapter.fromFile(entryFilePath);
 
   if (buildResult.isErr()) {
     throw new Error(`Could not build graph: ${buildResult.error.reason}`);
   }
 
-  const graph = graphBuilder.extract();
+  const graph = graphAdapter.extract();
   console.log(graph);
 
   await serveGraphViewer(graph);

@@ -2,20 +2,20 @@ import assert from 'node:assert/strict'
 import { describe, it } from 'vitest'
 import type { FlowGraph } from '@flowlens/analyzer-core/flow-graph'
 import { create as createEdge } from '@flowlens/analyzer-core/fixtures/edge'
-import { createSerializedNode } from '@flowlens/analyzer-core/fixtures/node'
+import { createNode } from '@flowlens/analyzer-core/fixtures/node'
 import { transformGraph } from './transformer'
 
-const projectNode = createSerializedNode({
+const projectNode = createNode({
   id: 'project-node',
   name: 'project.ts',
   sourceOrigin: 'project',
 })
-const externalNode = createSerializedNode({
+const externalNode = createNode({
   id: 'external-node',
   name: 'external.ts',
   sourceOrigin: 'external',
 })
-const unknownNode = createSerializedNode({
+const unknownNode = createNode({
   id: 'unknown-node',
   name: 'unknown.ts',
   sourceOrigin: 'unknown',

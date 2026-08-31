@@ -3,14 +3,14 @@ import { describe, it } from 'node:test';
 
 import { create as createEdge } from '../edge.js';
 import type { FlowGraph } from '../flow-graph.js';
-import { createCallExpressionNode, createSerializedNode } from '../fixtures/node.js';
+import { createCallExpressionNode, createNode } from '../fixtures/node.js';
 import { toFlowGraph } from './index.js';
 
 describe("toFlowGraph", () => {
   it("removes resolved call expression nodes and bridges callers to declarations with call-site metadata", () => {
-    const caller = createSerializedNode({ id: "caller", name: "caller" });
+    const caller = createNode({ id: "caller", name: "caller" });
     const call = createCallExpressionNode({ id: "call", filePath: "src/source.ts", start: 12, end: 24, text: "callee()" });
-    const declaration = createSerializedNode({ id: "declaration", name: "callee" });
+    const declaration = createNode({ id: "declaration", name: "callee" });
     const graph: FlowGraph = {
       nodes: [caller, call, declaration],
       edges: [
@@ -36,7 +36,7 @@ describe("toFlowGraph", () => {
   });
 
   it("keeps unresolved call expression nodes", () => {
-    const caller = createSerializedNode({ id: "caller", name: "caller" });
+    const caller = createNode({ id: "caller", name: "caller" });
     const call = createCallExpressionNode({ id: "call" });
     const graph: FlowGraph = {
       nodes: [caller, call],
@@ -51,9 +51,9 @@ describe("toFlowGraph", () => {
   });
 
   it("does not bridge non-reference outgoing edges from removed call expression nodes", () => {
-    const caller = createSerializedNode({ id: "caller", name: "caller" });
+    const caller = createNode({ id: "caller", name: "caller" });
     const call = createCallExpressionNode({ id: "call", filePath: "src/source.ts", start: 12, end: 24, text: "callee()" });
-    const declaration = createSerializedNode({ id: "declaration", name: "callee" });
+    const declaration = createNode({ id: "declaration", name: "callee" });
     const nestedCall = createCallExpressionNode({ id: "nested-call" });
     const graph: FlowGraph = {
       nodes: [caller, call, declaration, nestedCall],
@@ -81,10 +81,10 @@ describe("toFlowGraph", () => {
   });
 
   it("preserves multiple call sites from one caller to the same declaration", () => {
-    const caller = createSerializedNode({ id: "caller", name: "caller" });
+    const caller = createNode({ id: "caller", name: "caller" });
     const firstCall = createCallExpressionNode({ id: "first-call", start: 12, end: 24, text: "callee()" });
     const secondCall = createCallExpressionNode({ id: "second-call", start: 36, end: 48, text: "callee()" });
-    const declaration = createSerializedNode({ id: "declaration", name: "callee" });
+    const declaration = createNode({ id: "declaration", name: "callee" });
     const graph: FlowGraph = {
       nodes: [caller, firstCall, secondCall, declaration],
       edges: [

@@ -10,12 +10,12 @@ import { loadProjectConfig } from './project-config.js';
 
 export { isFlowGraph } from './flow-graph-contract.js';
 
-export interface Graph<TNode = NodeModule.SerializedGraphNode, TEdge = EdgeModule.Edge> {
+export interface Graph<TNode = NodeModule.Node, TEdge = EdgeModule.Edge> {
   nodes: TNode[];
   edges: TEdge[];
 }
 
-export type FlowGraph = Graph<NodeModule.SerializedGraphNode, EdgeModule.Edge>;
+export type FlowGraph = Graph<NodeModule.Node, EdgeModule.Edge>;
 
 export type SourceFileNotFoundError = { reason: 'source-file-not-found' };
 export type FromFilePositionError =
@@ -29,16 +29,16 @@ type QueueItem =
 | { node: ts.SourceFile; parentNode?: undefined }
 | { node: ts.Node; parentNode?: ts.Node | undefined };
 
-export class GraphBuilder {
+export class GraphAdapter {
   private readonly program: ts.Program
   private readonly checker: ts.TypeChecker
-  private readonly nodes = new Map<NodeModule.NodeId, NodeModule.SerializedGraphNode>();
+  private readonly nodes = new Map<NodeModule.NodeId, NodeModule.Node>();
   private readonly tsNodesByNodeId = new Map<NodeModule.NodeId, ts.Node>();
   private readonly edges: Map<EdgeModule.EdgeId, EdgeModule.Edge> = new Map()
   private readonly visitedNodes = new Set<ts.Node>();
   private readonly nodeQueue = new Queue<QueueItem>();
   private readonly rootDir: string;
-  private readonly nodeBuilder: NodeModule.NodeBuilder;
+  private readonly nodeAdapter: NodeModule.NodeAdapter;
 
   constructor(tsconfigPath: string) {
     const projectConfig = loadProjectConfig(tsconfigPath);
@@ -56,7 +56,7 @@ export class GraphBuilder {
 
     this.program = ts.createProgram(createProgramOptions)
     this.checker = this.program.getTypeChecker()
-    this.nodeBuilder = new NodeModule.NodeBuilder(this.checker, this.rootDir, this.program);
+    this.nodeAdapter = new NodeModule.NodeAdapter(this.checker, this.rootDir, this.program);
   }
 
   fromFile(entryFilePath: string): Result<void, SourceFileNotFoundError> {
@@ -146,13 +146,13 @@ export class GraphBuilder {
   }
 
   private visitSourceFile(sourceFile: ts.SourceFile): void {
-    const fileNode = this.nodeBuilder.buildFileNode(sourceFile);
+    const fileNode = this.nodeAdapter.buildFileNode(sourceFile);
     this.addNode(fileNode, sourceFile);
   }
 
   private visitCallExpression(node: ts.CallExpression, parentNode: ts.Node | undefined): void {
-    const callExpressionNode = this.nodeBuilder.buildCallExpressionNode(node);
-    const declarationTsNode = this.nodeBuilder.findDeclarationForCallExpression(node);
+    const callExpressionNode = this.nodeAdapter.buildCallExpressionNode(node);
+    const declarationTsNode = this.nodeAdapter.findDeclarationForCallExpression(node);
     this.addNode(callExpressionNode, node);
 
     if (parentNode) {
@@ -160,7 +160,7 @@ export class GraphBuilder {
     }
 
     if (declarationTsNode) {
-      const declarationGraphNode = this.nodeBuilder.buildFunctionDeclarationNode(declarationTsNode);
+      const declarationGraphNode = this.nodeAdapter.buildFunctionDeclarationNode(declarationTsNode);
       this.addNode(declarationGraphNode, declarationTsNode);
       this.addEdge(node, declarationTsNode, 'references');
 
@@ -170,7 +170,7 @@ export class GraphBuilder {
   }
 
   private visitFunctionDeclaration(node: TsNodeModule.ExecutableFunctionDeclaration, parentNode: ts.Node | undefined): void {
-    const functionDeclarationGraphNode = this.nodeBuilder.buildFunctionDeclarationNode(node);
+    const functionDeclarationGraphNode = this.nodeAdapter.buildFunctionDeclarationNode(node);
     this.addNode(functionDeclarationGraphNode, node);
 
     if (parentNode) {
@@ -189,9 +189,9 @@ export class GraphBuilder {
   }
 
   private addNode(
-    node: NodeModule.SerializedGraphNode,
+    node: NodeModule.Node,
     tsNode: ts.Node,
-  ): NodeModule.SerializedGraphNode {
+  ): NodeModule.Node {
     this.tsNodesByNodeId.set(node.id, tsNode);
     return this.nodes.getOrInsert(node.id, node);
   }

@@ -2,13 +2,13 @@ import type { Edge as FlowEdge, Node as FlowNode } from 'reactflow'
 import { MarkerType } from 'reactflow'
 import type { Edge as AnalyzerEdge, EdgeMetadata } from '@flowlens/analyzer-core/edge'
 import type { FlowGraph } from '@flowlens/analyzer-core/flow-graph'
-import type { SerializedGraphNode } from '@flowlens/analyzer-core/node'
+import type { Node } from '@flowlens/analyzer-core/node'
 
 export interface GraphViewNodeData extends Record<string, unknown> {
   label: string
-  kind: SerializedGraphNode['kind']
+  kind: Node['kind']
   filePath: string
-  sourceOrigin: SerializedGraphNode['sourceOrigin']
+  sourceOrigin: Node['sourceOrigin']
 }
 
 export interface GraphViewEdgeData extends Record<string, unknown> {
@@ -42,7 +42,7 @@ function toReactFlowEdge(edge: AnalyzerEdge): FlowEdge<GraphViewEdgeData> {
   }
 }
 
-function toReactFlowNode(node: SerializedGraphNode): FlowNode<GraphViewNodeData> {
+function toReactFlowNode(node: Node): FlowNode<GraphViewNodeData> {
   return {
     id: String(node.id),
     data: {

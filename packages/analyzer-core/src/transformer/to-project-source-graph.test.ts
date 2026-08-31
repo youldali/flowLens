@@ -3,7 +3,7 @@ import { describe, it } from 'node:test';
 
 import { create as createEdge } from '../edge.js';
 import type { FlowGraph } from '../flow-graph.js';
-import { createCallExpressionNode, createFunctionDeclarationNode, createSerializedNode } from '../fixtures/node.js';
+import { createCallExpressionNode, createFunctionDeclarationNode, createNode } from '../fixtures/node.js';
 import { toProjectSourceGraph } from './index.js';
 
 describe("toProjectSourceGraph", () => {
@@ -54,19 +54,19 @@ describe("toProjectSourceGraph", () => {
   });
 
   it("supports serialized graph nodes without requiring analyzer node fields", () => {
-    const source = createSerializedNode({ id: "source", name: "source", sourceOrigin: "project" });
-    const external = createSerializedNode({ id: "external", name: "external", sourceOrigin: "external" });
-    const nativeJsApi = createSerializedNode({
+    const source = createNode({ id: "source", name: "source", sourceOrigin: "project" });
+    const external = createNode({ id: "external", name: "external", sourceOrigin: "external" });
+    const nativeJsApi = createNode({
       id: "native-js-api",
       name: "native-js-api",
       sourceOrigin: "native-js-api",
     });
-    const nativeNodeApi = createSerializedNode({
+    const nativeNodeApi = createNode({
       id: "native-node-api",
       name: "native-node-api",
       sourceOrigin: "native-node-api",
     });
-    const unknown = createSerializedNode({ id: "unknown", name: "unknown", sourceOrigin: "unknown" });
+    const unknown = createNode({ id: "unknown", name: "unknown", sourceOrigin: "unknown" });
     const graph: FlowGraph = {
       nodes: [source, external, nativeJsApi, nativeNodeApi, unknown],
       edges: [

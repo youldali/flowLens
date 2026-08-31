@@ -20,7 +20,7 @@ export type SourceOrigin =
   | 'native-node-api'
   | 'unknown';
 
-export interface SerializedGraphNode {
+export interface Node {
   id: NodeId;
   kind: GraphNodeKind;
   name: string;
@@ -33,16 +33,16 @@ export interface SerializedGraphNode {
   declarationFile?: string | undefined;
 }
 
-export interface FileNode extends SerializedGraphNode {
+export interface FileNode extends Node {
   kind: 'file';
 }
 
-export interface FunctionDeclarationNode extends SerializedGraphNode {
+export interface FunctionDeclarationNode extends Node {
   kind: 'functionDeclaration' | 'methodDeclaration';
   jsdoc?: string | undefined;
 }
 
-export interface CallExpressionNode extends SerializedGraphNode {
+export interface CallExpressionNode extends Node {
   kind: 'callExpression';
   start: number;
   end: number;
@@ -50,17 +50,17 @@ export interface CallExpressionNode extends SerializedGraphNode {
   declarationFile: string | undefined;
 }
 
-export const isFunctionDeclarationNode = (node: SerializedGraphNode): node is FunctionDeclarationNode => {
+export const isFunctionDeclarationNode = (node: Node): node is FunctionDeclarationNode => {
   return node.kind === 'functionDeclaration' || node.kind === 'methodDeclaration';
 }
 
-export const isCallExpressionNode = (node: SerializedGraphNode): node is CallExpressionNode => {
+export const isCallExpressionNode = (node: Node): node is CallExpressionNode => {
   return node.kind === 'callExpression';
 }
 
 export const isCallExpressionNodeWithCallSite = (
-  node: SerializedGraphNode,
-): node is SerializedGraphNode & { kind: 'callExpression'; start: number; end: number; text: string } => {
+  node: Node,
+): node is Node & { kind: 'callExpression'; start: number; end: number; text: string } => {
   return (
     node.kind === 'callExpression' &&
     typeof node.start === 'number' &&
@@ -69,15 +69,15 @@ export const isCallExpressionNodeWithCallSite = (
   );
 }
 
-export const hasOutgoingReferenceEdge = (graph: FlowGraph, node: SerializedGraphNode): boolean => {
+export const hasOutgoingReferenceEdge = (graph: FlowGraph, node: Node): boolean => {
   return graph.edges.some((edge) => edge.source === node.id && edge.type === 'references');
 }
 
-export const isFileNode = (node: SerializedGraphNode): node is FileNode => {
+export const isFileNode = (node: Node): node is FileNode => {
   return node.kind === 'file';
 }
 
-export class NodeBuilder {
+export class NodeAdapter {
   private readonly checker: ts.TypeChecker
   private readonly program: ts.Program | undefined
   private readonly rootDir: string

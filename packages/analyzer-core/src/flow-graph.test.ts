@@ -4,7 +4,7 @@ import * as path from 'node:path';
 import { describe, it } from 'node:test';
 import ts from 'typescript';
 
-import { GraphBuilder, isFlowGraph } from './flow-graph.js';
+import { GraphAdapter, isFlowGraph } from './flow-graph.js';
 import { create as createEdge } from './fixtures/edge.js';
 import { createCallExpressionNode, createFunctionDeclarationNode } from './fixtures/node.js';
 import { assertErr, assertOk } from '@flowlens/common/testing';
@@ -12,7 +12,7 @@ import { assertErr, assertOk } from '@flowlens/common/testing';
 const tsconfigPath = path.resolve("tsconfig.json");
 const entryFilePath = path.resolve("src/fixtures/graph-builder-entry.ts");
 
-const createGraphBuilder = (): GraphBuilder => new GraphBuilder(tsconfigPath);
+const createGraphAdapter = (): GraphAdapter => new GraphAdapter(tsconfigPath);
 
 describe("isFlowGraph", () => {
   it("returns true for objects with node and edge arrays", () => {
@@ -142,7 +142,7 @@ describe("isFlowGraph", () => {
   });
 });
 
-describe("GraphBuilder.extract", () => {
+describe("GraphAdapter.extract", () => {
   it("returns serialized domain nodes without TypeScript objects", () => {
     const node = createCallExpressionNode();
     const edge = createEdge({
@@ -151,12 +151,12 @@ describe("GraphBuilder.extract", () => {
       target: "fixture.ts:1:49",
       type: "references",
     });
-    const graphBuilder = Object.assign(Object.create(GraphBuilder.prototype), {
+    const graphAdapter = Object.assign(Object.create(GraphAdapter.prototype), {
       nodes: new Map([[node.id, node]]),
       edges: new Map([[edge.id, edge]]),
-    }) as GraphBuilder;
+    }) as GraphAdapter;
 
-    const graph = graphBuilder.extract();
+    const graph = graphAdapter.extract();
 
     assert.deepEqual(graph, {
       nodes: [node],
@@ -168,18 +168,18 @@ describe("GraphBuilder.extract", () => {
   });
 });
 
-describe("GraphBuilder.fromFile", () => {
+describe("GraphAdapter.fromFile", () => {
   it("builds a graph from a source file path", () => {
-    const graphBuilder = createGraphBuilder();
+    const graphAdapter = createGraphAdapter();
 
-    const result = graphBuilder.fromFile(entryFilePath);
+    const result = graphAdapter.fromFile(entryFilePath);
 
     assertOk(result);
 
-    const graph = graphBuilder.extract();
+    const graph = graphAdapter.extract();
     const nodeNames = graph.nodes.map((node) => node.name);
     const tsNodesByNodeId = (
-      graphBuilder as unknown as { tsNodesByNodeId: ReadonlyMap<string, ts.Node> }
+      graphAdapter as unknown as { tsNodesByNodeId: ReadonlyMap<string, ts.Node> }
     ).tsNodesByNodeId;
     const dependencyNode = graph.nodes.find((node) => node.name === "dependency" && node.kind === "callExpression");
     const dependencyTsNode = dependencyNode ? tsNodesByNodeId.get(dependencyNode.id) : undefined;
@@ -194,26 +194,26 @@ describe("GraphBuilder.fromFile", () => {
   });
 
   it("returns source-file-not-found when the source file is outside the program", () => {
-    const graphBuilder = createGraphBuilder();
+    const graphAdapter = createGraphAdapter();
 
-    const result = graphBuilder.fromFile(path.resolve("src/fixtures/missing-entry.ts"));
+    const result = graphAdapter.fromFile(path.resolve("src/fixtures/missing-entry.ts"));
 
     assertErr(result);
     assert.deepEqual(result.error, { reason: "source-file-not-found" });
   });
 });
 
-describe("GraphBuilder.fromFilePosition", () => {
+describe("GraphAdapter.fromFilePosition", () => {
   it("accepts a source file path and builds from the enclosing function", () => {
-    const graphBuilder = createGraphBuilder();
+    const graphAdapter = createGraphAdapter();
     const sourceText = fs.readFileSync(entryFilePath, "utf8");
     const position = sourceText.indexOf("value =");
 
-    const result = graphBuilder.fromFilePosition(entryFilePath, position);
+    const result = graphAdapter.fromFilePosition(entryFilePath, position);
 
     assertOk(result);
 
-    const graph = graphBuilder.extract();
+    const graph = graphAdapter.extract();
     const nodeNames = graph.nodes.map((node) => node.name);
 
     assert.equal(nodeNames.includes("selectedFlow"), true);
@@ -226,7 +226,7 @@ describe("GraphBuilder.fromFilePosition", () => {
   });
 
   it("accepts a SourceFile and resolves the program source file by path", () => {
-    const graphBuilder = createGraphBuilder();
+    const graphAdapter = createGraphAdapter();
     const sourceText = fs.readFileSync(entryFilePath, "utf8");
     const sourceFile = ts.createSourceFile(
       entryFilePath,
@@ -237,11 +237,11 @@ describe("GraphBuilder.fromFilePosition", () => {
     );
     const position = sourceText.indexOf("value =");
 
-    const result = graphBuilder.fromFilePosition(sourceFile, position);
+    const result = graphAdapter.fromFilePosition(sourceFile, position);
 
     assertOk(result);
 
-    const graph = graphBuilder.extract();
+    const graph = graphAdapter.extract();
     const nodeNames = graph.nodes.map((node) => node.name);
 
     assert.equal(nodeNames.includes("selectedFlow"), true);
@@ -249,15 +249,15 @@ describe("GraphBuilder.fromFilePosition", () => {
   });
 
   it("builds from the enclosing class method", () => {
-    const graphBuilder = createGraphBuilder();
+    const graphAdapter = createGraphAdapter();
     const sourceText = fs.readFileSync(entryFilePath, "utf8");
     const position = sourceText.indexOf("return value;", sourceText.indexOf("class FlowService"));
 
-    const result = graphBuilder.fromFilePosition(entryFilePath, position);
+    const result = graphAdapter.fromFilePosition(entryFilePath, position);
 
     assertOk(result);
 
-    const graph = graphBuilder.extract();
+    const graph = graphAdapter.extract();
     const nodeNames = graph.nodes.map((node) => node.name);
 
     assert.equal(nodeNames.includes("run"), true);
@@ -266,15 +266,15 @@ describe("GraphBuilder.fromFilePosition", () => {
   });
 
   it("marks native JavaScript call expressions while preserving internal calls", () => {
-    const graphBuilder = createGraphBuilder();
+    const graphAdapter = createGraphAdapter();
     const sourceText = fs.readFileSync(entryFilePath, "utf8");
     const position = sourceText.indexOf("values.map");
 
-    const result = graphBuilder.fromFilePosition(entryFilePath, position);
+    const result = graphAdapter.fromFilePosition(entryFilePath, position);
 
     assertOk(result);
 
-    const graph = graphBuilder.extract();
+    const graph = graphAdapter.extract();
     const mapCallNode = graph.nodes.find((node) => node.name === "values.map");
     const dependencyCallNode = graph.nodes.find((node) => node.name === "dependency");
 
@@ -283,37 +283,37 @@ describe("GraphBuilder.fromFilePosition", () => {
   });
 
   it("marks Object.fromEntries as native JavaScript API", () => {
-    const graphBuilder = createGraphBuilder();
+    const graphAdapter = createGraphAdapter();
     const sourceText = fs.readFileSync(entryFilePath, "utf8");
     const position = sourceText.indexOf("Object.fromEntries");
 
-    const result = graphBuilder.fromFilePosition(entryFilePath, position);
+    const result = graphAdapter.fromFilePosition(entryFilePath, position);
 
     assertOk(result);
 
-    const graph = graphBuilder.extract();
+    const graph = graphAdapter.extract();
     const fromEntriesCallNode = graph.nodes.find((node) => node.name === "Object.fromEntries");
 
     assert.equal(fromEntriesCallNode?.sourceOrigin, "native-js-api");
   });
 
   it("marks Node call expressions as native Node API", () => {
-    const graphBuilder = createGraphBuilder();
+    const graphAdapter = createGraphAdapter();
     const sourceText = fs.readFileSync(entryFilePath, "utf8");
     const position = sourceText.indexOf("fs.existsSync");
 
-    const result = graphBuilder.fromFilePosition(entryFilePath, position);
+    const result = graphAdapter.fromFilePosition(entryFilePath, position);
 
     assertOk(result);
 
-    const graph = graphBuilder.extract();
+    const graph = graphAdapter.extract();
     const existsSyncCallNode = graph.nodes.find((node) => node.name === "fs.existsSync");
 
     assert.equal(existsSyncCallNode?.sourceOrigin, "native-node-api");
   });
 
   it("returns source-file-not-found when the SourceFile is outside the program", () => {
-    const graphBuilder = createGraphBuilder();
+    const graphAdapter = createGraphAdapter();
     const sourceFile = ts.createSourceFile(
       path.resolve("src/fixtures/missing-entry.ts"),
       "function missing() {}",
@@ -322,28 +322,28 @@ describe("GraphBuilder.fromFilePosition", () => {
       ts.ScriptKind.TS,
     );
 
-    const result = graphBuilder.fromFilePosition(sourceFile, 0);
+    const result = graphAdapter.fromFilePosition(sourceFile, 0);
 
     assertErr(result);
     assert.deepEqual(result.error, { reason: "source-file-not-found" });
   });
 
   it("returns node-not-found for a position outside the source file range", () => {
-    const graphBuilder = createGraphBuilder();
+    const graphAdapter = createGraphAdapter();
     const sourceText = fs.readFileSync(entryFilePath, "utf8");
 
-    const result = graphBuilder.fromFilePosition(entryFilePath, sourceText.length);
+    const result = graphAdapter.fromFilePosition(entryFilePath, sourceText.length);
 
     assertErr(result);
     assert.deepEqual(result.error, { reason: "node-not-found" });
   });
 
   it("returns enclosing-function-not-found when the position is outside a function", () => {
-    const graphBuilder = createGraphBuilder();
+    const graphAdapter = createGraphAdapter();
     const sourceText = fs.readFileSync(entryFilePath, "utf8");
     const position = sourceText.indexOf("topLevelValue");
 
-    const result = graphBuilder.fromFilePosition(entryFilePath, position);
+    const result = graphAdapter.fromFilePosition(entryFilePath, position);
 
     assertErr(result);
     assert.deepEqual(result.error, { reason: "enclosing-function-not-found" });

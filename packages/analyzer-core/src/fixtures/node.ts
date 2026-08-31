@@ -2,14 +2,14 @@ import type {
   CallExpressionNode,
   FileNode,
   FunctionDeclarationNode,
-  SerializedGraphNode,
+  Node,
 } from '../node.js';
 import { createFixture } from '@flowlens/test-utils';
 
-const nodeFixture: SerializedGraphNode = {
+const nodeFixture: Node = {
   id: "fixture-node",
-  kind: "file",
-  name: "fixture.ts",
+  kind: "functionDeclaration",
+  name: "fixtureFunction",
   filePath: "fixture.ts",
   sourceOrigin: "project",
 };
@@ -42,16 +42,8 @@ const callExpressionNodeFixture: CallExpressionNode = {
   declarationFile: "fixture.ts",
 };
 
-const serializedNodeFixture: SerializedGraphNode = {
-  id: "fixture-node",
-  kind: "functionDeclaration",
-  name: "fixtureFunction",
-  filePath: "fixture.ts",
-  sourceOrigin: "project",
-};
-
-export const create = createFixture<SerializedGraphNode>(nodeFixture);
+export const create = createFixture<Node>(nodeFixture);
+export const createNode = create;
 export const createFileNode = createFixture<FileNode>(fileNodeFixture);
 export const createFunctionDeclarationNode = createFixture<FunctionDeclarationNode>(functionDeclarationNodeFixture);
 export const createCallExpressionNode = createFixture<CallExpressionNode>(callExpressionNodeFixture);
-export const createSerializedNode = createFixture<SerializedGraphNode>(serializedNodeFixture);

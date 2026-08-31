@@ -4,8 +4,8 @@ import { describe, it } from 'node:test';
 import { create as createEdge } from '../edge.js';
 import type { FlowGraph } from '../flow-graph.js';
 import { createCallExpressionEdgeMetadata } from '../fixtures/edge.js';
-import { createFunctionDeclarationNode, createSerializedNode } from '../fixtures/node.js';
-import type { SerializedGraphNode } from '../node.js';
+import { createFunctionDeclarationNode, createNode as createNodeFixture } from '../fixtures/node.js';
+import type { Node } from '../node.js';
 import { removeNodes } from './remove-nodes.js';
 
 describe("removeNodes", () => {
@@ -172,9 +172,9 @@ describe("removeNodes", () => {
   });
 
   it("supports serialized graph nodes without requiring analyzer node fields", () => {
-    const source = createSerializedNode({ id: "source", name: "source" });
-    const removed = createSerializedNode({ id: "removed", name: "removed" });
-    const target = createSerializedNode({ id: "target", name: "target" });
+    const source = createNodeFixture({ id: "source", name: "source" });
+    const removed = createNodeFixture({ id: "removed", name: "removed" });
+    const target = createNodeFixture({ id: "target", name: "target" });
     const graph: FlowGraph = {
       nodes: [source, removed, target],
       edges: [
@@ -193,7 +193,7 @@ describe("removeNodes", () => {
   });
 });
 
-function createNode(id: string): SerializedGraphNode {
+function createNode(id: string): Node {
   return createFunctionDeclarationNode({
     id,
     name: id,

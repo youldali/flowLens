@@ -1,37 +1,37 @@
 import { z } from 'zod';
 import type { Edge } from './edge.js';
 import type { FlowGraph } from './flow-graph.js';
-import type { SerializedGraphNode } from './node.js';
+import type { Node } from './node.js';
 
 export type { FlowGraph, Graph } from './flow-graph.js';
 
-const serializedGraphNodeBaseSchema = z.object({
+const nodeBaseSchema = z.object({
   id: z.string(),
   name: z.string(),
   filePath: z.string(),
   sourceOrigin: z.enum(['project', 'external', 'native-js-api', 'native-node-api', 'unknown']),
 });
 
-export const serializedGraphNodeSchema: z.ZodType<SerializedGraphNode> = z.discriminatedUnion('kind', [
-  serializedGraphNodeBaseSchema.extend({
+export const nodeSchema: z.ZodType<Node> = z.discriminatedUnion('kind', [
+  nodeBaseSchema.extend({
     kind: z.literal('functionDeclaration'),
     jsdoc: z.string().optional(),
   }),
-  serializedGraphNodeBaseSchema.extend({
+  nodeBaseSchema.extend({
     kind: z.literal('methodDeclaration'),
     jsdoc: z.string().optional(),
   }),
-  serializedGraphNodeBaseSchema.extend({
+  nodeBaseSchema.extend({
     kind: z.literal('callExpression'),
     start: z.number().int().nonnegative(),
     end: z.number().int().nonnegative(),
     text: z.string(),
     declarationFile: z.string().optional(),
   }),
-  serializedGraphNodeBaseSchema.extend({
+  nodeBaseSchema.extend({
     kind: z.literal('file'),
   }),
-  serializedGraphNodeBaseSchema.extend({
+  nodeBaseSchema.extend({
     kind: z.literal('if-statement'),
   }),
 ]);
@@ -59,7 +59,7 @@ export const edgeSchema = z.object({
 }) satisfies z.ZodType<Edge>;
 
 export const flowGraphSchema = z.object({
-  nodes: z.array(serializedGraphNodeSchema),
+  nodes: z.array(nodeSchema),
   edges: z.array(edgeSchema),
 }) satisfies z.ZodType<FlowGraph>;
 

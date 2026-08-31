@@ -1,16 +1,16 @@
 import { create as createEdge } from '../edge.js';
 import type { Edge } from '../edge.js';
 import type { FlowGraph } from '../flow-graph.js';
-import type { NodeId, SerializedGraphNode } from '../node.js';
+import type { Node, NodeId } from '../node.js';
 import type { GraphTransformer } from './index.js';
 
-export interface BridgeEdgeContext<TNode extends SerializedGraphNode = SerializedGraphNode> {
+export interface BridgeEdgeContext<TNode extends Node = Node> {
   incomingEdge: Edge;
   outgoingEdge: Edge;
   removedNode: TNode;
 }
 
-export interface RemoveNodesOptions<TNode extends SerializedGraphNode = SerializedGraphNode> {
+export interface RemoveNodesOptions<TNode extends Node = Node> {
   createBridgeEdge?: (context: BridgeEdgeContext<TNode>) => Edge | undefined;
 }
 
@@ -29,7 +29,7 @@ export function removeNodes<TGraph extends FlowGraph>(
   };
 }
 
-function computeNewNodes<TNode extends SerializedGraphNode>(
+function computeNewNodes<TNode extends Node>(
   nodes: TNode[],
   predicate: (node: TNode) => boolean,
 ): { removedNodes: Map<NodeId, TNode>; newGraphNodes: TNode[] } {
@@ -41,7 +41,7 @@ function computeNewNodes<TNode extends SerializedGraphNode>(
   return { removedNodes, newGraphNodes };
 }
 
-function computeNewEdges<TNode extends SerializedGraphNode>(
+function computeNewEdges<TNode extends Node>(
   edges: Edge[],
   removedNodes: Map<NodeId, TNode>,
   options: RemoveNodesOptions<TNode>,
