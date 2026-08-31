@@ -1,14 +1,14 @@
 import { create as createEdge } from '../edge.js';
 import type { Edge } from '../edge.js';
 import type { FlowGraph } from '../flow-graph.js';
-import { hasOutgoingReferenceEdge, isCallExpressionNodeWithCallSite } from '../node.js';
+import { hasOutgoingReferenceEdge, isCallExpressionNode } from '../node.js';
 import type { BridgeEdgeContext } from './remove-nodes.js';
 import { removeNodes } from './remove-nodes.js';
 
 export function collapseResolvedCallExpressionNodes<TGraph extends FlowGraph>(graph: TGraph): TGraph {
   const resolvedCallExpressionNodeIds = new Set(
     graph.nodes
-      .filter(isCallExpressionNodeWithCallSite)
+      .filter(isCallExpressionNode)
       .filter((node) => hasOutgoingReferenceEdge(graph, node))
       .map((node) => node.id),
   );
@@ -26,7 +26,7 @@ function createBridgeEdge({
   outgoingEdge,
   removedNode,
 }: BridgeEdgeContext): Edge | undefined {
-  if (outgoingEdge.type !== 'references' || !isCallExpressionNodeWithCallSite(removedNode)) {
+  if (outgoingEdge.type !== 'references' || !isCallExpressionNode(removedNode)) {
     return undefined;
   }
 

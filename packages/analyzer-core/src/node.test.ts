@@ -37,22 +37,6 @@ describe("isCallExpressionNode", () => {
   });
 });
 
-describe("isCallExpressionNodeWithCallSite", () => {
-  it("identifies call expression nodes with complete call-site data", () => {
-    assert.equal(NodeModule.isCallExpressionNodeWithCallSite(createNode({
-      kind: "callExpression",
-      start: 1,
-      end: 2,
-      text: "dependency()",
-    })), true);
-    assert.equal(NodeModule.isCallExpressionNodeWithCallSite(createNode({
-      kind: "callExpression",
-      start: 1,
-      end: 2,
-    })), false);
-  });
-});
-
 describe("hasOutgoingReferenceEdge", () => {
   it("identifies nodes with outgoing reference edges", () => {
     const node = createNode();

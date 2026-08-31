@@ -26,11 +26,6 @@ export interface Node {
   name: string;
   filePath: string;
   sourceOrigin: SourceOrigin;
-  start?: number | undefined;
-  end?: number | undefined;
-  text?: string | undefined;
-  jsdoc?: string | undefined;
-  declarationFile?: string | undefined;
 }
 
 export interface FileNode extends Node {
@@ -56,17 +51,6 @@ export const isFunctionDeclarationNode = (node: Node): node is FunctionDeclarati
 
 export const isCallExpressionNode = (node: Node): node is CallExpressionNode => {
   return node.kind === 'callExpression';
-}
-
-export const isCallExpressionNodeWithCallSite = (
-  node: Node,
-): node is Node & { kind: 'callExpression'; start: number; end: number; text: string } => {
-  return (
-    node.kind === 'callExpression' &&
-    typeof node.start === 'number' &&
-    typeof node.end === 'number' &&
-    typeof node.text === 'string'
-  );
 }
 
 export const hasOutgoingReferenceEdge = (graph: FlowGraph, node: Node): boolean => {
