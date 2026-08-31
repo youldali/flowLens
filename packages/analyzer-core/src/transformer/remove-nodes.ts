@@ -4,20 +4,20 @@ import type { FlowGraph } from '../flow-graph.js';
 import type { Node, NodeId } from '../node.js';
 import type { GraphTransformer } from './index.js';
 
-export interface BridgeEdgeContext<TNode extends Node = Node> {
+export interface BridgeEdgeContext {
   incomingEdge: Edge;
   outgoingEdge: Edge;
-  removedNode: TNode;
+  removedNode: Node;
 }
 
-export interface RemoveNodesOptions<TNode extends Node = Node> {
-  createBridgeEdge?: (context: BridgeEdgeContext<TNode>) => Edge | undefined;
+export interface RemoveNodesOptions {
+  createBridgeEdge?: (context: BridgeEdgeContext) => Edge | undefined;
 }
 
-export function removeNodes<TGraph extends FlowGraph>(
-  predicate: (node: TGraph['nodes'][number]) => boolean,
-  options: RemoveNodesOptions<TGraph['nodes'][number]> = {},
-): GraphTransformer<TGraph> {
+export function removeNodes(
+  predicate: (node: Node) => boolean,
+  options: RemoveNodesOptions = {},
+): GraphTransformer {
   return (graph) => {
     const { removedNodes, newGraphNodes } = computeNewNodes(graph.nodes, predicate);
     const newGraphEdges = computeNewEdges(graph.edges, removedNodes, options);
@@ -25,14 +25,14 @@ export function removeNodes<TGraph extends FlowGraph>(
     return {
       nodes: newGraphNodes,
       edges: newGraphEdges,
-    } as TGraph;
+    };
   };
 }
 
-function computeNewNodes<TNode extends Node>(
-  nodes: TNode[],
-  predicate: (node: TNode) => boolean,
-): { removedNodes: Map<NodeId, TNode>; newGraphNodes: TNode[] } {
+function computeNewNodes(
+  nodes: Node[],
+  predicate: (node: Node) => boolean,
+): { removedNodes: Map<NodeId, Node>; newGraphNodes: Node[] } {
   const removedNodes = new Map(nodes
     .filter(predicate)
     .map((node) => [node.id, node]));
@@ -41,10 +41,10 @@ function computeNewNodes<TNode extends Node>(
   return { removedNodes, newGraphNodes };
 }
 
-function computeNewEdges<TNode extends Node>(
+function computeNewEdges(
   edges: Edge[],
-  removedNodes: Map<NodeId, TNode>,
-  options: RemoveNodesOptions<TNode>,
+  removedNodes: Map<NodeId, Node>,
+  options: RemoveNodesOptions,
 ): Edge[] {
   const removedNodeIds = new Set(removedNodes.keys());
   const newEdgesMap = new Map(

@@ -3,7 +3,7 @@ import type { Edge } from './edge.js';
 import type { FlowGraph } from './flow-graph.js';
 import type { Node } from './node.js';
 
-export type { FlowGraph, Graph } from './flow-graph.js';
+export type { FlowGraph } from './flow-graph.js';
 
 const nodeBaseSchema = z.object({
   id: z.string(),

@@ -10,12 +10,10 @@ import { loadProjectConfig } from './project-config.js';
 
 export { isFlowGraph } from './flow-graph-contract.js';
 
-export interface Graph<TNode = NodeModule.Node, TEdge = EdgeModule.Edge> {
-  nodes: TNode[];
-  edges: TEdge[];
+export interface FlowGraph {
+  nodes: NodeModule.Node[];
+  edges: EdgeModule.Edge[];
 }
-
-export type FlowGraph = Graph<NodeModule.Node, EdgeModule.Edge>;
 
 export type SourceFileNotFoundError = { reason: 'source-file-not-found' };
 export type FromFilePositionError =

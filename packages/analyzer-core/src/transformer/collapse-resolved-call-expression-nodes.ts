@@ -5,7 +5,7 @@ import { hasOutgoingReferenceEdge, isCallExpressionNode } from '../node.js';
 import type { BridgeEdgeContext } from './remove-nodes.js';
 import { removeNodes } from './remove-nodes.js';
 
-export function collapseResolvedCallExpressionNodes<TGraph extends FlowGraph>(graph: TGraph): TGraph {
+export function collapseResolvedCallExpressionNodes(graph: FlowGraph): FlowGraph {
   const resolvedCallExpressionNodeIds = new Set(
     graph.nodes
       .filter(isCallExpressionNode)
@@ -13,7 +13,7 @@ export function collapseResolvedCallExpressionNodes<TGraph extends FlowGraph>(gr
       .map((node) => node.id),
   );
 
-  return removeNodes<TGraph>(
+  return removeNodes(
     (node) => resolvedCallExpressionNodeIds.has(node.id),
     {
       createBridgeEdge,

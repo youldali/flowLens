@@ -4,25 +4,25 @@ import type { FlowGraph } from '../flow-graph.js';
 import { collapseResolvedCallExpressionNodes } from './collapse-resolved-call-expression-nodes.js';
 import { removeNodes } from './remove-nodes.js';
 
-export type GraphTransformer<TGraph extends FlowGraph = FlowGraph> = (graph: TGraph) => TGraph;
+export type GraphTransformer = (graph: FlowGraph) => FlowGraph;
 
-export function toFlowGraph<TGraph extends FlowGraph>(graph: TGraph): TGraph {
+export function toFlowGraph(graph: FlowGraph): FlowGraph {
   return pipe(
     graph,
     collapseResolvedCallExpressionNodes,
   );
 }
 
-export function toReadableGraph<TGraph extends FlowGraph>(graph: TGraph): TGraph {
+export function toReadableGraph(graph: FlowGraph): FlowGraph {
   return pipe(
     graph,
-    removeNodes<TGraph>((node) => node.kind === 'file'),
+    removeNodes((node) => node.kind === 'file'),
   );
 }
 
-export function toProjectSourceGraph<TGraph extends FlowGraph>(graph: TGraph): TGraph {
+export function toProjectSourceGraph(graph: FlowGraph): FlowGraph {
   return pipe(
     graph,
-    removeNodes<TGraph>((node) => node.sourceOrigin !== 'project' && node.sourceOrigin !== 'unknown'),
+    removeNodes((node) => node.sourceOrigin !== 'project' && node.sourceOrigin !== 'unknown'),
   );
 }

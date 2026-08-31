@@ -8,13 +8,13 @@ export type GraphTransformerId = typeof GRAPH_TRANSFORMER_IDS[number]
 export const DEFAULT_GRAPH_TRANSFORMER_ID = 'projectSource' satisfies GraphTransformerId
 
 const GRAPH_TRANSFORMERS = {
-  none: <TGraph extends FlowGraph>(graph: TGraph) => graph,
+  none: (graph: FlowGraph) => graph,
   projectSource: toProjectSourceGraph,
-} satisfies Record<GraphTransformerId, <TGraph extends FlowGraph>(graph: TGraph) => TGraph>
+} satisfies Record<GraphTransformerId, (graph: FlowGraph) => FlowGraph>
 
-export function transformGraph<TGraph extends FlowGraph>(
-  graph: TGraph,
+export function transformGraph(
+  graph: FlowGraph,
   transformer: GraphTransformerId,
-): TGraph {
+): FlowGraph {
   return GRAPH_TRANSFORMERS[transformer](graph)
 }
