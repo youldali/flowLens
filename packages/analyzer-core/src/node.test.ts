@@ -71,38 +71,10 @@ describe("hasOutgoingReferenceEdge", () => {
   });
 });
 
-describe("hasCallExpressionDeclaration", () => {
-  it("identifies call expression nodes with resolved declarations", () => {
-    assert.equal(NodeModule.hasCallExpressionDeclaration(createCallExpressionNode()), true);
-    assert.equal(NodeModule.hasCallExpressionDeclaration(createCallExpressionNode({ declarationTsNode: undefined })), false);
-  });
-});
-
 describe("isFileNode", () => {
   it("identifies file nodes", () => {
     assert.equal(NodeModule.isFileNode(createFileNode()), true);
     assert.equal(NodeModule.isFileNode(createNode({ kind: "if-statement" })), false);
-  });
-});
-
-describe("toSerializedGraphNode", () => {
-  it("maps analyzer nodes to JSON-safe graph nodes", () => {
-    const serializedGraphNode = NodeModule.toSerializedGraphNode(createCallExpressionNode());
-
-    assert.deepEqual(serializedGraphNode, {
-      id: "fixture.ts:33:45",
-      kind: "callExpression",
-      name: "dependency",
-      filePath: "fixture.ts",
-      sourceOrigin: "project",
-      start: callExpressionFixture.pos,
-      end: callExpressionFixture.end,
-      text: callExpressionFixture.getText(sourceFileFixture),
-    });
-    assert.equal(Object.hasOwn(serializedGraphNode, "tsNode"), false);
-    assert.equal(Object.hasOwn(serializedGraphNode, "signature"), false);
-    assert.equal(Object.hasOwn(serializedGraphNode, "declarationTsNode"), false);
-    assert.equal(Object.hasOwn(serializedGraphNode, "declarationFile"), false);
   });
 });
 
@@ -116,29 +88,17 @@ describe("NodeBuilder", () => {
       filePath: normalizePath(sourceFileFixture.fileName),
       kind: "file",
       sourceOrigin: "project",
-      tsNode: sourceFileFixture,
     });
   });
 
-  it("builds function declaration nodes with signature and jsdoc data", () => {
-    const signature = {} as ts.Signature;
-    const type = {} as ts.Type;
+  it("builds function declaration nodes with jsdoc data", () => {
     const symbol = {
       getDocumentationComment: () => [{ text: "Fixture docs", kind: "text" }],
     } as unknown as ts.Symbol;
     const builder = new NodeModule.NodeBuilder(createTypeChecker({
-      getSignaturesOfType: (actualType) => {
-        assert.equal(actualType, type);
-        return [signature];
-      },
       getSymbolAtLocation: (node) => {
         assert.equal(node, functionDeclarationFixture);
         return symbol;
-      },
-      getTypeOfSymbolAtLocation: (actualSymbol, node) => {
-        assert.equal(actualSymbol, symbol);
-        assert.equal(node, functionDeclarationFixture);
-        return type;
       },
     }));
 
@@ -148,9 +108,7 @@ describe("NodeBuilder", () => {
       filePath: normalizePath(sourceFileFixture.fileName),
       kind: "functionDeclaration",
       sourceOrigin: "project",
-      signature,
       jsdoc: "Fixture docs",
-      tsNode: functionDeclarationFixture,
     });
   });
 
@@ -163,8 +121,6 @@ describe("NodeBuilder", () => {
       filePath: normalizePath(sourceFileFixture.fileName),
       kind: "functionDeclaration",
       sourceOrigin: "project",
-      signature: undefined,
-      tsNode: arrowFunctionFixture,
     });
   });
 
@@ -188,11 +144,9 @@ describe("NodeBuilder", () => {
       start: callExpressionFixture.pos,
       end: callExpressionFixture.end,
       text: callExpressionFixture.getText(sourceFileFixture),
-      signature,
       declarationFile: normalizePath(sourceFileFixture.fileName),
-      declarationTsNode: functionDeclarationFixture,
-      tsNode: callExpressionFixture,
     });
+    assert.equal(builder.findDeclarationForCallExpression(callExpressionFixture), functionDeclarationFixture);
   });
 
   it("marks unresolved call expression nodes with unknown source origin", () => {

@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
 import { create as createEdge } from '../edge.js';
-import type { AnalyzerGraph, FlowGraph } from '../flow-graph.js';
+import type { FlowGraph } from '../flow-graph.js';
 import { createCallExpressionNode, createFunctionDeclarationNode, createSerializedNode } from '../fixtures/node.js';
 import { toProjectSourceGraph } from './index.js';
 
@@ -12,6 +12,7 @@ describe("toProjectSourceGraph", () => {
       id: "source",
       name: "source",
       sourceOrigin: "project",
+      jsdoc: "Source docs",
     });
     const external = createCallExpressionNode({
       id: "external",
@@ -32,8 +33,9 @@ describe("toProjectSourceGraph", () => {
       id: "unknown",
       name: "unresolved",
       sourceOrigin: "unknown",
+      declarationFile: "src/dependency.ts",
     });
-    const graph: AnalyzerGraph = {
+    const graph: FlowGraph = {
       nodes: [source, external, nativeJsApi, nativeNodeApi, unknown],
       edges: [
         createEdge(source.id, external.id, 'calls'),

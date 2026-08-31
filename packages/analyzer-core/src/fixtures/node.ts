@@ -1,24 +1,17 @@
 import type {
-  AnalyzerNode,
   CallExpressionNode,
   FileNode,
   FunctionDeclarationNode,
   SerializedGraphNode,
 } from '../node.js';
 import { createFixture } from '@flowlens/test-utils';
-import {
-  callExpressionFixture,
-  functionDeclarationFixture,
-  sourceFileFixture,
-} from './ts-node.js';
 
-const nodeFixture: AnalyzerNode = {
+const nodeFixture: SerializedGraphNode = {
   id: "fixture-node",
   kind: "file",
   name: "fixture.ts",
   filePath: "fixture.ts",
   sourceOrigin: "project",
-  tsNode: sourceFileFixture,
 };
 
 const fileNodeFixture: FileNode = {
@@ -27,7 +20,6 @@ const fileNodeFixture: FileNode = {
   kind: "file",
   name: "fixture.ts",
   filePath: "fixture.ts",
-  tsNode: sourceFileFixture,
 };
 
 const functionDeclarationNodeFixture: FunctionDeclarationNode = {
@@ -36,8 +28,6 @@ const functionDeclarationNodeFixture: FunctionDeclarationNode = {
   kind: "functionDeclaration",
   name: "fixtureFunction",
   filePath: "fixture.ts",
-  signature: undefined,
-  tsNode: functionDeclarationFixture,
 };
 
 const callExpressionNodeFixture: CallExpressionNode = {
@@ -46,12 +36,9 @@ const callExpressionNodeFixture: CallExpressionNode = {
   kind: "callExpression",
   name: "dependency",
   filePath: "fixture.ts",
-  start: callExpressionFixture.pos,
-  end: callExpressionFixture.end,
-  text: callExpressionFixture.getText(sourceFileFixture),
-  tsNode: callExpressionFixture,
-  signature: undefined,
-  declarationTsNode: functionDeclarationFixture,
+  start: 33,
+  end: 45,
+  text: "dependency()",
   declarationFile: "fixture.ts",
 };
 
@@ -63,7 +50,7 @@ const serializedNodeFixture: SerializedGraphNode = {
   sourceOrigin: "project",
 };
 
-export const create = createFixture<AnalyzerNode>(nodeFixture);
+export const create = createFixture<SerializedGraphNode>(nodeFixture);
 export const createFileNode = createFixture<FileNode>(fileNodeFixture);
 export const createFunctionDeclarationNode = createFixture<FunctionDeclarationNode>(functionDeclarationNodeFixture);
 export const createCallExpressionNode = createFixture<CallExpressionNode>(callExpressionNodeFixture);

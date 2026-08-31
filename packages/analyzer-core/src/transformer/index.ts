@@ -1,10 +1,10 @@
 import { pipe } from '@flowlens/common';
 
-import type { AnalyzerGraph, FlowGraph } from '../flow-graph.js';
+import type { FlowGraph } from '../flow-graph.js';
 import { collapseResolvedCallExpressionNodes } from './collapse-resolved-call-expression-nodes.js';
 import { removeNodes } from './remove-nodes.js';
 
-export type GraphTransformer<TGraph extends FlowGraph = AnalyzerGraph> = (graph: TGraph) => TGraph;
+export type GraphTransformer<TGraph extends FlowGraph = FlowGraph> = (graph: TGraph) => TGraph;
 
 export function toFlowGraph<TGraph extends FlowGraph>(graph: TGraph): TGraph {
   return pipe(
@@ -18,10 +18,6 @@ export function toReadableGraph<TGraph extends FlowGraph>(graph: TGraph): TGraph
     graph,
     removeNodes<TGraph>((node) => node.kind === 'file'),
   );
-}
-
-export function toReadableAnalyzerGraph(graph: AnalyzerGraph): AnalyzerGraph {
-  return toReadableGraph(graph);
 }
 
 export function toProjectSourceGraph<TGraph extends FlowGraph>(graph: TGraph): TGraph {

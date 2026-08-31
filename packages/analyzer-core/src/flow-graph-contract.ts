@@ -12,18 +12,21 @@ const serializedGraphNodeBaseSchema = z.object({
   sourceOrigin: z.enum(['project', 'external', 'native-js-api', 'native-node-api', 'unknown']),
 });
 
-export const serializedGraphNodeSchema = z.discriminatedUnion('kind', [
+export const serializedGraphNodeSchema: z.ZodType<SerializedGraphNode> = z.discriminatedUnion('kind', [
   serializedGraphNodeBaseSchema.extend({
     kind: z.literal('functionDeclaration'),
+    jsdoc: z.string().optional(),
   }),
   serializedGraphNodeBaseSchema.extend({
     kind: z.literal('methodDeclaration'),
+    jsdoc: z.string().optional(),
   }),
   serializedGraphNodeBaseSchema.extend({
     kind: z.literal('callExpression'),
     start: z.number().int().nonnegative(),
     end: z.number().int().nonnegative(),
     text: z.string(),
+    declarationFile: z.string().optional(),
   }),
   serializedGraphNodeBaseSchema.extend({
     kind: z.literal('file'),
@@ -31,7 +34,7 @@ export const serializedGraphNodeSchema = z.discriminatedUnion('kind', [
   serializedGraphNodeBaseSchema.extend({
     kind: z.literal('if-statement'),
   }),
-]) satisfies z.ZodType<SerializedGraphNode>;
+]);
 
 export const callExpressionEdgeMetadataSchema = z.object({
   kind: z.literal('call-expression'),

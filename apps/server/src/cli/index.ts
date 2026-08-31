@@ -32,7 +32,7 @@ if (args.length !== 1) {
     throw new Error(`Could not build graph: ${buildResult.error.reason}`);
   }
 
-  const graph = graphBuilder.toJSON();
+  const graph = graphBuilder.extract();
   console.log(graph);
 
   await serveGraphViewer(graph);

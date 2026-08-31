@@ -29,43 +29,32 @@ export interface SerializedGraphNode {
   start?: number | undefined;
   end?: number | undefined;
   text?: string | undefined;
+  jsdoc?: string | undefined;
+  declarationFile?: string | undefined;
 }
 
-export interface AnalyzerNode extends SerializedGraphNode {
-  tsNode: ts.Node;
-}
-
-export interface FileNode extends AnalyzerNode {
+export interface FileNode extends SerializedGraphNode {
   kind: 'file';
 }
 
-export interface FunctionDeclarationNode extends AnalyzerNode {
+export interface FunctionDeclarationNode extends SerializedGraphNode {
   kind: 'functionDeclaration' | 'methodDeclaration';
-  signature: ts.Signature | undefined;
-  jsdoc?: string;
-  tsNode: TsModule.ExecutableFunctionDeclaration;
+  jsdoc?: string | undefined;
 }
 
-export interface CallExpressionNode extends AnalyzerNode {
+export interface CallExpressionNode extends SerializedGraphNode {
   kind: 'callExpression';
   start: number;
   end: number;
   text: string;
-  tsNode: ts.CallExpression;
-  signature: ts.Signature | undefined;
-  declarationTsNode: TsModule.ExecutableFunctionDeclaration | undefined;
   declarationFile: string | undefined;
 }
 
-export interface CallExpressionNodeWithDeclaration extends CallExpressionNode {
-  declarationTsNode: TsModule.ExecutableFunctionDeclaration;
-}
-
-export const isFunctionDeclarationNode = (node: AnalyzerNode): node is FunctionDeclarationNode => {
+export const isFunctionDeclarationNode = (node: SerializedGraphNode): node is FunctionDeclarationNode => {
   return node.kind === 'functionDeclaration' || node.kind === 'methodDeclaration';
 }
 
-export const isCallExpressionNode = (node: AnalyzerNode): node is CallExpressionNode => {
+export const isCallExpressionNode = (node: SerializedGraphNode): node is CallExpressionNode => {
   return node.kind === 'callExpression';
 }
 
@@ -84,11 +73,7 @@ export const hasOutgoingReferenceEdge = (graph: FlowGraph, node: SerializedGraph
   return graph.edges.some((edge) => edge.source === node.id && edge.type === 'references');
 }
 
-export const hasCallExpressionDeclaration = (node: CallExpressionNode): node is CallExpressionNodeWithDeclaration => {
-  return node.declarationTsNode !== undefined;
-}
-
-export const isFileNode = (node: AnalyzerNode): node is FileNode => {
+export const isFileNode = (node: SerializedGraphNode): node is FileNode => {
   return node.kind === 'file';
 }
 
@@ -106,7 +91,7 @@ export class NodeBuilder {
   buildCallExpressionNode = (node: ts.CallExpression): CallExpressionNode => {
     const sourceFile = node.getSourceFile();
     const signature = this.checker.getResolvedSignature(node);
-    const declarationTsNode = this.findDeclarationForCallExpression(node);
+    const declarationTsNode = this.findExecutableDeclarationForCallExpression(node, signature);
     const declarationSourceFile = this.findDeclarationSourceFile(node, signature, declarationTsNode);
     const declarationFile = declarationSourceFile ? normalizePath(declarationSourceFile.fileName) : undefined;
 
@@ -119,17 +104,19 @@ export class NodeBuilder {
       start: node.pos,
       end: node.end,
       text: node.getText(sourceFile),
-      signature,
       declarationFile,
-      declarationTsNode,
-      tsNode: node,
     }
+  }
+
+  findDeclarationForCallExpression(
+    node: ts.CallExpression,
+  ): TsModule.ExecutableFunctionDeclaration | undefined {
+    return this.findExecutableDeclarationForCallExpression(node, this.checker.getResolvedSignature(node));
   }
 
   buildFunctionDeclarationNode(node: TsModule.ExecutableFunctionDeclaration): FunctionDeclarationNode {
     const sourceFile = node.getSourceFile();
     const symbol = this.checker.getSymbolAtLocation(node);
-    const signature = symbol ? this.checker.getSignaturesOfType(this.checker.getTypeOfSymbolAtLocation(symbol, node), ts.SignatureKind.Call)[0] : undefined;
     const jsdoc = symbol ? ts.displayPartsToString(symbol.getDocumentationComment(this.checker)) : undefined;
 
     return {
@@ -138,9 +125,7 @@ export class NodeBuilder {
       filePath: normalizePath(sourceFile.fileName),
       kind: TsModule.getExecutableFunctionKind(node),
       sourceOrigin: this.getSourceFileOrigin(sourceFile),
-      signature,
       ...(jsdoc ? { jsdoc } : {}),
-      tsNode: node,
     }
   }
 
@@ -151,7 +136,6 @@ export class NodeBuilder {
       filePath: normalizePath(sourceFile.fileName),
       kind: 'file',
       sourceOrigin: this.getSourceFileOrigin(sourceFile),
-      tsNode: sourceFile,
     }
   }
 
@@ -194,8 +178,10 @@ export class NodeBuilder {
     return this.isNativeNodeApiSourceFile(sourcePath) ? 'native-node-api' : 'external';
   }
 
-  private findDeclarationForCallExpression(node: ts.CallExpression): TsModule.ExecutableFunctionDeclaration | undefined {
-    const signature = this.checker.getResolvedSignature(node);
+  private findExecutableDeclarationForCallExpression(
+    node: ts.CallExpression,
+    signature: ts.Signature | undefined,
+  ): TsModule.ExecutableFunctionDeclaration | undefined {
     const declaration = signature?.declaration;
 
     if (declaration && "body" in declaration && declaration.body) {
@@ -217,23 +203,4 @@ export class NodeBuilder {
   private isNativeNodeApiSourceFile(sourcePath: string): boolean {
     return sourcePath.includes('/node_modules/@types/node/');
   }
-}
-
-export function toSerializedGraphNode(node: AnalyzerNode): SerializedGraphNode {
-  const serializedNode: SerializedGraphNode = {
-    id: node.id,
-    kind: node.kind,
-    name: node.name,
-    filePath: node.filePath,
-    sourceOrigin: node.sourceOrigin,
-  };
-
-  return isCallExpressionNode(node)
-    ? {
-      ...serializedNode,
-      start: node.start,
-      end: node.end,
-      text: node.text,
-    }
-    : serializedNode;
 }

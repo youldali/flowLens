@@ -2,10 +2,10 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
 import { create as createEdge } from '../edge.js';
-import type { AnalyzerGraph, FlowGraph } from '../flow-graph.js';
+import type { FlowGraph } from '../flow-graph.js';
 import { createCallExpressionEdgeMetadata } from '../fixtures/edge.js';
 import { createFunctionDeclarationNode, createSerializedNode } from '../fixtures/node.js';
-import type { AnalyzerNode } from '../node.js';
+import type { SerializedGraphNode } from '../node.js';
 import { removeNodes } from './remove-nodes.js';
 
 describe("removeNodes", () => {
@@ -193,13 +193,13 @@ describe("removeNodes", () => {
   });
 });
 
-function createNode(id: string): AnalyzerNode {
+function createNode(id: string): SerializedGraphNode {
   return createFunctionDeclarationNode({
     id,
     name: id,
   });
 }
 
-function createGraph(graph: AnalyzerGraph): AnalyzerGraph {
+function createGraph(graph: FlowGraph): FlowGraph {
   return graph;
 }

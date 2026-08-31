@@ -6,7 +6,7 @@ import ts from 'typescript';
 
 import { GraphBuilder, isFlowGraph } from './flow-graph.js';
 import { create as createEdge } from './fixtures/edge.js';
-import { createCallExpressionNode } from './fixtures/node.js';
+import { createCallExpressionNode, createFunctionDeclarationNode } from './fixtures/node.js';
 import { assertErr, assertOk } from '@flowlens/common/testing';
 
 const tsconfigPath = path.resolve("tsconfig.json");
@@ -43,12 +43,31 @@ describe("isFlowGraph", () => {
           name: "fixtureFunction",
           filePath: "fixture.ts",
           sourceOrigin: "project",
+          jsdoc: "Fixture docs",
         },
       ],
       edges: [],
     };
 
     assert.equal(isFlowGraph(graph), true);
+  });
+
+  it("returns false for invalid serialized subtype fields", () => {
+    const invalidDeclarationFileGraph = {
+      nodes: [
+        createCallExpressionNode({ declarationFile: 42 as unknown as string }),
+      ],
+      edges: [],
+    };
+    const invalidJsdocGraph = {
+      nodes: [
+        createFunctionDeclarationNode({ jsdoc: 42 as unknown as string }),
+      ],
+      edges: [],
+    };
+
+    assert.equal(isFlowGraph(invalidDeclarationFileGraph), false);
+    assert.equal(isFlowGraph(invalidJsdocGraph), false);
   });
 
   it("returns false for call expression nodes without call-site fields", () => {
@@ -124,7 +143,7 @@ describe("isFlowGraph", () => {
 });
 
 describe("GraphBuilder.extract", () => {
-  it("returns the rich analyzer graph with analyzer-only node fields", () => {
+  it("returns serialized domain nodes without TypeScript objects", () => {
     const node = createCallExpressionNode();
     const edge = createEdge({
       id: "fixture.ts:33:45->fixture.ts:1:49:references",
@@ -137,42 +156,15 @@ describe("GraphBuilder.extract", () => {
       edges: new Map([[edge.id, edge]]),
     }) as GraphBuilder;
 
-    assert.deepEqual(graphBuilder.extract(), {
+    const graph = graphBuilder.extract();
+
+    assert.deepEqual(graph, {
       nodes: [node],
       edges: [edge],
     });
-  });
-});
-
-describe("GraphBuilder.toJSON", () => {
-  it("returns a JSON-safe graph without analyzer-only node fields", () => {
-    const node = createCallExpressionNode();
-    const edge = createEdge({
-      id: "fixture.ts:33:45->fixture.ts:1:49:references",
-      source: "fixture.ts:33:45",
-      target: "fixture.ts:1:49",
-      type: "references",
-    });
-    const graphBuilder = Object.assign(Object.create(GraphBuilder.prototype), {
-      nodes: new Map([[node.id, node]]),
-      edges: new Map([[edge.id, edge]]),
-    }) as GraphBuilder;
-
-    assert.deepEqual(graphBuilder.toJSON(), {
-      nodes: [
-        {
-          id: "fixture.ts:33:45",
-          kind: "callExpression",
-          name: "dependency",
-          filePath: "fixture.ts",
-          sourceOrigin: "project",
-          start: node.start,
-          end: node.end,
-          text: node.text,
-        },
-      ],
-      edges: [edge],
-    });
+    assert.equal('tsNode' in graph.nodes[0]!, false);
+    assert.equal('declarationTsNode' in graph.nodes[0]!, false);
+    assert.equal('signature' in graph.nodes[0]!, false);
   });
 });
 
@@ -186,11 +178,19 @@ describe("GraphBuilder.fromFile", () => {
 
     const graph = graphBuilder.extract();
     const nodeNames = graph.nodes.map((node) => node.name);
+    const tsNodesByNodeId = (
+      graphBuilder as unknown as { tsNodesByNodeId: ReadonlyMap<string, ts.Node> }
+    ).tsNodesByNodeId;
+    const dependencyNode = graph.nodes.find((node) => node.name === "dependency" && node.kind === "callExpression");
+    const dependencyTsNode = dependencyNode ? tsNodesByNodeId.get(dependencyNode.id) : undefined;
 
     assert.equal(result.value, undefined);
     assert.equal(nodeNames.includes("graph-builder-entry.ts"), true);
     assert.equal(nodeNames.includes("selectedFlow"), true);
     assert.equal(nodeNames.includes("otherFlow"), true);
+    assert.equal(tsNodesByNodeId.size, graph.nodes.length);
+    assert.equal(graph.nodes.every((node) => tsNodesByNodeId.has(node.id)), true);
+    assert.equal(dependencyTsNode ? ts.isCallExpression(dependencyTsNode) : false, true);
   });
 
   it("returns source-file-not-found when the source file is outside the program", () => {
