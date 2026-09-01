@@ -7,6 +7,7 @@
             "label": "Transform",
             "options": {
                 "none": "None",
+                "flow": "Flow graph",
                 "projectSource": "Project source"
             }
         },

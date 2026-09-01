@@ -12,6 +12,7 @@ import styles from './GraphTransformerSelector.module.css'
 
 const TRANSFORMER_LABEL_KEYS = {
   none: 'graphVisualization.transformers.options.none',
+  flow: 'graphVisualization.transformers.options.flow',
   projectSource: 'graphVisualization.transformers.options.projectSource',
 } satisfies Record<GraphTransformerId, I18nKey_CODE_ANALYSIS_CONTEXT>
 

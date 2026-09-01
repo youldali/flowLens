@@ -2,7 +2,10 @@ import assert from 'node:assert/strict'
 import { describe, it } from 'vitest'
 import type { FlowGraph } from '@flowlens/analyzer-core/flow-graph'
 import { create as createEdge } from '@flowlens/analyzer-core/fixtures/edge'
-import { createNode } from '@flowlens/analyzer-core/fixtures/node'
+import {
+  createCallExpressionNode,
+  createNode,
+} from '@flowlens/analyzer-core/fixtures/node'
 import { transformGraph } from './transformer'
 
 const projectNode = createNode({
@@ -44,6 +47,38 @@ describe('transformGraph', () => {
     const result = transformGraph(graph, 'none')
 
     assert.equal(result, graph)
+  })
+
+  it('returns the flow graph when the selected transformer is flow', () => {
+    const caller = createNode({ id: 'caller', name: 'caller' })
+    const call = createCallExpressionNode({ id: 'call' })
+    const declaration = createNode({ id: 'declaration', name: 'callee' })
+    const result = transformGraph({
+      nodes: [caller, call, declaration],
+      edges: [
+        createEdge({
+          id: 'caller->call:calls',
+          source: caller.id,
+          target: call.id,
+          type: 'calls',
+        }),
+        createEdge({
+          id: 'call->declaration:references',
+          source: call.id,
+          target: declaration.id,
+          type: 'references',
+        }),
+      ],
+    }, 'flow')
+
+    assert.deepEqual(
+      result.nodes.map((node) => node.id),
+      ['caller', 'declaration'],
+    )
+    assert.deepEqual(
+      result.edges.map((edge) => [edge.source, edge.target, edge.type]),
+      [['caller', 'declaration', 'calls']],
+    )
   })
 
   it('returns the project source graph when the selected transformer is projectSource', () => {
