@@ -29,6 +29,11 @@ export const nodeSchema: z.ZodType<Node> = z.discriminatedUnion('kind', [
     declarationFile: z.string().optional(),
   }),
   nodeBaseSchema.extend({
+    kind: z.literal('unresolved-call-declaration'),
+    start: z.number().int().nonnegative(),
+    end: z.number().int().nonnegative(),
+  }),
+  nodeBaseSchema.extend({
     kind: z.literal('file'),
   }),
   nodeBaseSchema.extend({

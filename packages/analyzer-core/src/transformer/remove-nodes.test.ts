@@ -6,6 +6,7 @@ import type { FlowGraph } from '../flow-graph.js';
 import { createCallExpressionEdgeMetadata } from '../fixtures/edge.js';
 import { createFunctionDeclarationNode, createNode as createNodeFixture } from '../fixtures/node.js';
 import type { Node } from '../node.js';
+import type { BridgeEdgeContext } from './remove-nodes.js';
 import { removeNodes } from './remove-nodes.js';
 
 describe("removeNodes", () => {
@@ -169,6 +170,42 @@ describe("removeNodes", () => {
     assert.deepEqual(result.edges, [
       createEdge(source.id, target.id, 'calls', metadata),
     ]);
+  });
+
+  it("provides the removed nodes at both boundaries of a bridge", () => {
+    const source = createNode("source");
+    const entryRemovedNode = createNode("entry-removed");
+    const exitRemovedNode = createNode("exit-removed");
+    const target = createNode("target");
+    const incomingEdge = createEdge(source.id, entryRemovedNode.id, 'calls');
+    const removedChainEdge = createEdge(entryRemovedNode.id, exitRemovedNode.id, 'references');
+    const outgoingEdge = createEdge(exitRemovedNode.id, target.id, 'declares');
+    const graph = createGraph({
+      nodes: [source, entryRemovedNode, exitRemovedNode, target],
+      edges: [
+        incomingEdge,
+        removedChainEdge,
+        outgoingEdge,
+      ],
+    });
+    const bridgeContexts: BridgeEdgeContext[] = [];
+
+    removeNodes(
+      (node) => node.id.endsWith("removed"),
+      {
+        createBridgeEdge: (context) => {
+          bridgeContexts.push(context);
+          return createEdge(context.incomingEdge.source, context.outgoingEdge.target, 'calls');
+        },
+      },
+    )(graph);
+
+    assert.deepEqual(bridgeContexts, [{
+      incomingEdge,
+      outgoingEdge,
+      entryRemovedNode,
+      exitRemovedNode,
+    }]);
   });
 
   it("supports serialized graph nodes without requiring analyzer node fields", () => {

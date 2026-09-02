@@ -6,7 +6,11 @@ import ts from 'typescript';
 
 import { GraphAdapter, isFlowGraph } from './flow-graph.js';
 import { create as createEdge } from './fixtures/edge.js';
-import { createCallExpressionNode, createFunctionDeclarationNode } from './fixtures/node.js';
+import {
+  createCallExpressionNode,
+  createFunctionDeclarationNode,
+  createUnresolvedCallDeclarationNode,
+} from './fixtures/node.js';
 import { assertErr, assertOk } from '@flowlens/common/testing';
 
 const tsconfigPath = path.resolve("tsconfig.json");
@@ -50,6 +54,20 @@ describe("isFlowGraph", () => {
     };
 
     assert.equal(isFlowGraph(graph), true);
+  });
+
+  it("returns true for serialized unresolved call declaration nodes", () => {
+    assert.equal(isFlowGraph({
+      nodes: [createUnresolvedCallDeclarationNode()],
+      edges: [],
+    }), true);
+  });
+
+  it("returns false for unresolved call declaration nodes without source positions", () => {
+    const node = createUnresolvedCallDeclarationNode();
+    const { start: _start, ...nodeWithoutStart } = node;
+
+    assert.equal(isFlowGraph({ nodes: [nodeWithoutStart], edges: [] }), false);
   });
 
   it("returns false for invalid serialized subtype fields", () => {

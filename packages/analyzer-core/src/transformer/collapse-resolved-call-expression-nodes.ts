@@ -24,9 +24,9 @@ export function collapseResolvedCallExpressionNodes(graph: FlowGraph): FlowGraph
 function createBridgeEdge({
   incomingEdge,
   outgoingEdge,
-  removedNode,
+  exitRemovedNode,
 }: BridgeEdgeContext): Edge | undefined {
-  if (outgoingEdge.type !== 'references' || !isCallExpressionNode(removedNode)) {
+  if (outgoingEdge.type !== 'references' || !isCallExpressionNode(exitRemovedNode)) {
     return undefined;
   }
 
@@ -37,10 +37,10 @@ function createBridgeEdge({
     {
       kind: 'call-expression',
       callSite: {
-        filePath: removedNode.filePath,
-        start: removedNode.start,
-        end: removedNode.end,
-        text: removedNode.text,
+        filePath: exitRemovedNode.filePath,
+        start: exitRemovedNode.start,
+        end: exitRemovedNode.end,
+        text: exitRemovedNode.text,
       },
     },
   );

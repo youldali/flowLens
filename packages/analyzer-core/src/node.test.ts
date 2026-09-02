@@ -14,6 +14,7 @@ import {
   createCallExpressionNode,
   createFileNode,
   createFunctionDeclarationNode,
+  createUnresolvedCallDeclarationNode,
 } from './fixtures/node.js';
 import {
   arrowFunctionFixture,
@@ -34,6 +35,16 @@ describe("isCallExpressionNode", () => {
   it("identifies call expression nodes", () => {
     assert.equal(NodeModule.isCallExpressionNode(createCallExpressionNode()), true);
     assert.equal(NodeModule.isCallExpressionNode(createFileNode()), false);
+  });
+});
+
+describe("isUnresolvedCallDeclarationNode", () => {
+  it("identifies unresolved call declaration nodes", () => {
+    assert.equal(
+      NodeModule.isUnresolvedCallDeclarationNode(createUnresolvedCallDeclarationNode()),
+      true,
+    );
+    assert.equal(NodeModule.isUnresolvedCallDeclarationNode(createCallExpressionNode()), false);
   });
 });
 

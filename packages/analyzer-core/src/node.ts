@@ -9,6 +9,7 @@ export type GraphNodeKind =
   | 'functionDeclaration'
   | 'methodDeclaration'
   | 'callExpression'
+  | 'unresolved-call-declaration'
   | 'file'
   | 'if-statement';
 
@@ -45,12 +46,24 @@ export interface CallExpressionNode extends Node {
   declarationFile: string | undefined;
 }
 
+export interface UnresolvedCallDeclarationNode extends Node {
+  kind: 'unresolved-call-declaration';
+  start: number;
+  end: number;
+}
+
 export const isFunctionDeclarationNode = (node: Node): node is FunctionDeclarationNode => {
   return node.kind === 'functionDeclaration' || node.kind === 'methodDeclaration';
 }
 
 export const isCallExpressionNode = (node: Node): node is CallExpressionNode => {
   return node.kind === 'callExpression';
+}
+
+export const isUnresolvedCallDeclarationNode = (
+  node: Node,
+): node is UnresolvedCallDeclarationNode => {
+  return node.kind === 'unresolved-call-declaration';
 }
 
 export const hasOutgoingReferenceEdge = (graph: FlowGraph, node: Node): boolean => {

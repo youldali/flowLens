@@ -1,13 +1,18 @@
 import { create as createEdge } from '../edge.js';
 import type { Edge } from '../edge.js';
-import type { FlowGraph } from '../flow-graph.js';
 import type { Node, NodeId } from '../node.js';
 import type { GraphTransformer } from './index.js';
 
 export interface BridgeEdgeContext {
   incomingEdge: Edge;
   outgoingEdge: Edge;
-  removedNode: Node;
+  entryRemovedNode: Node;
+  exitRemovedNode: Node;
+}
+
+interface BridgeExit {
+  outgoingEdge: Edge;
+  exitRemovedNode: Node;
 }
 
 export interface RemoveNodesOptions {
@@ -54,20 +59,22 @@ function computeNewEdges(
   );
 
   for (const edge of edges) {
+    // Only process edges whose source is retained and whose target is removed.
     if (isEdgeSkippedForBridge(edge, removedNodeIds)) {
       continue;
     }
 
-    const removedNode = removedNodes.get(edge.target);
-    if (!removedNode) {
-      continue;
-    }
+    const entryRemovedNode = removedNodes.get(edge.target)!;
+    const bridgeExits = findBridgeExits(edge.target, edges, removedNodes);
 
-    const outgoingEdges = findBridgeOutgoingEdges(edge.target, edges, removedNodeIds);
-
-    for (const outgoingEdge of outgoingEdges) {
+    for (const { outgoingEdge, exitRemovedNode } of bridgeExits) {
       const bridgedEdge = options.createBridgeEdge
-        ? options.createBridgeEdge({ incomingEdge: edge, outgoingEdge, removedNode })
+        ? options.createBridgeEdge({
+          incomingEdge: edge,
+          outgoingEdge,
+          entryRemovedNode,
+          exitRemovedNode,
+        })
         : createEdge(edge.source, outgoingEdge.target, edge.type);
       if (!bridgedEdge) {
         continue;
@@ -84,34 +91,38 @@ function isEdgeSkippedForBridge(edge: Edge, removedNodeIds: Set<NodeId>): boolea
   return removedNodeIds.has(edge.source) || !removedNodeIds.has(edge.target);
 }
 
-function findBridgeOutgoingEdges(
+/**
+ * Finds edges leaving a chain of removed nodes by traversing edges whose targets
+ * are also removed and collecting edges whose targets are retained.
+ */
+function findBridgeExits(
   removedNodeId: NodeId,
   edges: Edge[],
-  removedNodeIds: Set<NodeId>,
-): Edge[] {
-  const bridgeOutgoingEdges = new Map<NodeId, Edge>();
+  removedNodes: Map<NodeId, Node>,
+): BridgeExit[] {
+  const bridgeExits: BridgeExit[] = [];
   const visitedRemovedNodes = new Set<NodeId>();
   const nodeIdsToVisit: NodeId[] = [removedNodeId];
 
-  for (let visitIndex = 0; visitIndex < nodeIdsToVisit.length; visitIndex += 1) {
-    const currentNodeId = nodeIdsToVisit[visitIndex]!;
+  for (let i = 0; i < nodeIdsToVisit.length; i += 1) {
+    const currentNodeId = nodeIdsToVisit[i]!;
     if (visitedRemovedNodes.has(currentNodeId)) {
       continue;
     }
 
     visitedRemovedNodes.add(currentNodeId);
 
+    const exitRemovedNode = removedNodes.get(currentNodeId)!;
     const outgoingEdges = edges.filter((edge) => edge.source === currentNodeId);
 
     for (const outgoingEdge of outgoingEdges) {
-      if (!removedNodeIds.has(outgoingEdge.target)) {
-        bridgeOutgoingEdges.set(outgoingEdge.target, outgoingEdge);
-        continue;
+      if (!removedNodes.has(outgoingEdge.target)) {
+        bridgeExits.push({ outgoingEdge, exitRemovedNode });
+      } else {
+        nodeIdsToVisit.push(outgoingEdge.target);
       }
-
-      nodeIdsToVisit.push(outgoingEdge.target);
     }
   }
 
-  return Array.from(bridgeOutgoingEdges.values());
+  return bridgeExits;
 }
