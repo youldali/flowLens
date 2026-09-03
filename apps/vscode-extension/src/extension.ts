@@ -35,38 +35,47 @@ export function activate(context: vscode.ExtensionContext): void {
     const filePath = document.uri.fsPath;
     const payload = { filePath, offset };
 
-    try {
-      const tsconfigPathResult = findNearestTsconfig(path.dirname(filePath));
+    await vscode.window.withProgress(
+      {
+        location: vscode.ProgressLocation.Notification,
+        title: "FlowLens: Preparing graph...",
+        cancellable: false,
+      },
+      async () => {
+        try {
+          const tsconfigPathResult = findNearestTsconfig(path.dirname(filePath));
 
-      if (tsconfigPathResult.isErr()) {
-        const message = `FlowLens: Could not find tsconfig.json at or above ${path.dirname(filePath)}.`;
-        console.error(message, payload);
-        vscode.window.showErrorMessage(message);
-        return;
-      }
+          if (tsconfigPathResult.isErr()) {
+            const message = `FlowLens: Could not find tsconfig.json at or above ${path.dirname(filePath)}.`;
+            console.error(message, payload);
+            vscode.window.showErrorMessage(message);
+            return;
+          }
 
-      const graphAdapter = new GraphAdapter(tsconfigPathResult.value);
-      const buildResult = graphAdapter.fromFilePosition(filePath, offset);
+          const graphAdapter = new GraphAdapter(tsconfigPathResult.value);
+          const buildResult = graphAdapter.fromFilePosition(filePath, offset);
 
-      if (buildResult.isErr()) {
-        const message = `FlowLens: Could not generate graph (${buildResult.error.reason}).`;
-        console.error(message, payload);
-        vscode.window.showErrorMessage(message);
-        return;
-      }
+          if (buildResult.isErr()) {
+            const message = `FlowLens: Could not generate graph (${buildResult.error.reason}).`;
+            console.error(message, payload);
+            vscode.window.showErrorMessage(message);
+            return;
+          }
 
-      const graph = graphAdapter.extract();
+          const graph = graphAdapter.extract();
 
-      console.log("FlowLens generated graph", { ...payload, graph });
-      await graphWebview.showGraph(graph);
-      vscode.window.showInformationMessage(
-        `FlowLens: Generated graph with ${graph.nodes.length} nodes and ${graph.edges.length} edges.`,
-      );
-    } catch (error) {
-      const message = `FlowLens: ${getErrorMessage(error)}`;
-      console.error(message, payload, error);
-      vscode.window.showErrorMessage(message);
-    }
+          console.log("FlowLens generated graph", { ...payload, graph });
+          await graphWebview.showGraph(graph);
+          vscode.window.showInformationMessage(
+            `FlowLens: Generated graph with ${graph.nodes.length} nodes and ${graph.edges.length} edges.`,
+          );
+        } catch (error) {
+          const message = `FlowLens: ${getErrorMessage(error)}`;
+          console.error(message, payload, error);
+          vscode.window.showErrorMessage(message);
+        }
+      },
+    );
   });
 
   context.subscriptions.push(disposable);
