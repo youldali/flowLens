@@ -173,6 +173,90 @@ describe("toFlowGraph", () => {
     ]);
   });
 
+  it("reparents declarations from removed call expressions with call-site metadata", () => {
+    const caller = createNode({ id: "caller", name: "caller" });
+    const call = createCallExpressionNode({
+      id: "call",
+      filePath: "src/source.ts",
+      start: 12,
+      end: 48,
+      text: "callee(() => dependency())",
+    });
+    const declaration = createNode({ id: "declaration", name: "callee" });
+    const callback = createNode({ id: "callback", name: "anonymous" });
+    const graph: FlowGraph = {
+      nodes: [caller, call, declaration, callback],
+      edges: [
+        createEdge(caller.id, call.id, 'calls'),
+        createEdge(call.id, declaration.id, 'references'),
+        createEdge(call.id, callback.id, 'declares'),
+      ],
+    };
+
+    const result = toFlowGraph(graph);
+
+    const metadata = {
+      kind: 'call-expression' as const,
+      callSite: {
+        filePath: call.filePath,
+        start: call.start,
+        end: call.end,
+        text: call.text,
+      },
+    };
+    assert.deepEqual(result.nodes, [caller, declaration, callback]);
+    assert.deepEqual(result.edges, [
+      createEdge(caller.id, declaration.id, 'calls', metadata),
+      createEdge(caller.id, callback.id, 'declares', metadata),
+    ]);
+  });
+
+  it("uses the declaring call site when reparenting through nested removed calls", () => {
+    const caller = createNode({ id: "caller", name: "caller" });
+    const outerCall = createCallExpressionNode({
+      id: "outer-call",
+      filePath: "src/source.ts",
+      start: 12,
+      end: 64,
+      text: "outer(inner(() => dependency()))",
+    });
+    const innerCall = createCallExpressionNode({
+      id: "inner-call",
+      filePath: "src/source.ts",
+      start: 19,
+      end: 63,
+      text: "inner(() => dependency())",
+    });
+    const outerDeclaration = createNode({ id: "outer-declaration", name: "outer" });
+    const innerDeclaration = createNode({ id: "inner-declaration", name: "inner" });
+    const callback = createNode({ id: "callback", name: "anonymous" });
+    const graph: FlowGraph = {
+      nodes: [caller, outerCall, innerCall, outerDeclaration, innerDeclaration, callback],
+      edges: [
+        createEdge(caller.id, outerCall.id, 'calls'),
+        createEdge(outerCall.id, outerDeclaration.id, 'references'),
+        createEdge(outerCall.id, innerCall.id, 'calls'),
+        createEdge(innerCall.id, innerDeclaration.id, 'references'),
+        createEdge(innerCall.id, callback.id, 'declares'),
+      ],
+    };
+
+    const result = toFlowGraph(graph);
+
+    assert.deepEqual(
+      result.edges.find((edge) => edge.type === 'declares'),
+      createEdge(caller.id, callback.id, 'declares', {
+        kind: 'call-expression',
+        callSite: {
+          filePath: innerCall.filePath,
+          start: innerCall.start,
+          end: innerCall.end,
+          text: innerCall.text,
+        },
+      }),
+    );
+  });
+
   it("preserves multiple call sites from one caller to the same declaration", () => {
     const caller = createNode({ id: "caller", name: "caller" });
     const firstCall = createCallExpressionNode({ id: "first-call", start: 12, end: 24, text: "callee()" });
