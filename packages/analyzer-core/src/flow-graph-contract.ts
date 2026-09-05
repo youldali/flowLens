@@ -22,6 +22,10 @@ export const nodeSchema: z.ZodType<Node> = z.discriminatedUnion('kind', [
     jsdoc: z.string().optional(),
   }),
   nodeBaseSchema.extend({
+    kind: z.literal('typeDeclaration'),
+    jsdoc: z.string().optional(),
+  }),
+  nodeBaseSchema.extend({
     kind: z.literal('callExpression'),
     start: z.number().int().nonnegative(),
     end: z.number().int().nonnegative(),

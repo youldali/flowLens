@@ -13,6 +13,19 @@ export type ExecutableFunctionDeclaration =
   | ts.GetAccessorDeclaration
   | ts.SetAccessorDeclaration;
 
+export type TypeCallableDeclaration =
+  | (ts.PropertySignature & {
+      parent: ts.InterfaceDeclaration | ts.TypeLiteralNode;
+      type: ts.FunctionTypeNode;
+    })
+  | (ts.MethodSignature & {
+      parent: ts.InterfaceDeclaration | ts.TypeLiteralNode;
+    });
+
+export type CallableDeclaration =
+  | ExecutableFunctionDeclaration
+  | TypeCallableDeclaration;
+
 export function findNodeAtPosition(
   sourceFile: ts.SourceFile,
   position: number,
@@ -79,6 +92,20 @@ export function isExecutableFunction(
   // );
 }
 
+export function isTypeCallableDeclaration(
+  node: ts.Node,
+): node is TypeCallableDeclaration {
+  if (
+    !node.parent ||
+    (!ts.isInterfaceDeclaration(node.parent) && !ts.isTypeLiteralNode(node.parent))
+  ) {
+    return false;
+  }
+
+  return ts.isMethodSignature(node)
+    || (ts.isPropertySignature(node) && !!node.type && ts.isFunctionTypeNode(node.type));
+}
+
 export function getExecutableFunctionName(
   node: ExecutableFunctionDeclaration,
   sourceFile: ts.SourceFile,
@@ -113,6 +140,7 @@ export function isNodeProcessable(node: ts.Node): boolean {
     ts.isSourceFile(node) ||
     isExecutableFunction(node) ||
     ts.isMethodDeclaration(node) ||
+    isTypeCallableDeclaration(node) ||
     ts.isCallExpression(node)
   );
 }

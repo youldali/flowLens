@@ -8,6 +8,7 @@ import * as TsModule from './tsNode.js';
 export type GraphNodeKind =
   | 'functionDeclaration'
   | 'methodDeclaration'
+  | 'typeDeclaration'
   | 'callExpression'
   | 'unresolved-call-declaration'
   | 'file'
@@ -38,6 +39,11 @@ export interface FunctionDeclarationNode extends Node {
   jsdoc?: string | undefined;
 }
 
+export interface TypeDeclarationNode extends Node {
+  kind: 'typeDeclaration';
+  jsdoc?: string | undefined;
+}
+
 export interface CallExpressionNode extends Node {
   kind: 'callExpression';
   start: number;
@@ -54,6 +60,10 @@ export interface UnresolvedCallDeclarationNode extends Node {
 
 export const isFunctionDeclarationNode = (node: Node): node is FunctionDeclarationNode => {
   return node.kind === 'functionDeclaration' || node.kind === 'methodDeclaration';
+}
+
+export const isTypeDeclarationNode = (node: Node): node is TypeDeclarationNode => {
+  return node.kind === 'typeDeclaration';
 }
 
 export const isCallExpressionNode = (node: Node): node is CallExpressionNode => {
@@ -107,8 +117,10 @@ export class NodeAdapter {
 
   findDeclarationForCallExpression(
     node: ts.CallExpression,
-  ): TsModule.ExecutableFunctionDeclaration | undefined {
-    return this.findExecutableDeclarationForCallExpression(node, this.checker.getResolvedSignature(node));
+  ): TsModule.CallableDeclaration | undefined {
+    const signature = this.checker.getResolvedSignature(node);
+    return this.findExecutableDeclarationForCallExpression(node, signature)
+      ?? this.findTypeDeclarationForCallExpression(node, signature);
   }
 
   buildFunctionDeclarationNode(node: TsModule.ExecutableFunctionDeclaration): FunctionDeclarationNode {
@@ -126,6 +138,23 @@ export class NodeAdapter {
     }
   }
 
+  buildTypeDeclarationNode(
+    node: TsModule.TypeCallableDeclaration,
+  ): TypeDeclarationNode {
+    const sourceFile = node.getSourceFile();
+    const symbol = this.checker.getSymbolAtLocation(node.name);
+    const jsdoc = symbol ? ts.displayPartsToString(symbol.getDocumentationComment(this.checker)) : undefined;
+
+    return {
+      id: TsModule.deriveIdFromTsNode(node),
+      name: node.name.getText(sourceFile),
+      filePath: normalizePath(sourceFile.fileName),
+      kind: 'typeDeclaration',
+      sourceOrigin: this.getSourceFileOrigin(sourceFile),
+      ...(jsdoc ? { jsdoc } : {}),
+    };
+  }
+
   buildFileNode (sourceFile: ts.SourceFile): FileNode {
     return {
       id: TsModule.createFileId(sourceFile),
@@ -139,7 +168,7 @@ export class NodeAdapter {
   private findDeclarationSourceFile(
     node: ts.CallExpression,
     signature: ts.Signature | undefined,
-    declarationTsNode: TsModule.ExecutableFunctionDeclaration | undefined,
+    declarationTsNode: TsModule.CallableDeclaration | undefined,
   ): ts.SourceFile | undefined {
     const declarations = [
       signature?.declaration,
@@ -191,6 +220,21 @@ export class NodeAdapter {
     ];
 
     return declarations.find(TsModule.isExecutableFunction);
+  }
+
+  private findTypeDeclarationForCallExpression(
+    node: ts.CallExpression,
+    signature: ts.Signature | undefined,
+  ): TsModule.TypeCallableDeclaration | undefined {
+    const signatureDeclaration = signature?.declaration;
+    const declarations = [
+      signatureDeclaration,
+      signatureDeclaration?.parent,
+      ...this.getSymbolDeclarations(node.expression),
+      ...this.getPropertyAccessNameDeclarations(node),
+    ].filter((declaration): declaration is ts.Node => declaration !== undefined);
+
+    return declarations.find(TsModule.isTypeCallableDeclaration);
   }
 
   private isNativeJsApiSourceFile(sourceFile: ts.SourceFile): boolean {

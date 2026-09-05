@@ -9,6 +9,8 @@ import {
   arrowFunctionFixture,
   callExpressionFixture,
   functionDeclarationFixture,
+  methodSignatureFixture,
+  propertySignatureFixture,
   sourceFileFixture,
   variableStatementNodeFixture,
 } from './fixtures/ts-node.js';
@@ -147,14 +149,77 @@ describe("findEnclosingFunction", () => {
 });
 
 describe("isNodeProcessable", () => {
-  it("returns true for source files, executable functions, and call expressions", () => {
+  it("returns true for source files, callable declarations, and call expressions", () => {
+    const sourceFile = ts.createSourceFile(
+      "abstract-method.ts",
+      "abstract class Service { abstract run(): void }",
+      ts.ScriptTarget.Latest,
+      true,
+    );
+    const classDeclaration = sourceFile.statements[0];
+
+    if (!classDeclaration || !ts.isClassDeclaration(classDeclaration)) {
+      assert.fail("Expected a class declaration.");
+    }
+
+    const abstractMethod = classDeclaration.members[0];
+    if (!abstractMethod || !ts.isMethodDeclaration(abstractMethod)) {
+      assert.fail("Expected an abstract method declaration.");
+    }
+
     assert.equal(TsNodeModule.isNodeProcessable(sourceFileFixture), true);
     assert.equal(TsNodeModule.isNodeProcessable(functionDeclarationFixture), true);
     assert.equal(TsNodeModule.isNodeProcessable(arrowFunctionFixture), true);
+    assert.equal(TsNodeModule.isNodeProcessable(abstractMethod), true);
+    assert.equal(TsNodeModule.isNodeProcessable(propertySignatureFixture), true);
+    assert.equal(TsNodeModule.isNodeProcessable(methodSignatureFixture), true);
     assert.equal(TsNodeModule.isNodeProcessable(callExpressionFixture), true);
   });
 
   it("returns false for non-executable syntax nodes", () => {
     assert.equal(TsNodeModule.isNodeProcessable(variableStatementNodeFixture), false);
+  });
+});
+
+describe("isTypeCallableDeclaration", () => {
+  it("identifies callable properties and methods declared directly by interfaces", () => {
+    assert.equal(TsNodeModule.isTypeCallableDeclaration(propertySignatureFixture), true);
+    assert.equal(TsNodeModule.isTypeCallableDeclaration(methodSignatureFixture), true);
+    assert.equal(TsNodeModule.isTypeCallableDeclaration(functionDeclarationFixture), false);
+  });
+
+  it("identifies callable properties and methods declared by object type aliases", () => {
+    const sourceFile = ts.createSourceFile(
+      "type-literal.ts",
+      "type Service = { property: () => void; method(): void }",
+      ts.ScriptTarget.Latest,
+      true,
+    );
+    const typeAlias = sourceFile.statements[0];
+
+    if (!typeAlias || !ts.isTypeAliasDeclaration(typeAlias) || !ts.isTypeLiteralNode(typeAlias.type)) {
+      assert.fail("Expected a type literal declaration.");
+    }
+
+    assert.equal(
+      typeAlias.type.members.every(TsNodeModule.isTypeCallableDeclaration),
+      true,
+    );
+  });
+
+  it("excludes non-callable interface properties", () => {
+    const sourceFile = ts.createSourceFile(
+      "interface.ts",
+      "interface Service { count: number }",
+      ts.ScriptTarget.Latest,
+      true,
+    );
+    const declaration = sourceFile.statements[0];
+
+    if (!declaration || !ts.isInterfaceDeclaration(declaration)) {
+      assert.fail("Expected an interface declaration.");
+    }
+
+    assert.equal(TsNodeModule.isTypeCallableDeclaration(declaration.members[0]!), false);
   });
 });

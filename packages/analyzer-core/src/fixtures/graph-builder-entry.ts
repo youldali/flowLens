@@ -20,6 +20,26 @@ export class FlowService {
   }
 }
 
+type BaseFlowContract = {
+  property: () => number;
+};
+
+interface FlowContract extends BaseFlowContract {
+  method(): number;
+}
+
+type ScopedMethods<Methods> = {
+  [Key in keyof Methods]: Methods[Key] extends (...args: infer Params) => infer Return
+    ? (...args: Params) => Return
+    : Methods[Key];
+};
+
+declare const flowContract: ScopedMethods<FlowContract>;
+
+export function interfaceFlow(): number {
+  return flowContract.property() + flowContract.method();
+}
+
 export function externalNativeFlow(values: number[]): number[] {
   return values.map((value) => dependency() + value);
 }

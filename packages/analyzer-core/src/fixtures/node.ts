@@ -2,6 +2,7 @@ import type {
   CallExpressionNode,
   FileNode,
   FunctionDeclarationNode,
+  TypeDeclarationNode,
   Node,
   UnresolvedCallDeclarationNode,
 } from '../node.js';
@@ -28,6 +29,14 @@ const functionDeclarationNodeFixture: FunctionDeclarationNode = {
   id: "fixture.ts:1:49",
   kind: "functionDeclaration",
   name: "fixtureFunction",
+  filePath: "fixture.ts",
+};
+
+const typeDeclarationNodeFixture: TypeDeclarationNode = {
+  ...nodeFixture,
+  id: "fixture.ts:300:329",
+  kind: "typeDeclaration",
+  name: "property",
   filePath: "fixture.ts",
 };
 
@@ -58,6 +67,7 @@ export const create = createFixture<Node>(nodeFixture);
 export const createNode = create;
 export const createFileNode = createFixture<FileNode>(fileNodeFixture);
 export const createFunctionDeclarationNode = createFixture<FunctionDeclarationNode>(functionDeclarationNodeFixture);
+export const createTypeDeclarationNode = createFixture<TypeDeclarationNode>(typeDeclarationNodeFixture);
 export const createCallExpressionNode = createFixture<CallExpressionNode>(callExpressionNodeFixture);
 export const createUnresolvedCallDeclarationNode = createFixture<UnresolvedCallDeclarationNode>(
   unresolvedCallDeclarationNodeFixture,

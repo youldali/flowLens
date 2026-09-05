@@ -23,7 +23,7 @@ export type FromFilePositionError =
 
 type QueueItem = 
 | { node: ts.CallExpression; parentNode: ts.Node } 
-| { node: TsNodeModule.ExecutableFunctionDeclaration; parentNode: ts.Node } 
+| { node: TsNodeModule.CallableDeclaration; parentNode: ts.Node }
 | { node: ts.SourceFile; parentNode?: undefined }
 | { node: ts.Node; parentNode?: ts.Node | undefined };
 
@@ -133,6 +133,10 @@ export class GraphAdapter {
       this.visitFunctionDeclaration(node, parentNode);
     }
 
+    if (TsNodeModule.isTypeCallableDeclaration(node)) {
+      this.visitTypeDeclaration(node, parentNode);
+    }
+
     if (ts.isSourceFile(node)) {
       this.visitSourceFile(node);
     }
@@ -158,7 +162,9 @@ export class GraphAdapter {
     }
 
     if (declarationTsNode) {
-      const declarationGraphNode = this.nodeAdapter.buildFunctionDeclarationNode(declarationTsNode);
+      const declarationGraphNode = TsNodeModule.isTypeCallableDeclaration(declarationTsNode)
+        ? this.nodeAdapter.buildTypeDeclarationNode(declarationTsNode)
+        : this.nodeAdapter.buildFunctionDeclarationNode(declarationTsNode);
       this.addNode(declarationGraphNode, declarationTsNode);
       this.addEdge(node, declarationTsNode, 'references');
 
@@ -170,6 +176,18 @@ export class GraphAdapter {
   private visitFunctionDeclaration(node: TsNodeModule.ExecutableFunctionDeclaration, parentNode: ts.Node | undefined): void {
     const functionDeclarationGraphNode = this.nodeAdapter.buildFunctionDeclarationNode(node);
     this.addNode(functionDeclarationGraphNode, node);
+
+    if (parentNode) {
+      this.addEdge(parentNode, node, 'declares');
+    }
+  }
+
+  private visitTypeDeclaration(
+    node: TsNodeModule.TypeCallableDeclaration,
+    parentNode: ts.Node | undefined,
+  ): void {
+    const typeDeclarationGraphNode = this.nodeAdapter.buildTypeDeclarationNode(node);
+    this.addNode(typeDeclarationGraphNode, node);
 
     if (parentNode) {
       this.addEdge(parentNode, node, 'declares');

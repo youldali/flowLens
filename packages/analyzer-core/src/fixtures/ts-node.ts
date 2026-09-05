@@ -28,6 +28,11 @@ const functionExpressionFixture = function expressionFixture() {
   return dependency();
 };
 
+interface FixtureInterface {
+  property: () => number;
+  method(): number;
+}
+
 dependency();
 
 const variableFixture = 1;
@@ -73,6 +78,8 @@ export const functionExpressionFixture = findNode(ts.isFunctionExpression);
 export const arrowFunctionFixture = findNode(ts.isArrowFunction);
 export const getAccessorDeclarationFixture = findNode(ts.isGetAccessorDeclaration);
 export const setAccessorDeclarationFixture = findNode(ts.isSetAccessorDeclaration);
+export const propertySignatureFixture = findNode(ts.isPropertySignature);
+export const methodSignatureFixture = findNode(ts.isMethodSignature);
 export const variableStatementNodeFixture = findNode(ts.isVariableStatement);
 
 export const create = createFixture<ts.Node>(nodeFixture);
@@ -85,4 +92,6 @@ export const createFunctionExpression = createFixture<ts.FunctionExpression>(fun
 export const createArrowFunction = createFixture<ts.ArrowFunction>(arrowFunctionFixture);
 export const createGetAccessorDeclaration = createFixture<ts.GetAccessorDeclaration>(getAccessorDeclarationFixture);
 export const createSetAccessorDeclaration = createFixture<ts.SetAccessorDeclaration>(setAccessorDeclarationFixture);
+export const createPropertySignature = createFixture<ts.PropertySignature>(propertySignatureFixture);
+export const createMethodSignature = createFixture<ts.MethodSignature>(methodSignatureFixture);
 export const createVariableStatementNode = createFixture<ts.VariableStatement>(variableStatementNodeFixture);

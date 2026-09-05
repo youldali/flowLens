@@ -14,12 +14,15 @@ import {
   createCallExpressionNode,
   createFileNode,
   createFunctionDeclarationNode,
+  createTypeDeclarationNode,
   createUnresolvedCallDeclarationNode,
 } from './fixtures/node.js';
 import {
   arrowFunctionFixture,
   callExpressionFixture,
   functionDeclarationFixture,
+  methodSignatureFixture,
+  propertySignatureFixture,
   sourceFileFixture,
 } from './fixtures/ts-node.js';
 
@@ -28,6 +31,13 @@ describe("isFunctionDeclarationNode", () => {
     assert.equal(NodeModule.isFunctionDeclarationNode(createFunctionDeclarationNode()), true);
     assert.equal(NodeModule.isFunctionDeclarationNode(createFunctionDeclarationNode({ kind: "methodDeclaration" })), true);
     assert.equal(NodeModule.isFunctionDeclarationNode(createCallExpressionNode()), false);
+  });
+});
+
+describe("isTypeDeclarationNode", () => {
+  it("identifies type declaration nodes", () => {
+    assert.equal(NodeModule.isTypeDeclarationNode(createTypeDeclarationNode()), true);
+    assert.equal(NodeModule.isTypeDeclarationNode(createFunctionDeclarationNode()), false);
   });
 });
 
@@ -118,6 +128,31 @@ describe("NodeAdapter", () => {
     });
   });
 
+  it("builds type declaration nodes with jsdoc data", () => {
+    const symbol = {
+      getDocumentationComment: () => [{ text: "Interface docs", kind: "text" }],
+    } as unknown as ts.Symbol;
+    const adapter = new NodeModule.NodeAdapter(createTypeChecker({
+      getSymbolAtLocation: (node) => {
+        assert.equal(node, propertySignatureFixture.name);
+        return symbol;
+      },
+    }));
+
+    if (!TsNodeModule.isTypeCallableDeclaration(propertySignatureFixture)) {
+      assert.fail("Expected a callable type declaration.");
+    }
+
+    assert.deepEqual(adapter.buildTypeDeclarationNode(propertySignatureFixture), {
+      id: TsNodeModule.deriveIdFromTsNode(propertySignatureFixture),
+      name: "property",
+      filePath: normalizePath(sourceFileFixture.fileName),
+      kind: "typeDeclaration",
+      sourceOrigin: "project",
+      jsdoc: "Interface docs",
+    });
+  });
+
   it("builds call expression nodes with resolved declaration data", () => {
     const signature = {
       declaration: functionDeclarationFixture,
@@ -141,6 +176,95 @@ describe("NodeAdapter", () => {
       declarationFile: normalizePath(sourceFileFixture.fileName),
     });
     assert.equal(adapter.findDeclarationForCallExpression(callExpressionFixture), functionDeclarationFixture);
+  });
+
+  it("resolves a function-valued interface property when no executable declaration exists", () => {
+    const signature = {
+      declaration: propertySignatureFixture.type,
+    } as ts.Signature;
+    const adapter = new NodeModule.NodeAdapter(createTypeChecker({
+      getResolvedSignature: () => signature,
+    }));
+
+    assert.equal(adapter.findDeclarationForCallExpression(callExpressionFixture), propertySignatureFixture);
+  });
+
+  it("resolves an interface method signature when no executable declaration exists", () => {
+    const signature = {
+      declaration: methodSignatureFixture,
+    } as ts.Signature;
+    const adapter = new NodeModule.NodeAdapter(createTypeChecker({
+      getResolvedSignature: () => signature,
+    }));
+
+    assert.equal(adapter.findDeclarationForCallExpression(callExpressionFixture), methodSignatureFixture);
+  });
+
+  it("prefers an executable declaration over an interface declaration", () => {
+    const interfaceSymbol = {
+      getDeclarations: () => [propertySignatureFixture],
+    } as unknown as ts.Symbol;
+    const signature = {
+      declaration: functionDeclarationFixture,
+    } as ts.Signature;
+    const adapter = new NodeModule.NodeAdapter(createTypeChecker({
+      getResolvedSignature: () => signature,
+      getSymbolAtLocation: () => interfaceSymbol,
+    }));
+
+    assert.equal(adapter.findDeclarationForCallExpression(callExpressionFixture), functionDeclarationFixture);
+  });
+
+  it("resolves callable members declared by object type aliases", () => {
+    const typeLiteralSourceFile = ts.createSourceFile(
+      "type-literal.ts",
+      "type Service = { property: () => void }",
+      ts.ScriptTarget.Latest,
+      true,
+    );
+    const typeAlias = typeLiteralSourceFile.statements[0];
+
+    if (!typeAlias || !ts.isTypeAliasDeclaration(typeAlias) || !ts.isTypeLiteralNode(typeAlias.type)) {
+      assert.fail("Expected a type literal declaration.");
+    }
+
+    const property = typeAlias.type.members[0];
+    if (!property || !ts.isPropertySignature(property)) {
+      assert.fail("Expected a property signature.");
+    }
+
+    const signature = { declaration: property.type } as ts.Signature;
+    const adapter = new NodeModule.NodeAdapter(createTypeChecker({
+      getResolvedSignature: () => signature,
+    }));
+
+    assert.equal(adapter.findDeclarationForCallExpression(callExpressionFixture), property);
+  });
+
+  it("does not resolve non-callable interface properties", () => {
+    const interfaceSourceFile = ts.createSourceFile(
+      "interface.ts",
+      "interface Service { count: number }",
+      ts.ScriptTarget.Latest,
+      true,
+    );
+    const declaration = interfaceSourceFile.statements[0];
+
+    if (!declaration || !ts.isInterfaceDeclaration(declaration)) {
+      assert.fail("Expected an interface declaration.");
+    }
+
+    const property = declaration.members[0];
+    if (!property || !ts.isPropertySignature(property)) {
+      assert.fail("Expected a property signature.");
+    }
+
+    const signature = { declaration: property } as unknown as ts.Signature;
+    const adapter = new NodeModule.NodeAdapter(createTypeChecker({
+      getResolvedSignature: () => signature,
+    }));
+
+    assert.equal(adapter.findDeclarationForCallExpression(callExpressionFixture), undefined);
   });
 
   it("marks unresolved call expression nodes with unknown source origin", () => {

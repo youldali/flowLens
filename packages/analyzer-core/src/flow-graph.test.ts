@@ -9,9 +9,11 @@ import { create as createEdge } from './fixtures/edge.js';
 import {
   createCallExpressionNode,
   createFunctionDeclarationNode,
+  createTypeDeclarationNode,
   createUnresolvedCallDeclarationNode,
 } from './fixtures/node.js';
 import { assertErr, assertOk } from '@flowlens/common/testing';
+import { createSyntheticNodesForCallExpressionsWithoutDeclarations } from './transformer/index.js';
 
 const tsconfigPath = path.resolve("tsconfig.json");
 const entryFilePath = path.resolve("src/fixtures/graph-builder-entry.ts");
@@ -54,6 +56,13 @@ describe("isFlowGraph", () => {
     };
 
     assert.equal(isFlowGraph(graph), true);
+  });
+
+  it("returns true for serialized type declaration nodes", () => {
+    assert.equal(isFlowGraph({
+      nodes: [createTypeDeclarationNode({ jsdoc: "Type docs" })],
+      edges: [],
+    }), true);
   });
 
   it("returns true for serialized unresolved call declaration nodes", () => {
@@ -281,6 +290,50 @@ describe("GraphAdapter.fromFilePosition", () => {
     assert.equal(nodeNames.includes("run"), true);
     assert.equal(nodeNames.includes("dependency"), true);
     assert.equal(nodeNames.includes("selectedFlow"), false);
+  });
+
+  it("resolves type-alias properties and interface method signatures as declarations", () => {
+    const graphAdapter = createGraphAdapter();
+    const sourceText = fs.readFileSync(entryFilePath, "utf8");
+    const position = sourceText.indexOf("flowContract.property");
+
+    const result = graphAdapter.fromFilePosition(entryFilePath, position);
+
+    assertOk(result);
+
+    const graph = graphAdapter.extract();
+    const typeDeclarations = graph.nodes.filter(
+      (node) => node.kind === "typeDeclaration",
+    );
+    const interfaceCalls = graph.nodes.filter(
+      (node) => node.kind === "callExpression" && node.name.startsWith("flowContract."),
+    );
+
+    assert.deepEqual(typeDeclarations.map((node) => node.name).sort(), ["method", "property"]);
+    assert.deepEqual(interfaceCalls.map((node) => node.name).sort(), [
+      "flowContract.method",
+      "flowContract.property",
+    ]);
+    assert.equal(
+      interfaceCalls.every((call) => graph.edges.some(
+        (edge) => edge.source === call.id
+          && edge.type === "references"
+          && typeDeclarations.some((declaration) => declaration.id === edge.target),
+      )),
+      true,
+    );
+    assert.equal(
+      typeDeclarations.every((declaration) => graph.edges.some(
+        (edge) => edge.target === declaration.id && edge.type === "declares",
+      )),
+      true,
+    );
+    assert.equal(
+      createSyntheticNodesForCallExpressionsWithoutDeclarations(graph).nodes.some(
+        (node) => node.kind === "unresolved-call-declaration",
+      ),
+      false,
+    );
   });
 
   it("marks native JavaScript call expressions while preserving internal calls", () => {
