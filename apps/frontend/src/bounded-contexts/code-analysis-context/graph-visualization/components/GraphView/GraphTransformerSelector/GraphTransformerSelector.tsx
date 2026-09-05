@@ -23,24 +23,23 @@ export function GraphTransformerSelector() {
   const selectTransformer = useGraphTransformerStore((state) => state.selectTransformer)
 
   return (
-    <fieldset className={styles.transformerSelector}>
-      <legend className={styles.transformerLegend}>
-        {t('graphVisualization.transformers.label')}
-      </legend>
-      <div className={styles.transformerOptions}>
-        {GRAPH_TRANSFORMER_IDS.map((transformer) => (
-          <label className={styles.transformerOption} key={transformer}>
-            <input
-              checked={selectedTransformer === transformer}
-              name={groupName}
-              onChange={() => selectTransformer(transformer)}
-              type="radio"
-              value={transformer}
-            />
-            <span>{t(TRANSFORMER_LABEL_KEYS[transformer])}</span>
-          </label>
-        ))}
-      </div>
-    </fieldset>
+    <div
+      aria-label={t('graphVisualization.transformers.label')}
+      className={styles.transformerSelector}
+      role="group"
+    >
+      {GRAPH_TRANSFORMER_IDS.map((transformer) => (
+        <label className={styles.transformerOption} key={transformer}>
+          <input
+            checked={selectedTransformer === transformer}
+            name={groupName}
+            onChange={() => selectTransformer(transformer)}
+            type="radio"
+            value={transformer}
+          />
+          <span>{t(TRANSFORMER_LABEL_KEYS[transformer])}</span>
+        </label>
+      ))}
+    </div>
   )
 }

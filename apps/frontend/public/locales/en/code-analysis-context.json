@@ -1,7 +1,6 @@
 {
     "graphVisualization": {
-        "title": "Code analysis graph",
-        "description": "React Flow view backed by the shared graph model.",
+        "fit": "Fit",
         "loading": "Loading graph...",
         "transformers": {
             "label": "Transform",

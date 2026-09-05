@@ -183,6 +183,9 @@ Rules:
 
 - Components stay lean.
 - File name must match the exported component name.
+- Keep a standalone component as a direct `.tsx` file when it has no attached stylesheet or subcomponents.
+- Put a component with an attached stylesheet or subcomponents in a folder named after the component. Keep its root component, stylesheet, and private subcomponents inside that folder.
+- Expose a folder-based component through `index.ts`, exporting only the root component. Do not export its stylesheet or private subcomponents.
 - Use CSS modules for component styles, colocated with the component as `<ComponentName>.module.css` when practical.
 - Use the `classnames` package for conditional class names or combining multiple class names.
 - Components may call API functions, call domain functions, manage UI state, and compose subcomponents.
@@ -217,7 +220,7 @@ export function TeacherList({ universityId }: TeacherListProps) {
 }
 ```
 
-For complex components, use a private component folder:
+For components with attached styles or subcomponents, use a private component folder:
 
 ```text
 components/

@@ -4,6 +4,8 @@ import ReactFlow, {
   Background,
   Controls,
   MiniMap,
+  ReactFlowProvider,
+  useReactFlow,
   type FitViewOptions,
   type NodeTypes,
 } from 'reactflow'
@@ -12,6 +14,7 @@ import {
   adaptToReactFlow,
   type ReactFlowAdapterOptions,
 } from '@code-analysis-context/graph-visualization/adapters/ReactFlowAdapter'
+import { GraphToolbar } from './GraphToolbar'
 import { GraphNode } from './GraphNode'
 import { useTransformer } from './useTransformer'
 import styles from './GraphView.module.css'
@@ -30,13 +33,27 @@ const DEFAULT_NODE_TYPES = {
   default: GraphNode,
 } satisfies NodeTypes
 
-export function GraphViewContent({
+export function GraphViewContent(props: GraphViewContentProps) {
+  return (
+    <ReactFlowProvider>
+      <GraphCanvas {...props} />
+    </ReactFlowProvider>
+  )
+}
+
+function GraphCanvas({
   graph,
   className,
   direction = DEFAULT_LAYOUT_DIRECTION,
   fitViewOptions = DEFAULT_FIT_VIEW_OPTIONS,
   nodeTypes = DEFAULT_NODE_TYPES,
 }: GraphViewContentProps) {
+  const { fitView } = useReactFlow()
+  const entryNode = graph.nodes[0]
+  const rootLabel =
+    entryNode?.kind === 'functionDeclaration' || entryNode?.kind === 'methodDeclaration'
+      ? entryNode.name
+      : undefined
   const displayGraph = useTransformer(graph)
   const { nodes, edges } = useMemo(
     () => adaptToReactFlow(displayGraph, { direction }),
@@ -47,20 +64,26 @@ export function GraphViewContent({
   const graphViewClassName = classNames(styles.graphView, className)
 
   return (
-    <div className={graphViewClassName}>
-      {isEmpty ? <div className={styles.empty}>No graph data</div> : null}
-      <ReactFlow
-        nodes={nodes}
-        edges={edges}
-        nodeTypes={nodeTypes}
-        fitView
-        fitViewOptions={fitViewOptions}
-        proOptions={{ hideAttribution: true }}
-      >
-        <Background />
-        <Controls />
-        <MiniMap pannable zoomable />
-      </ReactFlow>
-    </div>
+    <>
+      <GraphToolbar
+        onFitView={() => void fitView(fitViewOptions)}
+        rootLabel={rootLabel}
+      />
+      <div className={graphViewClassName}>
+        {isEmpty ? <div className={styles.empty}>No graph data</div> : null}
+        <ReactFlow
+          nodes={nodes}
+          edges={edges}
+          nodeTypes={nodeTypes}
+          fitView
+          fitViewOptions={fitViewOptions}
+          proOptions={{ hideAttribution: true }}
+        >
+          <Background />
+          <Controls />
+          <MiniMap pannable zoomable />
+        </ReactFlow>
+      </div>
+    </>
   )
 }

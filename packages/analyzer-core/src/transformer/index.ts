@@ -29,6 +29,7 @@ export function toReadableGraph(graph: FlowGraph): FlowGraph {
 export function toProjectSourceGraph(graph: FlowGraph): FlowGraph {
   return pipe(
     graph,
+    toFlowGraph,
     removeNodes((node) => node.sourceOrigin !== 'project' && node.sourceOrigin !== 'unknown'),
   );
 }

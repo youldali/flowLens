@@ -3,8 +3,6 @@ import { useTranslation } from '@common/hooks/useTranslation'
 import { QuerySuspense } from '@common/QuerySuspense'
 import { useFetchGraph } from '@code-analysis-context/graph-visualization/apis/fetchGraph'
 import { GraphViewContent } from './GraphViewContent'
-import { GraphViewHeader } from './GraphViewHeader'
-import { GraphTransformerSelector } from './GraphTransformerSelector'
 import styles from './GraphView.module.css'
 
 export function FromCli() {
@@ -13,8 +11,6 @@ export function FromCli() {
 
   return (
     <main className={styles.container}>
-      <GraphViewHeader />
-      <GraphTransformerSelector />
       <QuerySuspense
         queryState={graphQuery}
         loading={

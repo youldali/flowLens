@@ -1,0 +1,44 @@
+.toolbar {
+  display: flex;
+  flex: 0 0 auto;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 12px;
+  min-width: 0;
+  min-height: 40px;
+  padding: 4px 8px;
+  box-sizing: border-box;
+  border-bottom: 1px solid var(--graph-toolbar-border, var(--border));
+  color: var(--graph-toolbar-foreground, var(--text-h));
+  background: var(--graph-toolbar-background, var(--bg));
+  font-size: 13px;
+  line-height: 1.2;
+}
+
+.rootLabel {
+  flex: 1 1 120px;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 600;
+  text-align: left;
+}
+
+.fitButton {
+  flex: 0 0 auto;
+  margin-left: auto;
+  min-height: 28px;
+  padding: 4px 10px;
+  border: 1px solid var(--graph-toolbar-border, var(--border));
+  border-radius: 4px;
+  color: var(--graph-button-foreground, var(--text-h));
+  background: var(--graph-button-background, var(--accent-bg));
+  font: inherit;
+  cursor: pointer;
+}
+
+.fitButton:focus-visible {
+  outline: 2px solid var(--graph-focus-border, var(--accent));
+  outline-offset: 2px;
+}
