@@ -5,11 +5,13 @@ import ReactFlow, {
   MiniMap,
   ReactFlowProvider,
   type FitViewOptions,
+  type NodeProps,
   type NodeTypes,
 } from 'reactflow'
 import { isEmpty, type FlowGraph } from '@flowlens/analyzer-core/flow-graph'
 import { useRuntimeHost } from '@common/runtimeHost'
 import type { ReactFlowAdapterOptions } from '@code-analysis-context/graph-visualization/adapters/ReactFlowAdapter'
+import type { GraphViewNodeData } from '@code-analysis-context/graph-visualization/adapters/ReactFlowAdapter/toReactFlow'
 import { GraphToolbar } from './GraphToolbar'
 import { GraphNode } from './GraphNode'
 import { NodeDetailsInspector } from './NodeDetailsInspector'
@@ -27,7 +29,9 @@ export interface GraphViewContentProps {
 const DEFAULT_LAYOUT_DIRECTION = 'LR' satisfies ReactFlowAdapterOptions['direction']
 const DEFAULT_FIT_VIEW_OPTIONS = { padding: 0.2 } satisfies FitViewOptions
 const NODE_TYPES = {
-  default: GraphNode,
+  default: ({ data, selected }: NodeProps<GraphViewNodeData>) => (
+    <GraphNode node={data} selected={selected} />
+  ),
 } satisfies NodeTypes
 
 export function GraphViewContent(props: GraphViewContentProps) {
