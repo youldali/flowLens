@@ -7,7 +7,7 @@ import type { Node } from '@flowlens/analyzer-core/node'
 export interface GraphViewNodeData extends Record<string, unknown> {
   label: string
   kind: Node['kind']
-  filePath: string
+  fileName: string
   sourceOrigin: Node['sourceOrigin']
 }
 
@@ -48,7 +48,7 @@ function toReactFlowNode(node: Node): FlowNode<GraphViewNodeData> {
     data: {
       label: node.name,
       kind: node.kind,
-      filePath: node.filePath,
+      fileName: node.fileName,
       sourceOrigin: node.sourceOrigin,
     },
     position: { x: 0, y: 0 },

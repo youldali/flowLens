@@ -10,6 +10,54 @@
                 "projectSource": "Project source"
             }
         },
+        "nodes": {
+            "categories": {
+                "functionDeclaration": "FUNCTION",
+                "methodDeclaration": "METHOD",
+                "callableTypeMemberDeclaration": "TYPE MEMBER",
+                "callExpression": "CALL",
+                "unresolvedCallDeclaration": "UNRESOLVED",
+                "file": "FILE",
+                "ifStatement": "CONDITION",
+                "external": "EXTERNAL",
+                "nativeJsApi": "JS BUILT-IN",
+                "nativeNodeApi": "NODE BUILT-IN"
+            },
+            "classifications": {
+                "project": "Project code",
+                "external": "Dependency",
+                "nativeJsApi": "JavaScript built-in",
+                "nativeNodeApi": "Node.js built-in",
+                "unknown": "Unresolved callable"
+            },
+            "declarations": {
+                "functionDeclaration": "Function declaration",
+                "methodDeclaration": "Method declaration",
+                "callableTypeMemberDeclaration": "Callable type member declaration",
+                "callExpression": "Call expression",
+                "unresolvedCallDeclaration": "Unresolved call declaration",
+                "file": "Source file",
+                "ifStatement": "If statement"
+            },
+            "relationships": {
+                "imports": "imports",
+                "declares": "declares",
+                "calls": "calls",
+                "references": "references"
+            },
+            "details": {
+                "accessibleLabel": "Node details for {{name}}",
+                "close": "Close node details",
+                "location": "Location",
+                "declaration": "Declaration",
+                "source": "Source",
+                "connections": "Connections",
+                "calledBy": "Called by",
+                "calls": "Calls",
+                "openSource": "Open source",
+                "focusNode": "Focus on node"
+            }
+        },
         "errors": {
             "serverError": "The code analysis graph could not be loaded.",
             "notFound": "No code analysis graph was found for this project."

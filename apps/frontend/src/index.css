@@ -71,6 +71,14 @@ body.vscode-light,
 body.vscode-dark,
 body.vscode-high-contrast,
 body.vscode-high-contrast-light {
+  --text: var(--vscode-descriptionForeground);
+  --text-h: var(--vscode-editor-foreground);
+  --bg: var(--vscode-editor-background);
+  --border: var(--vscode-panel-border, var(--vscode-contrastBorder));
+  --code-bg: var(--vscode-textCodeBlock-background);
+  --accent: var(--vscode-focusBorder);
+  --accent-bg: var(--vscode-toolbar-hoverBackground);
+  --accent-border: var(--vscode-focusBorder);
   --graph-toolbar-background: var(--vscode-editor-background);
   --graph-toolbar-foreground: var(--vscode-editor-foreground);
   --graph-toolbar-border: var(--vscode-panel-border);

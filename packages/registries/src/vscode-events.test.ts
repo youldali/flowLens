@@ -5,6 +5,7 @@ import { assertErr, assertOk } from '@flowlens/common/testing';
 import {
   createVsCodeEvent,
   isFlowGraphEvent,
+  isOpenSourceEvent,
   isViewReadyEvent,
   parseVsCodeEvent,
 } from './vscode-events.js';
@@ -61,5 +62,20 @@ describe('isViewReadyEvent', () => {
   it('identifies view ready events', () => {
     assert.equal(isViewReadyEvent(createVsCodeEvent('view.ready', {})), true);
     assert.equal(isViewReadyEvent(flowGraphEvent), false);
+  });
+});
+
+describe('isOpenSourceEvent', () => {
+  it('identifies valid source navigation events', () => {
+    const event = createVsCodeEvent('open.source', {
+      filePath: '/project/src/index.ts',
+      offset: 42,
+    });
+
+    assert.equal(isOpenSourceEvent(event), true);
+    assert.equal(isOpenSourceEvent({
+      type: 'open.source',
+      payload: { filePath: '', offset: -1 },
+    }), false);
   });
 });

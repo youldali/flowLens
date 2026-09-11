@@ -187,7 +187,10 @@ Rules:
 - Put a component with an attached stylesheet or subcomponents in a folder named after the component. Keep its root component, stylesheet, and private subcomponents inside that folder.
 - Expose a folder-based component through `index.ts`, exporting only the root component. Do not export its stylesheet or private subcomponents.
 - Use CSS modules for component styles, colocated with the component as `<ComponentName>.module.css` when practical.
+- Make CSS module ownership follow component ownership. A component imports its own module for its internal styles; do not import an ancestor or sibling component's CSS module to style it.
+- Keep composition styles with the component that controls the composition. Parent layout, child placement, and parent-scoped third-party overrides belong to the parent's CSS module, and may be passed to a child through `className` when needed.
 - Use the `classnames` package for conditional class names or combining multiple class names.
+- For one-sided conditional rendering, prefer `condition && <Component />` over `condition ? <Component /> : null`. Ensure the condition is boolean so values such as `0` are not rendered accidentally; keep ternaries when both branches render meaningful output.
 - Components may call API functions, call domain functions, manage UI state, and compose subcomponents.
 - Components must not implement domain rules, duplicate domain types, or normalize backend data.
 - Test components with React Testing Library by behavior, not implementation details.
@@ -232,6 +235,8 @@ components/
 ```
 
 Only `index.ts` is the public API. Subcomponents are private to the folder and must not be imported outside the module.
+
+For example, `GraphNode` imports `GraphNode.module.css` for its node container, variants, label, category, and file name. `GraphViewContent.module.css` retains the graph workspace layout, React Flow canvas overrides, and inspector placement because `GraphViewContent` owns that composition.
 
 ## Pages Layer
 
@@ -310,6 +315,8 @@ When reviewing frontend code, flag:
 - Feature-based or page-based modules where a domain module is needed.
 - Component files whose names do not match their component exports.
 - Plain CSS imports for component-scoped styles where CSS modules should be used.
+- Components importing an ancestor or sibling CSS module for their internal styles.
+- CSS rules whose ownership does not match the component architecture, such as child internals in a parent module or parent composition rules in a child module.
 - Manual string interpolation, array joins, or ternaries for conditional or multiple class names instead of `classnames`.
 - Public imports of private subcomponents.
 - Cross-context imports without explicit domain contracts.

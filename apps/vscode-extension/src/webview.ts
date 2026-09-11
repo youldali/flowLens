@@ -3,7 +3,11 @@ import * as path from "node:path";
 import * as vscode from "vscode";
 
 import type { FlowGraph } from "@flowlens/analyzer-core/flow-graph";
-import { createVsCodeEvent, isViewReadyEvent } from "@flowlens/registries/vscode-events";
+import {
+  createVsCodeEvent,
+  isOpenSourceEvent,
+  isViewReadyEvent,
+} from "@flowlens/registries/vscode-events";
 
 export class FlowLensGraphWebview {
   private panel: vscode.WebviewPanel | undefined;
@@ -50,12 +54,15 @@ export class FlowLensGraphWebview {
     });
 
     panel.webview.onDidReceiveMessage((message: unknown) => {
-      if (!isViewReadyEvent(message)) {
+      if (isOpenSourceEvent(message)) {
+        void this.openSource(message.payload.filePath, message.payload.offset);
         return;
       }
 
-      this.isReady = true;
-      void this.postPendingGraph();
+      if (isViewReadyEvent(message)) {
+        this.isReady = true;
+        void this.postPendingGraph();
+      }
     });
 
     try {
@@ -72,6 +79,24 @@ export class FlowLensGraphWebview {
     }
 
     await this.panel.webview.postMessage(createVsCodeEvent("flowgraph", { graph: this.pendingGraph }));
+  }
+
+  private async openSource(filePath: string, offset: number): Promise<void> {
+    try {
+      const document = await vscode.workspace.openTextDocument(vscode.Uri.file(filePath));
+      const position = document.positionAt(offset);
+      const editor = await vscode.window.showTextDocument(document, {
+        preview: true,
+        selection: new vscode.Range(position, position),
+      });
+
+      editor.revealRange(
+        new vscode.Range(position, position),
+        vscode.TextEditorRevealType.InCenterIfOutsideViewport,
+      );
+    } catch (error) {
+      vscode.window.showErrorMessage(`FlowLens: Could not open source (${getErrorMessage(error)}).`);
+    }
   }
 
   private async getWebviewHtml(webview: vscode.Webview): Promise<string> {
@@ -119,4 +144,8 @@ function getNonce(): string {
   const characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
 
   return Array.from({ length: 32 }, () => characters.charAt(Math.floor(Math.random() * characters.length))).join("");
+}
+
+function getErrorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
 }

@@ -15,6 +15,7 @@ describe('toReactFlow', () => {
           kind: 'file',
           name: 'index.ts',
           filePath: 'src/index.ts',
+          fileName: 'index.ts',
           sourceOrigin: 'project',
         },
         {
@@ -22,6 +23,7 @@ describe('toReactFlow', () => {
           kind: 'functionDeclaration',
           name: 'main',
           filePath: 'src/index.ts',
+          fileName: 'index.ts',
           sourceOrigin: 'project',
         },
       ],
@@ -42,7 +44,7 @@ describe('toReactFlow', () => {
           data: {
             label: 'index.ts',
             kind: 'file',
-            filePath: 'src/index.ts',
+            fileName: 'index.ts',
             sourceOrigin: 'project',
           },
           position: { x: 0, y: 0 },
@@ -52,7 +54,7 @@ describe('toReactFlow', () => {
           data: {
             label: 'main',
             kind: 'functionDeclaration',
-            filePath: 'src/index.ts',
+            fileName: 'index.ts',
             sourceOrigin: 'project',
           },
           position: { x: 0, y: 0 },
@@ -120,5 +122,21 @@ describe('toReactFlow', () => {
         },
       },
     ])
+  })
+
+  it('preserves filenames for non-project nodes', () => {
+    const graph: FlowGraph = {
+      nodes: [{
+        id: 'external-map',
+        kind: 'methodDeclaration',
+        name: 'map',
+        filePath: '/project/node_modules/library/index.d.ts',
+        fileName: 'index.d.ts',
+        sourceOrigin: 'external',
+      }],
+      edges: [],
+    }
+
+    assert.equal(toReactFlow(graph).nodes[0]?.data.fileName, 'index.d.ts')
   })
 })

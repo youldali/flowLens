@@ -14,7 +14,7 @@ import {
   createCallExpressionNode,
   createFileNode,
   createFunctionDeclarationNode,
-  createTypeDeclarationNode,
+  createCallableTypeMemberDeclarationNode,
   createUnresolvedCallDeclarationNode,
 } from './fixtures/node.js';
 import {
@@ -34,10 +34,16 @@ describe("isFunctionDeclarationNode", () => {
   });
 });
 
-describe("isTypeDeclarationNode", () => {
-  it("identifies type declaration nodes", () => {
-    assert.equal(NodeModule.isTypeDeclarationNode(createTypeDeclarationNode()), true);
-    assert.equal(NodeModule.isTypeDeclarationNode(createFunctionDeclarationNode()), false);
+describe("isCallableTypeMemberDeclarationNode", () => {
+  it("identifies callable type member declaration nodes", () => {
+    assert.equal(
+      NodeModule.isCallableTypeMemberDeclarationNode(createCallableTypeMemberDeclarationNode()),
+      true,
+    );
+    assert.equal(
+      NodeModule.isCallableTypeMemberDeclarationNode(createFunctionDeclarationNode()),
+      false,
+    );
   });
 });
 
@@ -90,6 +96,7 @@ describe("NodeAdapter", () => {
       id: normalizePath(sourceFileFixture.fileName),
       name: "fixture.ts",
       filePath: normalizePath(sourceFileFixture.fileName),
+      fileName: "fixture.ts",
       kind: "file",
       sourceOrigin: "project",
     });
@@ -110,6 +117,7 @@ describe("NodeAdapter", () => {
       id: TsNodeModule.deriveIdFromTsNode(functionDeclarationFixture),
       name: "fixtureFunction",
       filePath: normalizePath(sourceFileFixture.fileName),
+      fileName: "fixture.ts",
       kind: "functionDeclaration",
       sourceOrigin: "project",
       jsdoc: "Fixture docs",
@@ -123,12 +131,13 @@ describe("NodeAdapter", () => {
       id: TsNodeModule.deriveIdFromTsNode(arrowFunctionFixture),
       name: "arrowFixture",
       filePath: normalizePath(sourceFileFixture.fileName),
+      fileName: "fixture.ts",
       kind: "functionDeclaration",
       sourceOrigin: "project",
     });
   });
 
-  it("builds type declaration nodes with jsdoc data", () => {
+  it("builds callable type member declaration nodes with jsdoc data", () => {
     const symbol = {
       getDocumentationComment: () => [{ text: "Interface docs", kind: "text" }],
     } as unknown as ts.Symbol;
@@ -143,11 +152,12 @@ describe("NodeAdapter", () => {
       assert.fail("Expected a callable type declaration.");
     }
 
-    assert.deepEqual(adapter.buildTypeDeclarationNode(propertySignatureFixture), {
+    assert.deepEqual(adapter.buildCallableTypeMemberDeclarationNode(propertySignatureFixture), {
       id: TsNodeModule.deriveIdFromTsNode(propertySignatureFixture),
       name: "property",
       filePath: normalizePath(sourceFileFixture.fileName),
-      kind: "typeDeclaration",
+      fileName: "fixture.ts",
+      kind: "callableTypeMemberDeclaration",
       sourceOrigin: "project",
       jsdoc: "Interface docs",
     });
@@ -168,6 +178,7 @@ describe("NodeAdapter", () => {
       id: TsNodeModule.deriveIdFromTsNode(callExpressionFixture),
       name: "dependency",
       filePath: normalizePath(sourceFileFixture.fileName),
+      fileName: "fixture.ts",
       kind: "callExpression",
       sourceOrigin: "project",
       start: callExpressionFixture.pos,

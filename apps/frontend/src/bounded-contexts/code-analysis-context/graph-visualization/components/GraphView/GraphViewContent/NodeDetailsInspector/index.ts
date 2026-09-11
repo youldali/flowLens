@@ -1,0 +1,1 @@
+export { NodeDetailsInspector } from './NodeDetailsInspector'

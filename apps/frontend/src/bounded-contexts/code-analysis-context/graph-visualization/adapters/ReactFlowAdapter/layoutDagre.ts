@@ -11,8 +11,8 @@ export interface DagreLayoutOptions {
   nodeSeparation?: number
 }
 
-const DEFAULT_NODE_WIDTH = 220
-const DEFAULT_NODE_HEIGHT = 72
+const DEFAULT_NODE_WIDTH = 224
+const DEFAULT_NODE_HEIGHT = 88
 const DEFAULT_RANK_SEPARATION = 120
 const DEFAULT_NODE_SEPARATION = 80
 

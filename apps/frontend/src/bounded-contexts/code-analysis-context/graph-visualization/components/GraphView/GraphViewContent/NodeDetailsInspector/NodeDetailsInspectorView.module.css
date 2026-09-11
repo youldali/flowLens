@@ -1,0 +1,125 @@
+.inspector {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  padding: 20px;
+  box-sizing: border-box;
+  overflow-y: auto;
+  color: var(--graph-toolbar-foreground, var(--text-h));
+  background: var(--graph-toolbar-background, var(--bg));
+}
+
+.header {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding-bottom: 18px;
+  border-bottom: 1px solid var(--graph-toolbar-border, var(--border));
+}
+
+.identity {
+  display: grid;
+  min-width: 0;
+  gap: 4px;
+}
+
+.title {
+  margin: 0;
+  overflow: hidden;
+  font-size: 18px;
+  font-weight: 650;
+  line-height: 1.3;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.category {
+  color: var(--graph-button-background, var(--accent));
+  font-size: 11px;
+  font-weight: 750;
+  letter-spacing: 0.08em;
+}
+
+.classification,
+.secondary {
+  color: var(--text);
+  font-size: 12px;
+}
+
+.closeButton {
+  flex: 0 0 auto;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  color: inherit;
+  background: transparent;
+  font-size: 24px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.closeButton:hover {
+  background: var(--accent-bg);
+}
+
+.closeButton:focus-visible,
+.actions button:focus-visible {
+  outline: 2px solid var(--graph-focus-border, var(--accent));
+  outline-offset: 2px;
+}
+
+.section {
+  display: grid;
+  gap: 7px;
+  padding: 18px 0;
+  border-bottom: 1px solid var(--graph-toolbar-border, var(--border));
+  overflow-wrap: anywhere;
+  font-size: 13px;
+}
+
+.section h3 {
+  margin: 0;
+  color: var(--text);
+  font-size: 11px;
+  font-weight: 750;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.section summary {
+  color: var(--text);
+  font-size: 11px;
+  font-weight: 750;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.source {
+  display: block;
+  margin-top: 8px;
+  padding: 10px;
+  overflow-x: auto;
+  white-space: pre-wrap;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: auto;
+  padding-top: 18px;
+}
+
+.actions button {
+  padding: 7px 10px;
+  border: 1px solid var(--graph-toolbar-border, var(--border));
+  border-radius: 4px;
+  color: var(--graph-button-foreground, var(--text-h));
+  background: var(--graph-button-background, var(--accent-bg));
+  cursor: pointer;
+}

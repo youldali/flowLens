@@ -11,6 +11,7 @@ const flowGraphEventFixture: FlowGraphEvent = {
           kind: 'functionDeclaration',
           name: 'run',
           filePath: 'fixture.ts',
+          fileName: 'fixture.ts',
           sourceOrigin: 'project',
         },
       ],

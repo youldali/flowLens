@@ -15,6 +15,7 @@ describe('adaptToReactFlow', () => {
           kind: 'file',
           name: 'index.ts',
           filePath: 'src/index.ts',
+          fileName: 'index.ts',
           sourceOrigin: 'project',
         },
         {
@@ -22,6 +23,7 @@ describe('adaptToReactFlow', () => {
           kind: 'functionDeclaration',
           name: 'main',
           filePath: 'src/index.ts',
+          fileName: 'index.ts',
           sourceOrigin: 'project',
         },
       ],
@@ -35,7 +37,10 @@ describe('adaptToReactFlow', () => {
       ],
     }
 
-    const { nodes, edges } = adaptToReactFlow(graph, { direction: 'TB' })
+    const { nodes, edges } = adaptToReactFlow(graph, {
+      direction: 'TB',
+      selectedNodeId: 'src/index.ts:1:12',
+    })
     const [source, target] = nodes
 
     assert.equal(edges.length, 1)
@@ -45,6 +50,8 @@ describe('adaptToReactFlow', () => {
     assert.equal(target?.targetPosition, Position.Top)
     assert.equal(source?.data.label, 'index.ts')
     assert.equal(target?.data.label, 'main')
+    assert.equal(source?.selected, false)
+    assert.equal(target?.selected, true)
     assert.ok(source && target && source.position.y < target.position.y)
   })
 })

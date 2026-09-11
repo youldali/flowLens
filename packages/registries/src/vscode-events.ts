@@ -14,6 +14,13 @@ export const eventRegistry = {
     type: 'view.ready',
     payload: z.object({}),
   },
+  'open.source': {
+    type: 'open.source',
+    payload: z.object({
+      filePath: z.string().min(1),
+      offset: z.number().int().nonnegative(),
+    }),
+  },
 } satisfies Record<string, EventDefinition<string, z.ZodType>>;
 
 export type VsCodeEventRegistry = {
@@ -22,12 +29,14 @@ export type VsCodeEventRegistry = {
 
 export type FlowGraphEvent = VsCodeEventRegistry['flowgraph'];
 export type ViewReadyEvent = VsCodeEventRegistry['view.ready'];
+export type OpenSourceEvent = VsCodeEventRegistry['open.source'];
 export type ParseVsCodeEventError =
   | { kind: 'event-type-unknown'; eventType: string }
   | { kind: 'parsing-vscode-event-failed'; eventType: keyof VsCodeEventRegistry };
 
 export const flowGraphEventSchema = createEventSchema(eventRegistry.flowgraph);
 export const viewReadyEventSchema = createEventSchema(eventRegistry['view.ready']);
+export const openSourceEventSchema = createEventSchema(eventRegistry['open.source']);
 
 type VsCodeEventRegistryGuards = {
   [Type in keyof VsCodeEventRegistry]: (event: unknown) => event is VsCodeEventRegistry[Type];
@@ -36,6 +45,7 @@ type VsCodeEventRegistryGuards = {
 export const vscodeEventRegistryGuards = {
   flowgraph: isFlowGraphEvent,
   'view.ready': isViewReadyEvent,
+  'open.source': isOpenSourceEvent,
 } satisfies VsCodeEventRegistryGuards;
 
 export function createVsCodeEvent<Type extends keyof VsCodeEventRegistry>(
@@ -77,6 +87,10 @@ export function isFlowGraphEvent(event: unknown): event is FlowGraphEvent {
 
 export function isViewReadyEvent(event: unknown): event is ViewReadyEvent {
   return viewReadyEventSchema.safeParse(event).success;
+}
+
+export function isOpenSourceEvent(event: unknown): event is OpenSourceEvent {
+  return openSourceEventSchema.safeParse(event).success;
 }
 
 function isVsCodeEventType(type: string): type is keyof VsCodeEventRegistry {

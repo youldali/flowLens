@@ -46,10 +46,31 @@ describe("toProjectSourceGraph", () => {
     };
 
     const result = toProjectSourceGraph(graph);
+    const unresolvedDeclarationId = `unresolved-call-declaration:${unknown.id}`;
 
-    assert.deepEqual(result.nodes, [source, unknown]);
+    assert.deepEqual(result.nodes, [
+      source,
+      {
+        id: unresolvedDeclarationId,
+        kind: 'unresolved-call-declaration',
+        name: unknown.name,
+        filePath: unknown.filePath,
+        fileName: unknown.fileName,
+        sourceOrigin: unknown.sourceOrigin,
+        start: unknown.start,
+        end: unknown.end,
+      },
+    ]);
     assert.deepEqual(result.edges, [
-      createEdge(source.id, unknown.id, 'calls'),
+      createEdge(source.id, unresolvedDeclarationId, 'calls', {
+        kind: 'call-expression',
+        callSite: {
+          filePath: unknown.filePath,
+          start: unknown.start,
+          end: unknown.end,
+          text: unknown.text,
+        },
+      }),
     ]);
   });
 

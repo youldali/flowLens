@@ -13,6 +13,7 @@ describe('fetchGraph', () => {
           kind: 'file',
           name: 'index.ts',
           filePath: 'src/index.ts',
+          fileName: 'index.ts',
           sourceOrigin: 'project',
         },
       ],

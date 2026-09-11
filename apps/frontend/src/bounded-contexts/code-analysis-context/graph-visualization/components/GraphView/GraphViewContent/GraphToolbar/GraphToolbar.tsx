@@ -1,5 +1,5 @@
 import { useTranslation } from '@common/hooks/useTranslation'
-import { GraphTransformerSelector } from '../GraphTransformerSelector'
+import { GraphTransformerSelector } from './GraphTransformerSelector'
 import styles from './GraphToolbar.module.css'
 
 type GraphToolbarProps = {
@@ -12,11 +12,11 @@ export function GraphToolbar({ onFitView, rootLabel }: GraphToolbarProps) {
 
   return (
     <header className={styles.toolbar}>
-      {rootLabel ? (
+      {rootLabel && (
         <span className={styles.rootLabel} title={rootLabel}>
           {rootLabel}
         </span>
-      ) : null}
+      )}
       <GraphTransformerSelector />
       <button className={styles.fitButton} onClick={onFitView} type="button">
         {t('graphVisualization.fit')}

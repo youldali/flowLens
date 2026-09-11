@@ -1,0 +1,82 @@
+.workspace {
+  position: relative;
+  display: flex;
+  flex: 1;
+  width: 100%;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.graphView {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  background: var(--bg);
+  overflow: hidden;
+}
+
+.empty {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  color: var(--text);
+  background: color-mix(in srgb, var(--bg) 88%, transparent);
+  pointer-events: none;
+}
+
+.graphView :global(.react-flow__node-default) {
+  width: 224px;
+  height: 88px;
+  padding: 0;
+  border: 0;
+  color: inherit;
+  background: transparent;
+  box-shadow: none;
+  text-align: left;
+}
+
+.graphView :global(.react-flow__edge-path) {
+  stroke: var(--text);
+  stroke-width: 2;
+}
+
+.graphView :global(.react-flow__edge-text) {
+  fill: var(--text-h);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.graphView :global(.react-flow__edge-textbg) {
+  fill: var(--bg);
+}
+
+.graphView :global(.react-flow__handle) {
+  width: 8px;
+  height: 8px;
+  border: 2px solid var(--bg);
+  background: var(--accent);
+}
+
+.inspectorContainer {
+  position: absolute;
+  z-index: 8;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: min(360px, 88vw);
+  border-left: 1px solid var(--graph-toolbar-border, var(--border));
+  box-shadow: -8px 0 24px rgb(0 0 0 / 14%);
+}
+
+@media (min-width: 900px) {
+  .workspaceBrowser .inspectorContainer {
+    position: relative;
+    flex: 0 0 clamp(320px, 28vw, 400px);
+    width: auto;
+    box-shadow: none;
+  }
+}

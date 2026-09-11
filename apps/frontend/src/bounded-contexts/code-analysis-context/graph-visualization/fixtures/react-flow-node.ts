@@ -8,7 +8,7 @@ const nodeFixture: Node<GraphViewNodeData> = {
   data: {
     label: 'fixture-node',
     kind: 'file',
-    filePath: 'fixture.ts',
+    fileName: 'fixture.ts',
     sourceOrigin: 'project',
   },
   position: { x: 0, y: 0 },

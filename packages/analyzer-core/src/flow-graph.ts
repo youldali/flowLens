@@ -15,6 +15,10 @@ export interface FlowGraph {
   edges: EdgeModule.Edge[];
 }
 
+export function isEmpty(graph: FlowGraph): boolean {
+  return graph.nodes.length === 0;
+}
+
 export type SourceFileNotFoundError = { reason: 'source-file-not-found' };
 export type FromFilePositionError =
   | SourceFileNotFoundError
@@ -134,7 +138,7 @@ export class GraphAdapter {
     }
 
     if (TsNodeModule.isTypeCallableDeclaration(node)) {
-      this.visitTypeDeclaration(node, parentNode);
+      this.visitCallableTypeMemberDeclaration(node, parentNode);
     }
 
     if (ts.isSourceFile(node)) {
@@ -163,7 +167,7 @@ export class GraphAdapter {
 
     if (declarationTsNode) {
       const declarationGraphNode = TsNodeModule.isTypeCallableDeclaration(declarationTsNode)
-        ? this.nodeAdapter.buildTypeDeclarationNode(declarationTsNode)
+        ? this.nodeAdapter.buildCallableTypeMemberDeclarationNode(declarationTsNode)
         : this.nodeAdapter.buildFunctionDeclarationNode(declarationTsNode);
       this.addNode(declarationGraphNode, declarationTsNode);
       this.addEdge(node, declarationTsNode, 'references');
@@ -182,12 +186,12 @@ export class GraphAdapter {
     }
   }
 
-  private visitTypeDeclaration(
+  private visitCallableTypeMemberDeclaration(
     node: TsNodeModule.TypeCallableDeclaration,
     parentNode: ts.Node | undefined,
   ): void {
-    const typeDeclarationGraphNode = this.nodeAdapter.buildTypeDeclarationNode(node);
-    this.addNode(typeDeclarationGraphNode, node);
+    const declarationGraphNode = this.nodeAdapter.buildCallableTypeMemberDeclarationNode(node);
+    this.addNode(declarationGraphNode, node);
 
     if (parentNode) {
       this.addEdge(parentNode, node, 'declares');

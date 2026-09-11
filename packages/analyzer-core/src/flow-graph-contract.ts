@@ -9,6 +9,7 @@ const nodeBaseSchema = z.object({
   id: z.string(),
   name: z.string(),
   filePath: z.string(),
+  fileName: z.string(),
   sourceOrigin: z.enum(['project', 'external', 'native-js-api', 'native-node-api', 'unknown']),
 });
 
@@ -22,7 +23,7 @@ export const nodeSchema: z.ZodType<Node> = z.discriminatedUnion('kind', [
     jsdoc: z.string().optional(),
   }),
   nodeBaseSchema.extend({
-    kind: z.literal('typeDeclaration'),
+    kind: z.literal('callableTypeMemberDeclaration'),
     jsdoc: z.string().optional(),
   }),
   nodeBaseSchema.extend({

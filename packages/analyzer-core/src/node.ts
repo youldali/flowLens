@@ -8,7 +8,7 @@ import * as TsModule from './tsNode.js';
 export type GraphNodeKind =
   | 'functionDeclaration'
   | 'methodDeclaration'
-  | 'typeDeclaration'
+  | 'callableTypeMemberDeclaration'
   | 'callExpression'
   | 'unresolved-call-declaration'
   | 'file'
@@ -27,6 +27,7 @@ export interface Node {
   kind: GraphNodeKind;
   name: string;
   filePath: string;
+  fileName: string;
   sourceOrigin: SourceOrigin;
 }
 
@@ -39,8 +40,8 @@ export interface FunctionDeclarationNode extends Node {
   jsdoc?: string | undefined;
 }
 
-export interface TypeDeclarationNode extends Node {
-  kind: 'typeDeclaration';
+export interface CallableTypeMemberDeclarationNode extends Node {
+  kind: 'callableTypeMemberDeclaration';
   jsdoc?: string | undefined;
 }
 
@@ -62,8 +63,10 @@ export const isFunctionDeclarationNode = (node: Node): node is FunctionDeclarati
   return node.kind === 'functionDeclaration' || node.kind === 'methodDeclaration';
 }
 
-export const isTypeDeclarationNode = (node: Node): node is TypeDeclarationNode => {
-  return node.kind === 'typeDeclaration';
+export const isCallableTypeMemberDeclarationNode = (
+  node: Node,
+): node is CallableTypeMemberDeclarationNode => {
+  return node.kind === 'callableTypeMemberDeclaration';
 }
 
 export const isCallExpressionNode = (node: Node): node is CallExpressionNode => {
@@ -106,6 +109,7 @@ export class NodeAdapter {
       id: TsModule.deriveIdFromTsNode(node),
       name: node.expression.getText(sourceFile),
       filePath: normalizePath(sourceFile.fileName),
+      fileName: path.basename(sourceFile.fileName),
       kind: "callExpression",
       sourceOrigin: declarationSourceFile ? this.getSourceFileOrigin(declarationSourceFile) : 'unknown',
       start: node.pos,
@@ -132,15 +136,16 @@ export class NodeAdapter {
       id: TsModule.deriveIdFromTsNode(node),
       name: TsModule.getExecutableFunctionName(node, sourceFile),
       filePath: normalizePath(sourceFile.fileName),
+      fileName: path.basename(sourceFile.fileName),
       kind: TsModule.getExecutableFunctionKind(node),
       sourceOrigin: this.getSourceFileOrigin(sourceFile),
       ...(jsdoc ? { jsdoc } : {}),
     }
   }
 
-  buildTypeDeclarationNode(
+  buildCallableTypeMemberDeclarationNode(
     node: TsModule.TypeCallableDeclaration,
-  ): TypeDeclarationNode {
+  ): CallableTypeMemberDeclarationNode {
     const sourceFile = node.getSourceFile();
     const symbol = this.checker.getSymbolAtLocation(node.name);
     const jsdoc = symbol ? ts.displayPartsToString(symbol.getDocumentationComment(this.checker)) : undefined;
@@ -149,7 +154,8 @@ export class NodeAdapter {
       id: TsModule.deriveIdFromTsNode(node),
       name: node.name.getText(sourceFile),
       filePath: normalizePath(sourceFile.fileName),
-      kind: 'typeDeclaration',
+      fileName: path.basename(sourceFile.fileName),
+      kind: 'callableTypeMemberDeclaration',
       sourceOrigin: this.getSourceFileOrigin(sourceFile),
       ...(jsdoc ? { jsdoc } : {}),
     };
@@ -160,6 +166,7 @@ export class NodeAdapter {
       id: TsModule.createFileId(sourceFile),
       name: path.basename(sourceFile.fileName),
       filePath: normalizePath(sourceFile.fileName),
+      fileName: path.basename(sourceFile.fileName),
       kind: 'file',
       sourceOrigin: this.getSourceFileOrigin(sourceFile),
     }

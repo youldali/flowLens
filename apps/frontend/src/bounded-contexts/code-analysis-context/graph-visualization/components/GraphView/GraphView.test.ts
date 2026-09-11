@@ -14,6 +14,9 @@ const { graph } = vi.hoisted(() => ({
 vi.mock('@common/hooks/useTranslation', () => ({
   useTranslation: () => ({ t: (key: string) => key }),
 }))
+vi.mock('@common/hooks/useVsCodeApi', () => ({
+  useVsCodeApi: () => ({ postMessage: vi.fn() }),
+}))
 vi.mock('@code-analysis-context/graph-visualization/apis/fetchGraph', () => ({
   useFetchGraph: () => ({ status: 'success', data: graph }),
 }))

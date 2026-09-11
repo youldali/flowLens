@@ -41,6 +41,7 @@ function createUnresolvedCallDeclarationNode(
     id: createUnresolvedCallDeclarationNodeId(node),
     name: node.name.trim() || node.text.trim(),
     filePath: node.filePath,
+    fileName: node.fileName,
     sourceOrigin: node.sourceOrigin,
     start: node.start,
     end: node.end,

@@ -4,12 +4,12 @@ import * as path from 'node:path';
 import { describe, it } from 'node:test';
 import ts from 'typescript';
 
-import { GraphAdapter, isFlowGraph } from './flow-graph.js';
+import { GraphAdapter, isEmpty, isFlowGraph } from './flow-graph.js';
 import { create as createEdge } from './fixtures/edge.js';
 import {
   createCallExpressionNode,
   createFunctionDeclarationNode,
-  createTypeDeclarationNode,
+  createCallableTypeMemberDeclarationNode,
   createUnresolvedCallDeclarationNode,
 } from './fixtures/node.js';
 import { assertErr, assertOk } from '@flowlens/common/testing';
@@ -48,6 +48,7 @@ describe("isFlowGraph", () => {
           kind: "functionDeclaration",
           name: "fixtureFunction",
           filePath: "fixture.ts",
+          fileName: "fixture.ts",
           sourceOrigin: "project",
           jsdoc: "Fixture docs",
         },
@@ -58,9 +59,9 @@ describe("isFlowGraph", () => {
     assert.equal(isFlowGraph(graph), true);
   });
 
-  it("returns true for serialized type declaration nodes", () => {
+  it("returns true for serialized callable type member declaration nodes", () => {
     assert.equal(isFlowGraph({
-      nodes: [createTypeDeclarationNode({ jsdoc: "Type docs" })],
+      nodes: [createCallableTypeMemberDeclarationNode({ jsdoc: "Type docs" })],
       edges: [],
     }), true);
   });
@@ -70,6 +71,13 @@ describe("isFlowGraph", () => {
       nodes: [createUnresolvedCallDeclarationNode()],
       edges: [],
     }), true);
+  });
+
+  it("returns false for nodes without a file name", () => {
+    const node = createFunctionDeclarationNode();
+    const { fileName: _fileName, ...nodeWithoutFileName } = node;
+
+    assert.equal(isFlowGraph({ nodes: [nodeWithoutFileName], edges: [] }), false);
   });
 
   it("returns false for unresolved call declaration nodes without source positions", () => {
@@ -105,6 +113,7 @@ describe("isFlowGraph", () => {
           kind: "callExpression",
           name: "dependency",
           filePath: "fixture.ts",
+          fileName: "fixture.ts",
           sourceOrigin: "project",
         },
       ],
@@ -166,6 +175,13 @@ describe("isFlowGraph", () => {
     };
 
     assert.equal(isFlowGraph(graph), false);
+  });
+});
+
+describe("isEmpty", () => {
+  it("returns whether the graph has no nodes", () => {
+    assert.equal(isEmpty({ nodes: [], edges: [] }), true);
+    assert.equal(isEmpty({ nodes: [createCallExpressionNode()], edges: [] }), false);
   });
 });
 
@@ -302,14 +318,17 @@ describe("GraphAdapter.fromFilePosition", () => {
     assertOk(result);
 
     const graph = graphAdapter.extract();
-    const typeDeclarations = graph.nodes.filter(
-      (node) => node.kind === "typeDeclaration",
+    const callableTypeMemberDeclarations = graph.nodes.filter(
+      (node) => node.kind === "callableTypeMemberDeclaration",
     );
     const interfaceCalls = graph.nodes.filter(
       (node) => node.kind === "callExpression" && node.name.startsWith("flowContract."),
     );
 
-    assert.deepEqual(typeDeclarations.map((node) => node.name).sort(), ["method", "property"]);
+    assert.deepEqual(
+      callableTypeMemberDeclarations.map((node) => node.name).sort(),
+      ["method", "property"],
+    );
     assert.deepEqual(interfaceCalls.map((node) => node.name).sort(), [
       "flowContract.method",
       "flowContract.property",
@@ -318,12 +337,12 @@ describe("GraphAdapter.fromFilePosition", () => {
       interfaceCalls.every((call) => graph.edges.some(
         (edge) => edge.source === call.id
           && edge.type === "references"
-          && typeDeclarations.some((declaration) => declaration.id === edge.target),
+          && callableTypeMemberDeclarations.some((declaration) => declaration.id === edge.target),
       )),
       true,
     );
     assert.equal(
-      typeDeclarations.every((declaration) => graph.edges.some(
+      callableTypeMemberDeclarations.every((declaration) => graph.edges.some(
         (edge) => edge.target === declaration.id && edge.type === "declares",
       )),
       true,
