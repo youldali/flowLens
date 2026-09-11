@@ -1,8 +1,10 @@
 import { useMemo } from 'react'
 import type { FlowGraph } from '@flowlens/analyzer-core/flow-graph'
 import type { NodeId } from '@flowlens/analyzer-core/node'
-import { createGraphNodeDetailsView } from '@code-analysis-context/graph-visualization/domain/nodeDetails'
-import { shouldDisplayNodeLocation } from '../nodePresentation'
+import {
+  createGraphNodeDetailsView,
+  getSourceTarget,
+} from '@code-analysis-context/graph-visualization/domain/nodeDetails'
 
 interface UseDetailsViewUiOptions {
   graph: FlowGraph
@@ -21,11 +23,7 @@ export function useDetailsViewUi({
     () => createGraphNodeDetailsView(graph, selectedNodeId),
     [graph, selectedNodeId],
   )
-  const sourceTarget = detailsView
-    && shouldDisplayNodeLocation(detailsView.node.sourceOrigin)
-    && detailsView.node.sourceOffset !== undefined
-    ? { filePath: detailsView.node.filePath, offset: detailsView.node.sourceOffset }
-    : undefined
+  const sourceTarget = detailsView && getSourceTarget(detailsView)
   const openSource = onOpenSource && sourceTarget
     ? () => onOpenSource(sourceTarget.filePath, sourceTarget.offset)
     : undefined

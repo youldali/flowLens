@@ -8,9 +8,11 @@ import {
 } from '@flowlens/analyzer-core/fixtures/node'
 import {
   createGraphNodeDetailsView,
+  getSourceTarget,
   hasConnections,
   type GraphNodeDetailsView,
 } from './nodeDetails'
+import { create as createNodeDetailsView } from './fixtures/node-details'
 
 const processNode = createFunctionDeclarationNode({
   id: '/project/src/process.ts:10:90',
@@ -146,5 +148,30 @@ describe('hasConnections', () => {
       ...nodeDetails,
       outgoingConnections: [connection],
     }), true)
+  })
+})
+
+describe('getSourceTarget', () => {
+  const nodeDetails = createNodeDetailsView()
+
+  it('returns the source target for a displayable node with an offset', () => {
+    assert.deepEqual(getSourceTarget(nodeDetails), {
+      filePath: '/project/src/process.ts',
+      offset: 42,
+    })
+  })
+
+  it('returns undefined when the source location should not be displayed', () => {
+    assert.equal(getSourceTarget({
+      ...nodeDetails,
+      node: { ...nodeDetails.node, sourceOrigin: 'external' },
+    }), undefined)
+  })
+
+  it('returns undefined when the node has no source offset', () => {
+    const node = { ...nodeDetails.node }
+    delete node.sourceOffset
+
+    assert.equal(getSourceTarget({ ...nodeDetails, node }), undefined)
   })
 })

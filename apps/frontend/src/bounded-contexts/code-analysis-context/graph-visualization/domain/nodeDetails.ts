@@ -36,6 +36,17 @@ export function hasConnections(nodeDetails: GraphNodeDetailsView): boolean {
     || nodeDetails.outgoingConnections.length > 0
 }
 
+export function getSourceTarget(
+  nodeDetails: GraphNodeDetailsView,
+): { filePath: string, offset: number } | undefined {
+  const { node } = nodeDetails
+
+  return (node.sourceOrigin === 'project' || node.sourceOrigin === 'unknown')
+    && node.sourceOffset !== undefined
+    ? { filePath: node.filePath, offset: node.sourceOffset }
+    : undefined
+}
+
 export function createGraphNodeDetailsView(
   graph: FlowGraph,
   nodeId: NodeId,
