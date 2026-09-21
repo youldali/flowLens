@@ -9,7 +9,6 @@ type QuerySuspenseProps<TResult, TError> = {
   children: (data: TResult) => ReactElement | null;
 };
 
-// TODO: naming is shitty, help me :D
 export const QuerySuspense = <TResult, TError>({
   queryState,
   fallback,
