@@ -7,7 +7,11 @@ import {
   GRAPH_TRANSFORMER_IDS,
   type GraphTransformerId,
 } from '@code-analysis-context/graph-visualization/domain/transformer'
-import { useGraphTransformerStore } from '@code-analysis-context/graph-visualization/store'
+import {
+  selectors,
+  actions,
+} from '@code-analysis-context/graph-visualization/store'
+import { useAppDispatch, useAppSelector } from '@store/hooks'
 import styles from './GraphTransformerSelector.module.css'
 
 const TRANSFORMER_LABEL_KEYS = {
@@ -19,8 +23,8 @@ const TRANSFORMER_LABEL_KEYS = {
 export function GraphTransformerSelector() {
   const groupName = useId()
   const { t } = useTranslation('code-analysis-context')
-  const selectedTransformer = useGraphTransformerStore((state) => state.selectedTransformer)
-  const selectTransformer = useGraphTransformerStore((state) => state.selectTransformer)
+  const selectedTransformer = useAppSelector(selectors.selectSelectedTransformer)
+  const dispatch = useAppDispatch()
 
   return (
     <div
@@ -33,7 +37,7 @@ export function GraphTransformerSelector() {
           <input
             checked={selectedTransformer === transformer}
             name={groupName}
-            onChange={() => selectTransformer(transformer)}
+            onChange={() => dispatch(actions.selectTransformer(transformer))}
             type="radio"
             value={transformer}
           />

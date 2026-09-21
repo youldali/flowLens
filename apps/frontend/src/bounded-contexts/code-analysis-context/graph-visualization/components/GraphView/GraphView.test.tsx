@@ -1,10 +1,10 @@
 import assert from 'node:assert/strict'
-import { createElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, it, vi } from 'vitest'
 import type { FlowGraph } from '@flowlens/analyzer-core/flow-graph'
 import { createFunctionDeclarationNode } from '@flowlens/analyzer-core/fixtures/node'
 import { RuntimeHostProvider } from '@common/RuntimeHostProvider'
+import { AppShell } from '@common/test-utils/appShell'
 import { GraphView } from './GraphView'
 
 const { graph } = vi.hoisted(() => ({
@@ -27,10 +27,13 @@ describe('GraphView', () => {
     it(`renders the shared toolbar and canvas in ${runtimeHost}`, () => {
       const name = 'aVeryLongFocusedFunctionName'.repeat(20)
       graph.nodes = [createFunctionDeclarationNode({ name })]
-      const markup = renderToStaticMarkup(createElement(RuntimeHostProvider, {
-        runtimeHost,
-        children: createElement(GraphView),
-      }))
+      const markup = renderToStaticMarkup(
+        <AppShell>
+          <RuntimeHostProvider runtimeHost={runtimeHost}>
+            <GraphView />
+          </RuntimeHostProvider>
+        </AppShell>,
+      )
 
       assert.equal((markup.match(/type="radio"/g) ?? []).length, 3)
       for (const value of ['none', 'flow', 'projectSource']) {

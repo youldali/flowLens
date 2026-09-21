@@ -329,6 +329,8 @@ When reviewing frontend code, flag:
 - `components/`: React Testing Library, test behavior and visible output.
 - `pages/`: only composition/routing smoke coverage when useful.
 
+When testing components or hooks that interact with Redux, import `AppShell` from `@common/test-utils/appShell` and wrap the tested components in `<AppShell>`. It initializes an isolated Redux store for each mount and preserves that store across re-renders. Use this shared wrapper instead of manually creating a store and Redux provider in component tests.
+
 ## Core Principle
 
 The domain is independent of UI, API, and framework concerns.

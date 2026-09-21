@@ -1,3 +1,6 @@
 export {
-  useGraphTransformerStore,
-} from './graphTransformerStore'
+  type GraphTransformerState,
+  graphTransformerReducer,
+  actions,
+  selectors,
+} from './graphTransformerSlice'
