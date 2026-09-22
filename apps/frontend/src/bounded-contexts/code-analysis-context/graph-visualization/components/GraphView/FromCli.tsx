@@ -2,6 +2,7 @@ import classNames from 'classnames'
 import { useTranslation } from '@common/hooks/useTranslation'
 import { QuerySuspense } from '@common/QuerySuspense'
 import { useFetchGraph } from '@code-analysis-context/graph-visualization/apis/fetchGraph'
+import { GraphProvider } from '@code-analysis-context/graph-visualization/context'
 import { GraphViewContent } from './GraphViewContent'
 import styles from './GraphView.module.css'
 
@@ -24,7 +25,11 @@ export function FromCli() {
           </div>
         )}
       >
-        {(graph) => <GraphViewContent graph={graph} />}
+        {(graph) => (
+          <GraphProvider graph={graph}>
+            <GraphViewContent graph={graph} />
+          </GraphProvider>
+        )}
       </QuerySuspense>
     </main>
   )
