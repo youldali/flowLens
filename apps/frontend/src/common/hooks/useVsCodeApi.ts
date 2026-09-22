@@ -1,4 +1,4 @@
-import { useConfig } from './useConfig'
+import { useConfig } from '@common/config'
 
 export function useVsCodeApi() {
   const config = useConfig()

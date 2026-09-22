@@ -1,7 +1,6 @@
 import { useQuery, type UseQueryResult } from 'react-query'
 import type { FlowGraph } from '@flowlens/analyzer-core/flow-graph'
-import { getConfig } from '@common/config'
-import { useConfig } from '@common/hooks/useConfig'
+import { getConfig, useConfig } from '@common/config'
 import { fromFetchError, type QueryError } from '@common/utils/queryError'
 
 export interface FetchGraphOptions {
@@ -38,5 +37,8 @@ export async function fetchGraph(
 export function useFetchGraph(): UseQueryResult<FlowGraph, QueryError<unknown>> {
   const { apiBaseUrl } = useConfig()
 
-  return useQuery<FlowGraph, QueryError<unknown>>('graph', () => fetchGraph(fetch, { baseUrl: apiBaseUrl }))
+  return useQuery<FlowGraph, QueryError<unknown>>(
+    ['graph', { apiBaseUrl }],
+    () => fetchGraph(fetch, { baseUrl: apiBaseUrl }),
+  )
 }

@@ -3,7 +3,6 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, it, vi } from 'vitest'
 import type { FlowGraph } from '@flowlens/analyzer-core/flow-graph'
 import { createFunctionDeclarationNode } from '@flowlens/analyzer-core/fixtures/node'
-import { RuntimeHostProvider } from '@common/RuntimeHostProvider'
 import { AppShell } from '@common/test-utils/appShell'
 import { GraphView } from './GraphView'
 
@@ -28,10 +27,8 @@ describe('GraphView', () => {
       const name = 'aVeryLongFocusedFunctionName'.repeat(20)
       graph.nodes = [createFunctionDeclarationNode({ name })]
       const markup = renderToStaticMarkup(
-        <AppShell>
-          <RuntimeHostProvider runtimeHost={runtimeHost}>
-            <GraphView />
-          </RuntimeHostProvider>
+        <AppShell config={{ runtimeHost }}>
+          <GraphView />
         </AppShell>,
       )
 

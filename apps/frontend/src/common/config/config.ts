@@ -2,7 +2,7 @@ import {
   detectRuntime,
   isVsCodeRuntimeWindow,
   type VsCodeRuntimeWindow,
-} from './runtimeHost.ts'
+} from '../runtimeHost.ts'
 
 export type VsCodeApi = VsCodeRuntimeWindow['__vscodeApi']
 

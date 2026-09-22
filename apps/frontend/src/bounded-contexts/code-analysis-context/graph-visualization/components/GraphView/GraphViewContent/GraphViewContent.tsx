@@ -9,7 +9,7 @@ import ReactFlow, {
   type NodeTypes,
 } from 'reactflow'
 import { isEmpty, type FlowGraph } from '@flowlens/analyzer-core/flow-graph'
-import { useRuntimeHost } from '@common/runtimeHost'
+import { useConfig } from '@common/config'
 import type { ReactFlowAdapterOptions } from '@code-analysis-context/graph-visualization/adapters/ReactFlowAdapter'
 import type { GraphViewNodeData } from '@code-analysis-context/graph-visualization/adapters/ReactFlowAdapter/toReactFlow'
 import { GraphToolbar } from './GraphToolbar'
@@ -49,7 +49,7 @@ function GraphCanvas({
   fitViewOptions = DEFAULT_FIT_VIEW_OPTIONS,
   onOpenSource,
 }: GraphViewContentProps) {
-  const runtimeHost = useRuntimeHost()
+  const { runtimeHost } = useConfig()
   const entryNode = graph.nodes[0]
   const rootLabel =
     entryNode?.kind === 'functionDeclaration' || entryNode?.kind === 'methodDeclaration'

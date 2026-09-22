@@ -1,5 +1,3 @@
-import { createContext, useContext } from 'react'
-
 export type RuntimeHost = 'cli' | 'vscode' | 'web-app'
 
 declare global {
@@ -16,12 +14,6 @@ export type VsCodeRuntimeWindow = Window & {
     postMessage(message: unknown): void
   }
 }
-
-export type RuntimeHostContextValue = {
-  runtimeHost: RuntimeHost
-}
-
-export const RuntimeHostContext = createContext<RuntimeHostContextValue | undefined>(undefined)
 
 export function detectRuntime(): RuntimeHost {
   if (typeof window === 'undefined') {
@@ -57,14 +49,4 @@ function hasVsCodeRuntimeShape(value: Window): value is VsCodeRuntimeWindow {
     && 'postMessage' in value.__vscodeApi
     && typeof value.__vscodeApi.postMessage === 'function'
   )
-}
-
-export function useRuntimeHost(): RuntimeHost {
-  const context = useContext(RuntimeHostContext)
-
-  if (!context) {
-    throw new Error('useRuntimeHost must be used inside RuntimeHostProvider.')
-  }
-
-  return context.runtimeHost
 }
