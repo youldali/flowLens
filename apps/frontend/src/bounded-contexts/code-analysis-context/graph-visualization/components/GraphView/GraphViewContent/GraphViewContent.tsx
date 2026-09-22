@@ -12,6 +12,7 @@ import { isEmpty, type FlowGraph } from '@flowlens/analyzer-core/flow-graph'
 import { useConfig } from '@common/config'
 import type { ReactFlowAdapterOptions } from '@code-analysis-context/graph-visualization/adapters/ReactFlowAdapter'
 import type { GraphViewNodeData } from '@code-analysis-context/graph-visualization/adapters/ReactFlowAdapter/toReactFlow'
+import { useGraphContext } from '@code-analysis-context/graph-visualization/context'
 import { GraphToolbar } from './GraphToolbar'
 import { GraphNode } from './GraphNode'
 import { NodeDetailsInspector } from './NodeDetailsInspector'
@@ -50,6 +51,7 @@ function GraphCanvas({
   onOpenSource,
 }: GraphViewContentProps) {
   const { runtimeHost } = useConfig()
+  const { transformedGraph } = useGraphContext()
   const entryNode = graph.nodes[0]
   const rootLabel =
     entryNode?.kind === 'functionDeclaration' || entryNode?.kind === 'methodDeclaration'
@@ -66,7 +68,7 @@ function GraphCanvas({
     selectNode,
     clearSelection,
   } = useGraphUi({
-    graph,
+    graph: transformedGraph,
     direction,
   })
 

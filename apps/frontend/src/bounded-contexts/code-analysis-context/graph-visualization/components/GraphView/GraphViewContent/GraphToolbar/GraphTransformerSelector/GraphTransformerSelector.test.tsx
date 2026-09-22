@@ -11,7 +11,10 @@ import {
   type GraphTransformerId,
   transformGraph,
 } from '@code-analysis-context/graph-visualization/domain/transformer'
-import { useTransformer } from '../../useTransformer'
+import {
+  GraphProvider,
+  useGraphContext,
+} from '@code-analysis-context/graph-visualization/context'
 import { GraphTransformerSelector } from './GraphTransformerSelector'
 
 vi.mock('@common/hooks/useTranslation', () => ({
@@ -33,7 +36,7 @@ const graph: FlowGraph = {
 }
 
 function TransformedGraph() {
-  const transformedGraph = useTransformer(graph)
+  const { transformedGraph } = useGraphContext()
 
   return <output aria-label="Transformed graph">{JSON.stringify(transformedGraph)}</output>
 }
@@ -51,8 +54,10 @@ describe('GraphTransformerSelector', () => {
     }
     const consumers = (
       <AppShell>
-        <GraphTransformerSelector />
-        <TransformedGraph />
+        <GraphProvider graph={graph}>
+          <GraphTransformerSelector />
+          <TransformedGraph />
+        </GraphProvider>
       </AppShell>
     )
     const view = render(consumers)

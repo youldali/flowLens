@@ -6,7 +6,6 @@ import {
   type ReactFlowAdapterOptions,
   type ReactFlowGraph,
 } from '@code-analysis-context/graph-visualization/adapters/ReactFlowAdapter'
-import { useTransformer } from './useTransformer'
 
 interface UseGraphOptions {
   graph: FlowGraph
@@ -23,7 +22,7 @@ export function useGraph({
   direction,
   selectedNodeId,
 }: UseGraphOptions): UseGraphResult {
-  const displayGraph = useTransformer(graph)
+  const displayGraph = graph
   const { nodes, edges } = useMemo(
     () => adaptToReactFlow(displayGraph, { direction, selectedNodeId }),
     [direction, displayGraph, selectedNodeId],
