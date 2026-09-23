@@ -47,7 +47,7 @@ function GraphCanvas({
   const { nodes, edges } = graphFacade.data.useReactFlowGraph()
   const selectedNodeId = graphFacade.data.useSelectedNodeId()
   const fitView = graphFacade.actions.useFitView()
-  const selectNode = graphFacade.actions.useSelectNode()
+  const selectNode = graphFacade.actions.useSelectNodeMouseHandler()
   const clearSelection = graphFacade.actions.useClearSelection()
   graphFacade.actions.useSelectionCleanup()
 

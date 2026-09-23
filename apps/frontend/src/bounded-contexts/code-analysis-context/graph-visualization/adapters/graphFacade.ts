@@ -33,7 +33,7 @@ function useSelectDirection() {
   }, [dispatch])
 }
 
-function useSelectNode(): NodeMouseHandler {
+function useSelectNodeMouseHandler(): NodeMouseHandler {
   const dispatch = useAppDispatch()
 
   return useCallback((_event, node) => {
@@ -145,7 +145,7 @@ export const graphFacade = {
   actions: {
     useSelectTransformer,
     useSelectDirection,
-    useSelectNode,
+    useSelectNodeMouseHandler,
     useClearSelection,
     useSelectAndFocusNode,
     useFocusOnNode,

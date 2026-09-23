@@ -96,7 +96,7 @@ interface InspectorControlsProps {
 }
 
 function InspectorControls({ nodeIds }: InspectorControlsProps) {
-  const selectNode = graphFacade.actions.useSelectNode()
+  const selectNode = graphFacade.actions.useSelectNodeMouseHandler()
   const selectTransformer = graphFacade.actions.useSelectTransformer()
 
   return createElement(

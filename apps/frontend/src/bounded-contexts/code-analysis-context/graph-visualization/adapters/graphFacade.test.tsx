@@ -70,7 +70,7 @@ function DataProbe() {
 function ActionProbe() {
   const selectTransformer = graphFacade.actions.useSelectTransformer()
   const selectDirection = graphFacade.actions.useSelectDirection()
-  const selectNode = graphFacade.actions.useSelectNode()
+  const selectNode = graphFacade.actions.useSelectNodeMouseHandler()
   const clearSelection = graphFacade.actions.useClearSelection()
   const selectAndFocusNode = graphFacade.actions.useSelectAndFocusNode()
   const focusOnNode = graphFacade.actions.useFocusOnNode()
