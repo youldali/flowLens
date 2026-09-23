@@ -18,10 +18,7 @@ export function FromVsCode() {
     <main className={styles.container}>
       {graph ? (
         <GraphProvider graph={graph} onOpenSource={onOpenSource}>
-          <GraphViewContent
-            graph={graph}
-            onOpenSource={onOpenSource}
-          />
+          <GraphViewContent />
         </GraphProvider>
       ) : (
         <div className={styles.status}>

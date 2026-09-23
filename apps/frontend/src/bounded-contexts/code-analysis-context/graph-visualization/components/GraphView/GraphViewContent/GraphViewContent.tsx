@@ -8,21 +8,18 @@ import ReactFlow, {
   type NodeProps,
   type NodeTypes,
 } from 'reactflow'
-import { isEmpty, type FlowGraph } from '@flowlens/analyzer-core/flow-graph'
+import { isEmpty } from '@flowlens/analyzer-core/flow-graph'
 import { useConfig } from '@common/config'
+import { graphFacade } from '@code-analysis-context/graph-visualization/adapters/graphFacade'
 import type { GraphViewNodeData } from '@code-analysis-context/graph-visualization/adapters/ReactFlowAdapter/toReactFlow'
-import { useGraphContext } from '@code-analysis-context/graph-visualization/context'
 import { GraphToolbar } from './GraphToolbar'
 import { GraphNode } from './GraphNode'
 import { NodeDetailsInspector } from './NodeDetailsInspector'
-import { useGraphUi } from './useGraphUi'
 import styles from './GraphViewContent.module.css'
 
 export interface GraphViewContentProps {
-  graph: FlowGraph
   className?: string
   fitViewOptions?: FitViewOptions
-  onOpenSource?: (filePath: string, offset: number) => void
 }
 
 const DEFAULT_FIT_VIEW_OPTIONS = { padding: 0.2 } satisfies FitViewOptions
@@ -41,31 +38,26 @@ export function GraphViewContent(props: GraphViewContentProps) {
 }
 
 function GraphCanvas({
-  graph,
   className,
   fitViewOptions = DEFAULT_FIT_VIEW_OPTIONS,
-  onOpenSource,
 }: GraphViewContentProps) {
   const { runtimeHost } = useConfig()
-  const { transformedGraph } = useGraphContext()
-  const entryNode = graph.nodes[0]
+  const originalGraph = graphFacade.data.useOriginalGraph()
+  const transformedGraph = graphFacade.data.useTransformedGraph()
+  const { nodes, edges } = graphFacade.data.useReactFlowGraph()
+  const selectedNodeId = graphFacade.data.useSelectedNodeId()
+  const fitView = graphFacade.actions.useFitView()
+  const selectNode = graphFacade.actions.useSelectNode()
+  const clearSelection = graphFacade.actions.useClearSelection()
+  graphFacade.actions.useSelectionCleanup()
+
+  const entryNode = originalGraph.nodes[0]
   const rootLabel =
     entryNode?.kind === 'functionDeclaration' || entryNode?.kind === 'methodDeclaration'
       ? entryNode.name
       : undefined
-  const {
-    displayGraph,
-    nodes,
-    edges,
-    selectedNodeId,
-    fitView,
-    focusOnNode,
-    selectAndFocusNode,
-    selectNode,
-    clearSelection,
-  } = useGraphUi({ graph: transformedGraph })
 
-  const isGraphEmpty = isEmpty(displayGraph)
+  const isGraphEmpty = isEmpty(transformedGraph)
   const graphViewClassName = classNames(styles.graphView, className)
 
   return (
@@ -103,12 +95,7 @@ function GraphCanvas({
             {selectedNodeId && (
               <NodeDetailsInspector
                 className={styles.inspectorContainer}
-                graph={displayGraph}
                 selectedNodeId={selectedNodeId}
-                onClose={clearSelection}
-                onSelectNode={selectAndFocusNode}
-                onFocusNode={focusOnNode}
-                {...(onOpenSource ? { onOpenSource } : {})}
               />
             )}
           </>

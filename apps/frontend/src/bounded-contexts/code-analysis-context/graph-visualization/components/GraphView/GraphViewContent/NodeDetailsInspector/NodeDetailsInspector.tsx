@@ -1,46 +1,121 @@
-import type { FlowGraph } from '@flowlens/analyzer-core/flow-graph'
+import classNames from 'classnames'
 import type { NodeId } from '@flowlens/analyzer-core/node'
-import { NodeDetailsInspectorView } from './NodeDetailsInspectorView'
+import { useTranslation } from '@common/hooks/useTranslation'
+import { graphFacade } from '@code-analysis-context/graph-visualization/adapters/graphFacade'
+import { hasConnections } from '@code-analysis-context/graph-visualization/domain/nodeDetails'
+import { shouldDisplayNodeLocation } from '../nodePresentation'
+import { useNodeTranslations } from '../useNodeTranslations'
+import { ConnectionList } from './ConnectionList'
+import styles from './NodeDetailsInspector.module.css'
 import { useDetailsViewUi } from './useDetailsViewUi'
 
 export interface NodeDetailsInspectorProps {
-  graph: FlowGraph
   selectedNodeId: NodeId
   className?: string | undefined
-  onClose: () => void
-  onSelectNode: (nodeId: NodeId) => void
-  onOpenSource?: (filePath: string, offset: number) => void
-  onFocusNode?: (nodeId: NodeId) => void
 }
 
 export function NodeDetailsInspector({
-  graph,
   selectedNodeId,
   className,
-  onClose,
-  onSelectNode,
-  onOpenSource,
-  onFocusNode,
 }: NodeDetailsInspectorProps) {
-  const {
-    detailsView,
-    openSource,
-    focusOnNode,
-  } = useDetailsViewUi({
+  const graph = graphFacade.data.useTransformedGraph()
+  const onOpenSource = graphFacade.data.useOnOpenSource()
+  const onClose = graphFacade.actions.useClearSelection()
+  const onSelectNode = graphFacade.actions.useSelectAndFocusNode()
+  const onFocusNode = graphFacade.actions.useFocusOnNode()
+  const { detailsView, openSource, focusOnNode } = useDetailsViewUi({
     graph,
     selectedNodeId,
     onOpenSource,
     onFocusNode,
   })
+  const { t } = useTranslation('code-analysis-context')
+  const nodeTranslations = useNodeTranslations()
 
-  return detailsView && (
-    <NodeDetailsInspectorView
-      {...detailsView}
-      className={className}
-      onClose={onClose}
-      onSelectNode={onSelectNode}
-      {...(openSource ? { onOpenSource: openSource } : {})}
-      {...(focusOnNode ? { onFocusNode: focusOnNode } : {})}
-    />
+  if (!detailsView) {
+    return null
+  }
+
+  const { node, incomingConnections, outgoingConnections } = detailsView
+  const showLocation = shouldDisplayNodeLocation(node.sourceOrigin)
+
+  return (
+    <aside
+      className={classNames(styles.inspector, className)}
+      aria-label={t('graphVisualization.nodes.details.accessibleLabel', { name: node.name })}
+    >
+      <header className={styles.header}>
+        <div className={styles.identity}>
+          <h2 className={styles.title} title={node.name}>{node.name}</h2>
+          <span className={styles.category}>
+            {nodeTranslations.category(node.kind, node.sourceOrigin)}
+          </span>
+          <span className={styles.classification}>
+            {nodeTranslations.classification(node.sourceOrigin)}
+          </span>
+        </div>
+        <button
+          className={styles.closeButton}
+          type="button"
+          onClick={onClose}
+          aria-label={t('graphVisualization.nodes.details.close')}
+        >
+          ×
+        </button>
+      </header>
+
+      {showLocation && (
+        <section className={styles.section}>
+          <h3>{t('graphVisualization.nodes.details.location')}</h3>
+          <strong title={node.filePath}>{node.fileName}</strong>
+          {node.filePath !== node.fileName && (
+            <span className={styles.secondary} title={node.filePath}>{node.filePath}</span>
+          )}
+        </section>
+      )}
+
+      <section className={styles.section}>
+        <h3>{t('graphVisualization.nodes.details.declaration')}</h3>
+        <span>{nodeTranslations.declaration(node.kind)}</span>
+      </section>
+
+      {node.sourceExcerpt && (
+        <details className={styles.section}>
+          <summary>{t('graphVisualization.nodes.details.source')}</summary>
+          <code className={styles.source}>{node.sourceExcerpt}</code>
+        </details>
+      )}
+
+      {hasConnections(detailsView) && (
+        <section className={styles.section}>
+          <h3>{t('graphVisualization.nodes.details.connections')}</h3>
+          <ConnectionList
+            heading={t('graphVisualization.nodes.details.calledBy')}
+            connections={incomingConnections}
+            onSelectNode={onSelectNode}
+          />
+          <ConnectionList
+            heading={t('graphVisualization.nodes.details.calls')}
+            connections={outgoingConnections}
+            onSelectNode={onSelectNode}
+          />
+        </section>
+      )}
+
+      {(openSource || focusOnNode) && (
+        <footer className={styles.actions}>
+          {openSource && (
+            <button type="button" onClick={openSource}>
+              {t('graphVisualization.nodes.details.openSource')}
+            </button>
+          )}
+          {focusOnNode && (
+            <button type="button" onClick={focusOnNode}>
+              {t('graphVisualization.nodes.details.focusNode')}
+            </button>
+          )}
+        </footer>
+      )}
+    </aside>
   )
 }

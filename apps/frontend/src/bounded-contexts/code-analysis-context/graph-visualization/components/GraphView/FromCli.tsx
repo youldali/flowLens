@@ -27,7 +27,7 @@ export function FromCli() {
       >
         {(graph) => (
           <GraphProvider graph={graph}>
-            <GraphViewContent graph={graph} />
+            <GraphViewContent />
           </GraphProvider>
         )}
       </QuerySuspense>

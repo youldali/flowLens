@@ -5,7 +5,6 @@ export type OnOpenSource = (filePath: string, offset: number) => void
 
 export interface GraphContextValue {
   graph: FlowGraph
-  transformedGraph: FlowGraph
   onOpenSource: OnOpenSource | undefined
 }
 

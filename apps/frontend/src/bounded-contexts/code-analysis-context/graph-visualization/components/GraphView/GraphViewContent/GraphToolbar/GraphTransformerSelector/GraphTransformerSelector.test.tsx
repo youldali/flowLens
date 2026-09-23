@@ -7,14 +7,12 @@ import type { FlowGraph } from '@flowlens/analyzer-core/flow-graph'
 import { create as createEdge } from '@flowlens/analyzer-core/fixtures/edge'
 import { createCallExpressionNode, createNode } from '@flowlens/analyzer-core/fixtures/node'
 import { AppShell } from '@common/test-utils/appShell'
+import { graphFacade } from '@code-analysis-context/graph-visualization/adapters/graphFacade'
 import {
   type GraphTransformerId,
   transformGraph,
 } from '@code-analysis-context/graph-visualization/domain/transformer'
-import {
-  GraphProvider,
-  useGraphContext,
-} from '@code-analysis-context/graph-visualization/context'
+import { GraphProvider } from '@code-analysis-context/graph-visualization/context'
 import { GraphTransformerSelector } from './GraphTransformerSelector'
 
 vi.mock('@common/hooks/useTranslation', () => ({
@@ -36,7 +34,7 @@ const graph: FlowGraph = {
 }
 
 function TransformedGraph() {
-  const { transformedGraph } = useGraphContext()
+  const transformedGraph = graphFacade.data.useTransformedGraph()
 
   return <output aria-label="Transformed graph">{JSON.stringify(transformedGraph)}</output>
 }
