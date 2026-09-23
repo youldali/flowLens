@@ -1,7 +1,10 @@
 import { createSelector, createSlice, type PayloadAction } from '@reduxjs/toolkit'
 import type { FlowGraph } from '@flowlens/analyzer-core/flow-graph'
 import type { NodeId } from '@flowlens/analyzer-core/node'
-import type { LayoutDirection } from '@code-analysis-context/graph-visualization/adapters/ReactFlowAdapter'
+import {
+  adaptToReactFlow,
+  type LayoutDirection,
+} from '@code-analysis-context/graph-visualization/adapters/ReactFlowAdapter'
 import {
   DEFAULT_GRAPH_TRANSFORMER_ID,
   transformGraph,
@@ -72,5 +75,12 @@ export const selectors = {
   selectTransformedGraph: createSelector(
     [selectSelectedTransformer, selectGraph],
     (selectedTransformer, graph) => transformGraph(graph, selectedTransformer),
+  ),
+  selectReactFlowGraph: createSelector(
+    [selectGraph, selectDirection, selectSelectedNodeId],
+    (graph, direction, selectedNodeId) => adaptToReactFlow(graph, {
+      direction,
+      selectedNodeId,
+    }),
   ),
 }

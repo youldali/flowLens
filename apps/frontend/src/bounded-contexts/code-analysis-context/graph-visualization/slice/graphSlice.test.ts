@@ -1,7 +1,10 @@
 import assert from 'node:assert/strict'
 import { describe, it } from 'vitest'
 import type { FlowGraph } from '@flowlens/analyzer-core/flow-graph'
+import { create as createEdge } from '@flowlens/analyzer-core/fixtures/edge'
+import { createNode } from '@flowlens/analyzer-core/fixtures/node'
 import { createAppStore } from '@store'
+import { adaptToReactFlow } from '@code-analysis-context/graph-visualization/adapters/ReactFlowAdapter'
 import {
   DEFAULT_GRAPH_TRANSFORMER_ID,
   GRAPH_TRANSFORMER_IDS,
@@ -64,5 +67,34 @@ describe('graphReducer', () => {
       store.dispatch(actions.selectDirection(direction))
       assert.equal(selectors.selectDirection(store.getState()), direction)
     }
+  })
+
+  it('adapts a supplied graph using the selected direction and node', () => {
+    const store = createAppStore()
+    const graph: FlowGraph = {
+      nodes: [
+        createNode({ id: 'source', name: 'source' }),
+        createNode({ id: 'target', name: 'target' }),
+      ],
+      edges: [createEdge({
+        id: 'source->target:calls',
+        source: 'source',
+        target: 'target',
+      })],
+    }
+
+    for (const direction of ['TB', 'BT', 'LR', 'RL'] as const) {
+      store.dispatch(actions.selectDirection(direction))
+      assert.deepEqual(
+        selectors.selectReactFlowGraph(store.getState(), graph),
+        adaptToReactFlow(graph, { direction }),
+      )
+    }
+
+    store.dispatch(actions.selectNode('target'))
+    assert.deepEqual(
+      selectors.selectReactFlowGraph(store.getState(), graph),
+      adaptToReactFlow(graph, { direction: 'RL', selectedNodeId: 'target' }),
+    )
   })
 })

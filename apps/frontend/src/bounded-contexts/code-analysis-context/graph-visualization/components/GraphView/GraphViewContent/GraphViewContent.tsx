@@ -12,8 +12,6 @@ import { isEmpty, type FlowGraph } from '@flowlens/analyzer-core/flow-graph'
 import { useConfig } from '@common/config'
 import type { GraphViewNodeData } from '@code-analysis-context/graph-visualization/adapters/ReactFlowAdapter/toReactFlow'
 import { useGraphContext } from '@code-analysis-context/graph-visualization/context'
-import { selectors } from '@code-analysis-context/graph-visualization/slice'
-import { useAppSelector } from '@store/hooks'
 import { GraphToolbar } from './GraphToolbar'
 import { GraphNode } from './GraphNode'
 import { NodeDetailsInspector } from './NodeDetailsInspector'
@@ -50,7 +48,6 @@ function GraphCanvas({
 }: GraphViewContentProps) {
   const { runtimeHost } = useConfig()
   const { transformedGraph } = useGraphContext()
-  const direction = useAppSelector(selectors.selectDirection)
   const entryNode = graph.nodes[0]
   const rootLabel =
     entryNode?.kind === 'functionDeclaration' || entryNode?.kind === 'methodDeclaration'
@@ -66,10 +63,7 @@ function GraphCanvas({
     selectAndFocusNode,
     selectNode,
     clearSelection,
-  } = useGraphUi({
-    graph: transformedGraph,
-    direction,
-  })
+  } = useGraphUi({ graph: transformedGraph })
 
   const isGraphEmpty = isEmpty(displayGraph)
   const graphViewClassName = classNames(styles.graphView, className)
