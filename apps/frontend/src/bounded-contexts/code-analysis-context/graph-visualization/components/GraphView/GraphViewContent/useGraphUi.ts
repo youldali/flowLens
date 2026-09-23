@@ -14,7 +14,11 @@ interface UseGraphUiOptions {
 
 export function useGraphUi({ graph, direction }: UseGraphUiOptions) {
   const { fitView, focusOnNode } = useReactFlowUi()
-  const [selectedNodeId, dispatchSelection] = useNodeSelection()
+  const {
+    selectedNodeId,
+    selectNode: selectNodeById,
+    clearSelection,
+  } = useNodeSelection()
   const { displayGraph, nodes, edges } = useGraph({
     graph,
     direction,
@@ -22,17 +26,13 @@ export function useGraphUi({ graph, direction }: UseGraphUiOptions) {
   })
 
   const selectAndFocusNode = useCallback((nodeId: NodeId) => {
-    dispatchSelection({ type: 'select', nodeId })
+    selectNodeById(nodeId)
     window.requestAnimationFrame(() => focusOnNode(nodeId))
-  }, [dispatchSelection, focusOnNode])
+  }, [focusOnNode, selectNodeById])
 
   const selectNode: NodeMouseHandler = useCallback((_event, node) => {
-    dispatchSelection({ type: 'select', nodeId: node.id })
-  }, [dispatchSelection])
-
-  const clearSelection = useCallback(() => {
-    dispatchSelection({ type: 'clear' })
-  }, [dispatchSelection])
+    selectNodeById(node.id)
+  }, [selectNodeById])
 
   return {
     displayGraph,

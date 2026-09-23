@@ -1,9 +1,9 @@
 import { configureStore } from '@reduxjs/toolkit'
-import { graphTransformerReducer } from '@code-analysis-context/graph-visualization/store'
+import { graphReducer } from '@code-analysis-context/graph-visualization/store'
 
 export const createAppStore = () => configureStore({
   reducer: {
-    graphTransformer: graphTransformerReducer,
+    graph: graphReducer,
   },
 })
 

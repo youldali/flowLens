@@ -7,9 +7,9 @@ import {
   GRAPH_TRANSFORMER_IDS,
   transformGraph,
 } from '@code-analysis-context/graph-visualization/domain/transformer'
-import { selectors, actions } from './graphTransformerSlice'
+import { selectors, actions } from './graphSlice'
 
-describe('graphTransformerReducer', () => {
+describe('graphReducer', () => {
   it('uses the domain default and supports every selection, including repeated selections', () => {
     const store = createAppStore()
 
@@ -38,5 +38,20 @@ describe('graphTransformerReducer', () => {
         transformGraph(graph, transformer),
       )
     }
+  })
+
+  it('selects, replaces, and clears the selected node', () => {
+    const store = createAppStore()
+
+    assert.equal(selectors.selectSelectedNodeId(store.getState()), undefined)
+
+    store.dispatch(actions.selectNode('first'))
+    assert.equal(selectors.selectSelectedNodeId(store.getState()), 'first')
+
+    store.dispatch(actions.selectNode('second'))
+    assert.equal(selectors.selectSelectedNodeId(store.getState()), 'second')
+
+    store.dispatch(actions.clearNodeSelection())
+    assert.equal(selectors.selectSelectedNodeId(store.getState()), undefined)
   })
 })

@@ -1,6 +1,6 @@
 export {
-  type GraphTransformerState,
-  graphTransformerReducer,
+  type GraphState,
+  graphReducer,
   actions,
   selectors,
-} from './graphTransformerSlice'
+} from './graphSlice'

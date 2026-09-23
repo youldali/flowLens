@@ -1,27 +1,34 @@
-import { useEffect, useReducer } from 'react'
+import { useCallback, useEffect } from 'react'
+import type { NodeId } from '@flowlens/analyzer-core/node'
 import {
-  getNodeSelectionKeyboardAction,
-  reduceNodeSelection,
-} from './nodeSelectionReducer'
+  actions,
+  selectors,
+} from '@code-analysis-context/graph-visualization/store'
+import { useAppDispatch, useAppSelector } from '@store/hooks'
 
 export function useNodeSelection() {
-  const [selectedNodeId, dispatchSelection] = useReducer(
-    reduceNodeSelection,
-    undefined,
-  )
+  const selectedNodeId = useAppSelector(selectors.selectSelectedNodeId)
+  const dispatch = useAppDispatch()
+  const selectNode = useCallback((nodeId: NodeId) => {
+    dispatch(actions.selectNode(nodeId))
+  }, [dispatch])
+  const clearSelection = useCallback(() => {
+    dispatch(actions.clearNodeSelection())
+  }, [dispatch])
 
   useEffect(() => {
     const closeOnEscape = (event: KeyboardEvent) => {
-      const action = getNodeSelectionKeyboardAction(event.key)
-
-      if (action) {
-        dispatchSelection(action)
+      if (event.key === 'Escape') {
+        clearSelection()
       }
     }
 
     window.addEventListener('keydown', closeOnEscape)
-    return () => window.removeEventListener('keydown', closeOnEscape)
-  }, [dispatchSelection])
+    return () => {
+      window.removeEventListener('keydown', closeOnEscape)
+      clearSelection()
+    }
+  }, [clearSelection])
 
-  return [selectedNodeId, dispatchSelection] as const
+  return { selectedNodeId, selectNode, clearSelection }
 }
