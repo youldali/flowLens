@@ -1,6 +1,8 @@
-import { createSlice, type PayloadAction } from '@reduxjs/toolkit'
+import { createSelector, createSlice, type PayloadAction } from '@reduxjs/toolkit'
+import type { FlowGraph } from '@flowlens/analyzer-core/flow-graph'
 import {
   DEFAULT_GRAPH_TRANSFORMER_ID,
+  transformGraph,
   type GraphTransformerId,
 } from '@code-analysis-context/graph-visualization/domain/transformer'
 
@@ -25,8 +27,23 @@ const graphTransformerSlice = createSlice({
 export const actions = graphTransformerSlice.actions
 export const graphTransformerReducer = graphTransformerSlice.reducer
 
+type GraphTransformerRootState = {
+  graphTransformer: GraphTransformerState
+}
+
+const selectSelectedTransformer = (
+  state: GraphTransformerRootState,
+): GraphTransformerId => state.graphTransformer.selectedTransformer
+
+const selectGraph = (
+  _state: GraphTransformerRootState,
+  graph: FlowGraph,
+): FlowGraph => graph
+
 export const selectors = {
-  selectSelectedTransformer: (
-    state: { graphTransformer: GraphTransformerState },
-  ): GraphTransformerId => state.graphTransformer.selectedTransformer,
+  selectSelectedTransformer,
+  selectTransformedGraph: createSelector(
+    [selectSelectedTransformer, selectGraph],
+    (selectedTransformer, graph) => transformGraph(graph, selectedTransformer),
+  ),
 }

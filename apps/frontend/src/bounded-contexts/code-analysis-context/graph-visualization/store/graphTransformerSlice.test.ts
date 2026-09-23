@@ -1,9 +1,11 @@
 import assert from 'node:assert/strict'
 import { describe, it } from 'vitest'
+import type { FlowGraph } from '@flowlens/analyzer-core/flow-graph'
 import { createAppStore } from '@store'
 import {
   DEFAULT_GRAPH_TRANSFORMER_ID,
   GRAPH_TRANSFORMER_IDS,
+  transformGraph,
 } from '@code-analysis-context/graph-visualization/domain/transformer'
 import { selectors, actions } from './graphTransformerSlice'
 
@@ -22,5 +24,19 @@ describe('graphTransformerReducer', () => {
 
     store.dispatch(actions.selectTransformer('none'))
     assert.equal(selectors.selectSelectedTransformer(createAppStore().getState()), DEFAULT_GRAPH_TRANSFORMER_ID)
+  })
+
+  it('transforms a supplied graph with the selected transformer', () => {
+    const store = createAppStore()
+    const graph: FlowGraph = { nodes: [], edges: [] }
+
+    for (const transformer of GRAPH_TRANSFORMER_IDS) {
+      store.dispatch(actions.selectTransformer(transformer))
+
+      assert.deepEqual(
+        selectors.selectTransformedGraph(store.getState(), graph),
+        transformGraph(graph, transformer),
+      )
+    }
   })
 })

@@ -1,8 +1,9 @@
 import type { PropsWithChildren } from 'react'
 import type { FlowGraph } from '@flowlens/analyzer-core/flow-graph'
+import { selectors } from '@code-analysis-context/graph-visualization/store'
+import { useAppSelector } from '@store/hooks'
 
 import { GraphContext, type OnOpenSource } from './graphContext'
-import { useTransformer } from './useTransformer'
 
 type GraphProviderProps = PropsWithChildren<{
   graph: FlowGraph
@@ -10,7 +11,9 @@ type GraphProviderProps = PropsWithChildren<{
 }>
 
 export function GraphProvider({ children, graph, onOpenSource }: GraphProviderProps) {
-  const transformedGraph = useTransformer(graph)
+  const transformedGraph = useAppSelector((state) =>
+    selectors.selectTransformedGraph(state, graph),
+  )
 
   return (
     <GraphContext.Provider value={{ graph, transformedGraph, onOpenSource }}>
