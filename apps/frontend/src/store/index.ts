@@ -1,5 +1,5 @@
 import { configureStore } from '@reduxjs/toolkit'
-import { graphReducer } from '@code-analysis-context/graph-visualization/store'
+import { graphReducer } from '@code-analysis-context/graph-visualization/slice'
 
 export const createAppStore = () => configureStore({
   reducer: {

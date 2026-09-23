@@ -1,6 +1,6 @@
 import type { PropsWithChildren } from 'react'
 import type { FlowGraph } from '@flowlens/analyzer-core/flow-graph'
-import { selectors } from '@code-analysis-context/graph-visualization/store'
+import { selectors } from '@code-analysis-context/graph-visualization/slice'
 import { useAppSelector } from '@store/hooks'
 
 import { GraphContext, type OnOpenSource } from './graphContext'

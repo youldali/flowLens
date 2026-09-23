@@ -10,7 +10,7 @@ import {
 import {
   selectors,
   actions,
-} from '@code-analysis-context/graph-visualization/store'
+} from '@code-analysis-context/graph-visualization/slice'
 import { useAppDispatch, useAppSelector } from '@store/hooks'
 import styles from './GraphTransformerSelector.module.css'
 

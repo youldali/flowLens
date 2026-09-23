@@ -3,7 +3,7 @@ import type { NodeId } from '@flowlens/analyzer-core/node'
 import {
   actions,
   selectors,
-} from '@code-analysis-context/graph-visualization/store'
+} from '@code-analysis-context/graph-visualization/slice'
 import { useAppDispatch, useAppSelector } from '@store/hooks'
 
 export function useNodeSelection() {
