@@ -45,7 +45,7 @@ function GraphCanvas({
   const originalGraph = graphFacade.data.useOriginalGraph()
   const transformedGraph = graphFacade.data.useTransformedGraph()
   const { nodes, edges } = graphFacade.data.useReactFlowGraph()
-  const selectedNodeId = graphFacade.data.useSelectedNodeId()
+  const selectedNode = graphFacade.data.useSelectedNode()
   const fitView = graphFacade.actions.useFitView()
   const selectNode = graphFacade.actions.useSelectNodeMouseHandler()
   const clearSelection = graphFacade.actions.useClearSelection()
@@ -92,10 +92,10 @@ function GraphCanvas({
                 <MiniMap pannable zoomable />
               </ReactFlow>
             </div>
-            {selectedNodeId && (
+            {selectedNode && (
               <NodeDetailsInspector
                 className={styles.inspectorContainer}
-                selectedNodeId={selectedNodeId}
+                node={selectedNode}
               />
             )}
           </>

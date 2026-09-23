@@ -133,6 +133,12 @@ function useSelectedNodeId() {
   return useAppSelector(selectors.selectSelectedNodeId)
 }
 
+function useSelectedNode() {
+  const graph = useOriginalGraph()
+
+  return useAppSelector((state) => selectors.selectSelectedNode(state, graph))
+}
+
 function useDirection() {
   return useAppSelector(selectors.selectDirection)
 }
@@ -158,6 +164,7 @@ export const graphFacade = {
     useReactFlowGraph,
     useSelectedTransformer,
     useSelectedNodeId,
+    useSelectedNode,
     useDirection,
     useOnOpenSource,
   },

@@ -1,21 +1,26 @@
+import { useMemo } from 'react'
 import classNames from 'classnames'
-import type { NodeId } from '@flowlens/analyzer-core/node'
+import type { Node } from '@flowlens/analyzer-core/node'
 import { useTranslation } from '@common/hooks/useTranslation'
 import { graphFacade } from '@code-analysis-context/graph-visualization/adapters/graphFacade'
-import { hasConnections } from '@code-analysis-context/graph-visualization/domain/nodeDetails'
+import {
+  createGraphNodeConnectionSummaries,
+  getSourceExcerpt,
+  getSourceTarget,
+  hasConnections,
+} from '@code-analysis-context/graph-visualization/domain/nodeDetails'
 import { shouldDisplayNodeLocation } from '../nodePresentation'
 import { useNodeTranslations } from '../useNodeTranslations'
 import { ConnectionList } from './ConnectionList'
 import styles from './NodeDetailsInspector.module.css'
-import { useDetailsViewUi } from './useDetailsViewUi'
 
 export interface NodeDetailsInspectorProps {
-  selectedNodeId: NodeId
+  node: Node
   className?: string | undefined
 }
 
 export function NodeDetailsInspector({
-  selectedNodeId,
+  node,
   className,
 }: NodeDetailsInspectorProps) {
   const graph = graphFacade.data.useTransformedGraph()
@@ -23,26 +28,30 @@ export function NodeDetailsInspector({
   const onClose = graphFacade.actions.useClearSelection()
   const onSelectNode = graphFacade.actions.useSelectAndFocusNode()
   const onFocusNode = graphFacade.actions.useFocusOnNode()
-  const { detailsView, openSource, focusOnNode } = useDetailsViewUi({
-    graph,
-    selectedNodeId,
-    onOpenSource,
-    onFocusNode,
-  })
+  const connectionSummaries = useMemo(
+    () => createGraphNodeConnectionSummaries(graph, node.id),
+    [graph, node.id],
+  )
+  const sourceTarget = getSourceTarget(node)
+  const openSource = onOpenSource && sourceTarget
+    ? () => onOpenSource(sourceTarget.filePath, sourceTarget.offset)
+    : undefined
+  const focusOnNode = onFocusNode
+    ? () => onFocusNode(node.id)
+    : undefined
   const { t } = useTranslation('code-analysis-context')
   const nodeTranslations = useNodeTranslations()
 
-  if (!detailsView) {
-    return null
-  }
-
-  const { node, incomingConnections, outgoingConnections } = detailsView
+  const { incomingConnections, outgoingConnections } = connectionSummaries
   const showLocation = shouldDisplayNodeLocation(node.sourceOrigin)
+  const sourceExcerpt = getSourceExcerpt(node)
 
   return (
     <aside
       className={classNames(styles.inspector, className)}
-      aria-label={t('graphVisualization.nodes.details.accessibleLabel', { name: node.name })}
+      aria-label={t('graphVisualization.nodes.details.accessibleLabel', {
+        name: node.name,
+      })}
     >
       <header className={styles.header}>
         <div className={styles.identity}>
@@ -69,7 +78,9 @@ export function NodeDetailsInspector({
           <h3>{t('graphVisualization.nodes.details.location')}</h3>
           <strong title={node.filePath}>{node.fileName}</strong>
           {node.filePath !== node.fileName && (
-            <span className={styles.secondary} title={node.filePath}>{node.filePath}</span>
+            <span className={styles.secondary} title={node.filePath}>
+              {node.filePath}
+            </span>
           )}
         </section>
       )}
@@ -79,14 +90,14 @@ export function NodeDetailsInspector({
         <span>{nodeTranslations.declaration(node.kind)}</span>
       </section>
 
-      {node.sourceExcerpt && (
+      {sourceExcerpt && (
         <details className={styles.section}>
           <summary>{t('graphVisualization.nodes.details.source')}</summary>
-          <code className={styles.source}>{node.sourceExcerpt}</code>
+          <code className={styles.source}>{sourceExcerpt}</code>
         </details>
       )}
 
-      {hasConnections(detailsView) && (
+      {hasConnections(connectionSummaries) && (
         <section className={styles.section}>
           <h3>{t('graphVisualization.nodes.details.connections')}</h3>
           <ConnectionList

@@ -4,7 +4,12 @@ import * as path from 'node:path';
 import { describe, it } from 'node:test';
 import ts from 'typescript';
 
-import { GraphAdapter, isEmpty, isFlowGraph } from './flow-graph.js';
+import {
+  findNodeInGraphById,
+  GraphAdapter,
+  isEmpty,
+  isFlowGraph,
+} from './flow-graph.js';
 import { create as createEdge } from './fixtures/edge.js';
 import {
   createCallExpressionNode,
@@ -182,6 +187,16 @@ describe("isEmpty", () => {
   it("returns whether the graph has no nodes", () => {
     assert.equal(isEmpty({ nodes: [], edges: [] }), true);
     assert.equal(isEmpty({ nodes: [createCallExpressionNode()], edges: [] }), false);
+  });
+});
+
+describe("findNodeInGraphById", () => {
+  it("returns the matching node or undefined", () => {
+    const node = createFunctionDeclarationNode();
+    const graph = { nodes: [node], edges: [] };
+
+    assert.equal(findNodeInGraphById(graph, node.id), node);
+    assert.equal(findNodeInGraphById(graph, "missing"), undefined);
   });
 });
 

@@ -19,6 +19,13 @@ export function isEmpty(graph: FlowGraph): boolean {
   return graph.nodes.length === 0;
 }
 
+export function findNodeInGraphById(
+  graph: FlowGraph,
+  nodeId: NodeModule.NodeId,
+): NodeModule.Node | undefined {
+  return graph.nodes.find((node) => node.id === nodeId);
+}
+
 export type SourceFileNotFoundError = { reason: 'source-file-not-found' };
 export type FromFilePositionError =
   | SourceFileNotFoundError

@@ -51,6 +51,7 @@ function DataProbe() {
   const reactFlowGraph = graphFacade.data.useReactFlowGraph()
   const selectedTransformer = graphFacade.data.useSelectedTransformer()
   const selectedNodeId = graphFacade.data.useSelectedNodeId()
+  const selectedNode = graphFacade.data.useSelectedNode()
   const direction = graphFacade.data.useDirection()
   const onOpenSource = graphFacade.data.useOnOpenSource()
 
@@ -60,7 +61,8 @@ function DataProbe() {
       <output aria-label="Transformed graph">{JSON.stringify(transformedGraph)}</output>
       <output aria-label="React Flow graph">{JSON.stringify(reactFlowGraph)}</output>
       <output aria-label="Selected transformer">{selectedTransformer}</output>
-      <output aria-label="Selected node">{selectedNodeId ?? 'none'}</output>
+      <output aria-label="Selected node ID">{selectedNodeId ?? 'none'}</output>
+      <output aria-label="Selected node">{selectedNode?.id ?? 'none'}</output>
       <output aria-label="Direction">{direction}</output>
       <output aria-label="Open source">{onOpenSource ? 'available' : 'missing'}</output>
     </>
@@ -133,6 +135,7 @@ describe('graphFacade', () => {
       transformGraph(graph, 'projectSource'),
     )
     assert.equal(output('Selected transformer'), 'projectSource')
+    assert.equal(output('Selected node ID'), 'none')
     assert.equal(output('Selected node'), 'none')
     assert.equal(output('Direction'), 'LR')
     assert.equal(output('Open source'), 'available')
@@ -143,6 +146,7 @@ describe('graphFacade', () => {
 
     assert.equal(output('Selected transformer'), 'none')
     assert.deepEqual(JSON.parse(output('Transformed graph') ?? ''), graph)
+    assert.equal(output('Selected node ID'), 'first')
     assert.equal(output('Selected node'), 'first')
     assert.equal(output('Direction'), 'TB')
     assert.equal(
@@ -152,6 +156,7 @@ describe('graphFacade', () => {
     )
 
     fireEvent.click(screen.getByRole('button', { name: 'Clear selection' }))
+    assert.equal(output('Selected node ID'), 'none')
     assert.equal(output('Selected node'), 'none')
   })
 

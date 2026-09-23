@@ -115,10 +115,10 @@ function InspectorControls({ nodeIds }: InspectorControlsProps) {
 }
 
 function ConnectedNodeDetailsInspector() {
-  const selectedNodeId = graphFacade.data.useSelectedNodeId()
+  const selectedNode = graphFacade.data.useSelectedNode()
 
-  return selectedNodeId
-    ? createElement(NodeDetailsInspector, { selectedNodeId })
+  return selectedNode
+    ? createElement(NodeDetailsInspector, { node: selectedNode })
     : null
 }
 
@@ -182,6 +182,7 @@ describe('NodeDetailsInspector', () => {
       fileName: 'process.ts',
       filePath: '/project/src/process.ts',
       start: 17,
+      text: 'invoke()',
     })
     const graphWithCall = {
       ...graph,
@@ -195,6 +196,9 @@ describe('NodeDetailsInspector', () => {
       height: 40,
     })
     renderInspector(graphWithCall, callNode.id, onOpenSource, true)
+
+    assert.ok(screen.getByText('Source'))
+    assert.ok(screen.getByText('invoke()'))
 
     fireEvent.click(screen.getByRole('button', { name: 'Open source' }))
     fireEvent.click(screen.getByRole('button', { name: 'Focus on node' }))

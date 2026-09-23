@@ -3,22 +3,25 @@ import { describe, it } from 'vitest'
 import type { FlowGraph } from '@flowlens/analyzer-core/flow-graph'
 import { create as createEdge } from '@flowlens/analyzer-core/fixtures/edge'
 import {
+  createCallExpressionNode,
   createFunctionDeclarationNode,
   createUnresolvedCallDeclarationNode,
 } from '@flowlens/analyzer-core/fixtures/node'
 import {
-  createGraphNodeDetailsView,
+  createGraphNodeConnectionSummaries,
+  getSourceExcerpt,
+  getSourceOffset,
   getSourceTarget,
   hasConnections,
-  type GraphNodeDetailsView,
+  type GraphNodeConnectionSummaries,
 } from './nodeDetails'
-import { create as createNodeDetailsView } from './fixtures/node-details'
 
 const processNode = createFunctionDeclarationNode({
   id: '/project/src/process.ts:10:90',
   name: 'process',
   filePath: '/project/src/process.ts',
   fileName: 'process.ts',
+  jsdoc: 'Processes the current request.',
 })
 const repositoryNode = createFunctionDeclarationNode({
   id: '/project/src/repository.ts:100:180',
@@ -52,17 +55,9 @@ const graph: FlowGraph = {
   ],
 }
 
-describe('createGraphNodeDetailsView', () => {
-  it('builds identity and connection details from the loaded graph', () => {
-    assert.deepEqual(createGraphNodeDetailsView(graph, processNode.id), {
-      node: {
-        id: '/project/src/process.ts:10:90',
-        name: 'process',
-        kind: 'functionDeclaration',
-        sourceOrigin: 'project',
-        fileName: 'process.ts',
-        filePath: '/project/src/process.ts',
-      },
+describe('createGraphNodeConnectionSummaries', () => {
+  it('builds connection summaries from the loaded graph', () => {
+    assert.deepEqual(createGraphNodeConnectionSummaries(graph, processNode.id), {
       incomingConnections: [{
         edgeId: 'repository->process:calls',
         connectedNodeId: '/project/src/repository.ts:100:180',
@@ -77,51 +72,39 @@ describe('createGraphNodeDetailsView', () => {
       }],
     })
   })
-  it('uses only the node start property as its source offset', () => {
-    assert.equal(
-      createGraphNodeDetailsView(
-        graph,
-        unresolvedNode.id,
-      )?.node.sourceOffset,
-      42,
-    )
-    assert.equal(
-      createGraphNodeDetailsView(graph, processNode.id)?.node.sourceOffset,
-      undefined,
-    )
-  })
 
-  it('returns undefined when the selected node is no longer in the transformed graph', () => {
-    assert.equal(createGraphNodeDetailsView(graph, 'missing'), undefined)
-  })
-
-  it('preserves location data for non-project nodes', () => {
-    const externalNode = createFunctionDeclarationNode({
-      id: 'external',
-      filePath: '/project/node_modules/library/index.d.ts',
-      fileName: 'index.d.ts',
-      sourceOrigin: 'external',
+  it('returns empty summaries when the selected node is not in the graph', () => {
+    assert.deepEqual(createGraphNodeConnectionSummaries(graph, 'missing'), {
+      incomingConnections: [],
+      outgoingConnections: [],
     })
-    const details = createGraphNodeDetailsView(
-      { nodes: [externalNode], edges: [] },
-      externalNode.id,
-    )
+  })
+})
 
-    assert.equal(details?.node.fileName, 'index.d.ts')
-    assert.equal(details?.node.filePath, '/project/node_modules/library/index.d.ts')
+describe('getSourceOffset', () => {
+  it('returns the start offset for node kinds that represent calls', () => {
+    const callExpressionNode = createCallExpressionNode({ start: 17 })
+
+    assert.equal(getSourceOffset(callExpressionNode), 17)
+    assert.equal(getSourceOffset(unresolvedNode), 42)
+  })
+
+  it('returns undefined for nodes without a source offset', () => {
+    assert.equal(getSourceOffset(processNode), undefined)
+  })
+})
+
+describe('getSourceExcerpt', () => {
+  it('returns source text only for call expression nodes', () => {
+    const callExpressionNode = createCallExpressionNode({ text: 'process()' })
+
+    assert.equal(getSourceExcerpt(callExpressionNode), 'process()')
+    assert.equal(getSourceExcerpt(processNode), undefined)
   })
 })
 
 describe('hasConnections', () => {
-  const nodeDetails: GraphNodeDetailsView = {
-    node: {
-      id: 'process',
-      name: 'process',
-      kind: 'functionDeclaration',
-      sourceOrigin: 'project',
-      fileName: 'process.ts',
-      filePath: '/project/src/process.ts',
-    },
+  const connectionSummaries: GraphNodeConnectionSummaries = {
     incomingConnections: [],
     outgoingConnections: [],
   }
@@ -133,29 +116,27 @@ describe('hasConnections', () => {
   }
 
   it('returns false without connections', () => {
-    assert.equal(hasConnections(nodeDetails), false)
+    assert.equal(hasConnections(connectionSummaries), false)
   })
 
   it('returns true with an incoming connection', () => {
     assert.equal(hasConnections({
-      ...nodeDetails,
+      ...connectionSummaries,
       incomingConnections: [connection],
     }), true)
   })
 
   it('returns true with an outgoing connection', () => {
     assert.equal(hasConnections({
-      ...nodeDetails,
+      ...connectionSummaries,
       outgoingConnections: [connection],
     }), true)
   })
 })
 
 describe('getSourceTarget', () => {
-  const nodeDetails = createNodeDetailsView()
-
   it('returns the source target for a displayable node with an offset', () => {
-    assert.deepEqual(getSourceTarget(nodeDetails), {
+    assert.deepEqual(getSourceTarget(unresolvedNode), {
       filePath: '/project/src/process.ts',
       offset: 42,
     })
@@ -163,15 +144,12 @@ describe('getSourceTarget', () => {
 
   it('returns undefined when the source location should not be displayed', () => {
     assert.equal(getSourceTarget({
-      ...nodeDetails,
-      node: { ...nodeDetails.node, sourceOrigin: 'external' },
+      ...unresolvedNode,
+      sourceOrigin: 'external',
     }), undefined)
   })
 
   it('returns undefined when the node has no source offset', () => {
-    const node = { ...nodeDetails.node }
-    delete node.sourceOffset
-
-    assert.equal(getSourceTarget({ ...nodeDetails, node }), undefined)
+    assert.equal(getSourceTarget(processNode), undefined)
   })
 })

@@ -14,53 +14,34 @@ export interface GraphConnectionSummary {
   relationship: EdgeType
 }
 
-export interface GraphNodeDetails {
-  id: NodeId
-  name: string
-  kind: Node['kind']
-  sourceOrigin: Node['sourceOrigin']
-  fileName: string
-  filePath: string
-  sourceOffset?: number
-  sourceExcerpt?: string
-}
-
-export interface GraphNodeDetailsView {
-  node: GraphNodeDetails
+export interface GraphNodeConnectionSummaries {
   incomingConnections: GraphConnectionSummary[]
   outgoingConnections: GraphConnectionSummary[]
 }
 
-export function hasConnections(nodeDetails: GraphNodeDetailsView): boolean {
-  return nodeDetails.incomingConnections.length > 0
-    || nodeDetails.outgoingConnections.length > 0
+export function hasConnections(connectionSummaries: GraphNodeConnectionSummaries): boolean {
+  return connectionSummaries.incomingConnections.length > 0
+    || connectionSummaries.outgoingConnections.length > 0
 }
 
 export function getSourceTarget(
-  nodeDetails: GraphNodeDetailsView,
+  node: Node,
 ): { filePath: string, offset: number } | undefined {
-  const { node } = nodeDetails
+  const sourceOffset = getSourceOffset(node)
 
   return (node.sourceOrigin === 'project' || node.sourceOrigin === 'unknown')
-    && node.sourceOffset !== undefined
-    ? { filePath: node.filePath, offset: node.sourceOffset }
+    && sourceOffset !== undefined
+    ? { filePath: node.filePath, offset: sourceOffset }
     : undefined
 }
 
-export function createGraphNodeDetailsView(
+export function createGraphNodeConnectionSummaries(
   graph: FlowGraph,
   nodeId: NodeId,
-): GraphNodeDetailsView | undefined {
-  const selectedNode = graph.nodes.find((node) => node.id === nodeId)
-
-  if (!selectedNode) {
-    return undefined
-  }
-
+): GraphNodeConnectionSummaries {
   const nodesById = new Map(graph.nodes.map((node) => [node.id, node]))
 
   return {
-    node: toGraphNodeDetails(selectedNode),
     incomingConnections: graph.edges
       .filter((edge) => edge.target === nodeId)
       .flatMap((edge) => toConnectionSummary(edge, edge.source, nodesById)),
@@ -70,28 +51,14 @@ export function createGraphNodeDetailsView(
   }
 }
 
-function toGraphNodeDetails(node: Node): GraphNodeDetails {
-  const sourceOffset = getSourceOffset(node)
-  const sourceExcerpt = isCallExpressionNode(node)
-    ? node.text
-    : undefined
-
-  return {
-    id: node.id,
-    name: node.name,
-    kind: node.kind,
-    sourceOrigin: node.sourceOrigin,
-    fileName: node.fileName,
-    filePath: node.filePath,
-    ...(sourceOffset === undefined ? {} : { sourceOffset }),
-    ...(sourceExcerpt ? { sourceExcerpt } : {}),
-  }
-}
-
-function getSourceOffset(node: Node): number | undefined {
+export function getSourceOffset(node: Node): number | undefined {
   return isCallExpressionNode(node) || isUnresolvedCallDeclarationNode(node)
     ? node.start
     : undefined
+}
+
+export function getSourceExcerpt(node: Node): string | undefined {
+  return isCallExpressionNode(node) ? node.text : undefined
 }
 
 function toConnectionSummary(

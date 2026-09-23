@@ -58,6 +58,21 @@ describe('graphReducer', () => {
     assert.equal(selectors.selectSelectedNodeId(store.getState()), undefined)
   })
 
+  it('returns the selected node from the transformed graph', () => {
+    const store = createAppStore()
+    const node = createNode({ id: 'selected' })
+    const graph: FlowGraph = { nodes: [node], edges: [] }
+
+    store.dispatch(actions.selectTransformer('none'))
+    assert.equal(selectors.selectSelectedNode(store.getState(), graph), undefined)
+
+    store.dispatch(actions.selectNode(node.id))
+    assert.equal(selectors.selectSelectedNode(store.getState(), graph), node)
+
+    store.dispatch(actions.selectNode('missing'))
+    assert.equal(selectors.selectSelectedNode(store.getState(), graph), undefined)
+  })
+
   it('uses the default layout direction and supports every direction', () => {
     const store = createAppStore()
 
