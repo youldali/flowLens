@@ -10,9 +10,10 @@ import ReactFlow, {
 } from 'reactflow'
 import { isEmpty, type FlowGraph } from '@flowlens/analyzer-core/flow-graph'
 import { useConfig } from '@common/config'
-import type { ReactFlowAdapterOptions } from '@code-analysis-context/graph-visualization/adapters/ReactFlowAdapter'
 import type { GraphViewNodeData } from '@code-analysis-context/graph-visualization/adapters/ReactFlowAdapter/toReactFlow'
 import { useGraphContext } from '@code-analysis-context/graph-visualization/context'
+import { selectors } from '@code-analysis-context/graph-visualization/store'
+import { useAppSelector } from '@store/hooks'
 import { GraphToolbar } from './GraphToolbar'
 import { GraphNode } from './GraphNode'
 import { NodeDetailsInspector } from './NodeDetailsInspector'
@@ -22,12 +23,10 @@ import styles from './GraphViewContent.module.css'
 export interface GraphViewContentProps {
   graph: FlowGraph
   className?: string
-  direction?: ReactFlowAdapterOptions['direction']
   fitViewOptions?: FitViewOptions
   onOpenSource?: (filePath: string, offset: number) => void
 }
 
-const DEFAULT_LAYOUT_DIRECTION = 'LR' satisfies ReactFlowAdapterOptions['direction']
 const DEFAULT_FIT_VIEW_OPTIONS = { padding: 0.2 } satisfies FitViewOptions
 const NODE_TYPES = {
   default: ({ data, selected }: NodeProps<GraphViewNodeData>) => (
@@ -46,12 +45,12 @@ export function GraphViewContent(props: GraphViewContentProps) {
 function GraphCanvas({
   graph,
   className,
-  direction = DEFAULT_LAYOUT_DIRECTION,
   fitViewOptions = DEFAULT_FIT_VIEW_OPTIONS,
   onOpenSource,
 }: GraphViewContentProps) {
   const { runtimeHost } = useConfig()
   const { transformedGraph } = useGraphContext()
+  const direction = useAppSelector(selectors.selectDirection)
   const entryNode = graph.nodes[0]
   const rootLabel =
     entryNode?.kind === 'functionDeclaration' || entryNode?.kind === 'methodDeclaration'

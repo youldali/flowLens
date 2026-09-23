@@ -54,4 +54,15 @@ describe('graphReducer', () => {
     store.dispatch(actions.clearNodeSelection())
     assert.equal(selectors.selectSelectedNodeId(store.getState()), undefined)
   })
+
+  it('uses the default layout direction and supports every direction', () => {
+    const store = createAppStore()
+
+    assert.equal(selectors.selectDirection(store.getState()), 'LR')
+
+    for (const direction of ['TB', 'BT', 'LR', 'RL'] as const) {
+      store.dispatch(actions.selectDirection(direction))
+      assert.equal(selectors.selectDirection(store.getState()), direction)
+    }
+  })
 })

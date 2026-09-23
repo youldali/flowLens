@@ -1,6 +1,7 @@
 import { createSelector, createSlice, type PayloadAction } from '@reduxjs/toolkit'
 import type { FlowGraph } from '@flowlens/analyzer-core/flow-graph'
 import type { NodeId } from '@flowlens/analyzer-core/node'
+import type { LayoutDirection } from '@code-analysis-context/graph-visualization/adapters/ReactFlowAdapter'
 import {
   DEFAULT_GRAPH_TRANSFORMER_ID,
   transformGraph,
@@ -10,11 +11,15 @@ import {
 export interface GraphState {
   selectedTransformer: GraphTransformerId
   selectedNodeId: NodeId | undefined
+  direction: LayoutDirection
 }
+
+const DEFAULT_LAYOUT_DIRECTION = 'LR' satisfies LayoutDirection
 
 const initialState: GraphState = {
   selectedTransformer: DEFAULT_GRAPH_TRANSFORMER_ID,
   selectedNodeId: undefined,
+  direction: DEFAULT_LAYOUT_DIRECTION,
 }
 
 const graphSlice = createSlice({
@@ -29,6 +34,9 @@ const graphSlice = createSlice({
     },
     clearNodeSelection(state) {
       state.selectedNodeId = undefined
+    },
+    selectDirection(state, action: PayloadAction<LayoutDirection>) {
+      state.direction = action.payload
     },
   },
 })
@@ -48,6 +56,10 @@ const selectSelectedNodeId = (
   state: GraphRootState,
 ): NodeId | undefined => state.graph.selectedNodeId
 
+const selectDirection = (
+  state: GraphRootState,
+): LayoutDirection => state.graph.direction
+
 const selectGraph = (
   _state: GraphRootState,
   graph: FlowGraph,
@@ -56,6 +68,7 @@ const selectGraph = (
 export const selectors = {
   selectSelectedTransformer,
   selectSelectedNodeId,
+  selectDirection,
   selectTransformedGraph: createSelector(
     [selectSelectedTransformer, selectGraph],
     (selectedTransformer, graph) => transformGraph(graph, selectedTransformer),

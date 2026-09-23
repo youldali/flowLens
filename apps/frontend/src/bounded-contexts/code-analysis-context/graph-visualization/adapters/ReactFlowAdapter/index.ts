@@ -7,6 +7,7 @@ import { toReactFlow, type ReactFlowGraph } from './toReactFlow.ts'
 export interface ReactFlowAdapterOptions extends DagreLayoutOptions {
   selectedNodeId?: NodeId | undefined
 }
+export type { LayoutDirection } from './layoutDagre.ts'
 export type { ReactFlowGraph } from './toReactFlow.ts'
 
 export function adaptToReactFlow(
