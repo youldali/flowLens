@@ -10,6 +10,15 @@
                 "projectSource": "Project source"
             }
         },
+        "directions": {
+            "label": "Direction",
+            "options": {
+                "leftToRight": "Left to right",
+                "rightToLeft": "Right to left",
+                "topToBottom": "Top to bottom",
+                "bottomToTop": "Bottom to top"
+            }
+        },
         "nodes": {
             "categories": {
                 "functionDeclaration": "FUNCTION",

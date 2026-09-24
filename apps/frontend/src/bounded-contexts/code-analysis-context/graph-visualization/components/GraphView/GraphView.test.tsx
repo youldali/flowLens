@@ -36,6 +36,10 @@ describe('GraphView', () => {
       for (const value of ['none', 'flow', 'projectSource']) {
         assert.ok(markup.includes(`value="${value}"`))
       }
+      assert.ok(markup.includes('graphVisualization.directions.label'))
+      for (const direction of ['LR', 'RL', 'TB', 'BT']) {
+        assert.ok(markup.includes(`value="${direction}"`))
+      }
       assert.ok(markup.includes('graphVisualization.fit'))
       assert.ok(markup.includes(`title="${name}"`))
       assert.ok(markup.includes('react-flow'))

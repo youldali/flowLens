@@ -85,9 +85,31 @@ body.vscode-high-contrast-light {
   --graph-button-background: var(--vscode-button-background);
   --graph-button-foreground: var(--vscode-button-foreground);
   --graph-input-background: var(--vscode-input-background);
+  --graph-select-background: var(
+    --vscode-dropdown-background,
+    var(--vscode-input-background, var(--bg))
+  );
+  --graph-select-foreground: var(
+    --vscode-dropdown-foreground,
+    var(--vscode-input-foreground, var(--text-h))
+  );
+  --graph-select-border: var(
+    --vscode-dropdown-border,
+    var(--vscode-input-border, var(--border))
+  );
   --graph-focus-border: var(--vscode-focusBorder);
   background: var(--vscode-editor-background);
   color: var(--vscode-editor-foreground);
+}
+
+body.vscode-dark,
+body.vscode-high-contrast {
+  color-scheme: dark;
+}
+
+body.vscode-light,
+body.vscode-high-contrast-light {
+  color-scheme: light;
 }
 
 h1,

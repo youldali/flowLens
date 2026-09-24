@@ -1,0 +1,30 @@
+.directionSelector {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 6px;
+  min-height: 28px;
+  font-size: 13px;
+  line-height: 1.2;
+}
+
+.directionSelect {
+  min-height: 28px;
+  padding: 3px 8px;
+  border: 1px solid var(--graph-select-border, var(--border));
+  border-radius: 4px;
+  color: var(--graph-select-foreground, var(--text-h));
+  background-color: var(--graph-select-background, var(--bg));
+  font: inherit;
+  cursor: pointer;
+}
+
+.directionSelect option {
+  color: var(--graph-select-foreground, var(--text-h));
+  background-color: var(--graph-select-background, var(--bg));
+}
+
+.directionSelect:focus-visible {
+  outline: 2px solid var(--graph-focus-border, var(--accent));
+  outline-offset: 2px;
+}
