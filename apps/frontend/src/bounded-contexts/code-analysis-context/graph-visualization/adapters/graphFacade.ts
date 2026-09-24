@@ -1,4 +1,4 @@
-import { useCallback, useEffect } from 'react'
+import { useCallback } from 'react'
 import {
   useReactFlow,
   type FitViewOptions,
@@ -91,24 +91,6 @@ function useSelectAndFocusNode() {
   }, [focusOnNode, selectNode])
 }
 
-function useSelectionCleanup() {
-  const clearSelection = useClearSelection()
-
-  useEffect(() => {
-    const closeOnEscape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        clearSelection()
-      }
-    }
-
-    window.addEventListener('keydown', closeOnEscape)
-    return () => {
-      window.removeEventListener('keydown', closeOnEscape)
-      clearSelection()
-    }
-  }, [clearSelection])
-}
-
 function useOriginalGraph() {
   return useGraphContext().graph
 }
@@ -156,7 +138,6 @@ export const graphFacade = {
     useSelectAndFocusNode,
     useFocusOnNode,
     useFitView,
-    useSelectionCleanup,
   },
   data: {
     useOriginalGraph,

@@ -77,7 +77,6 @@ function ActionProbe() {
   const selectAndFocusNode = graphFacade.actions.useSelectAndFocusNode()
   const focusOnNode = graphFacade.actions.useFocusOnNode()
   const fitView = graphFacade.actions.useFitView()
-  graphFacade.actions.useSelectionCleanup()
 
   return (
     <>
@@ -157,22 +156,6 @@ describe('graphFacade', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Clear selection' }))
     assert.equal(output('Selected node ID'), 'none')
-    assert.equal(output('Selected node'), 'none')
-  })
-
-  it('clears selection on Escape and unmount', () => {
-    const { consumers, view } = renderFacade()
-
-    fireEvent.click(screen.getByRole('button', { name: 'Select node' }))
-    fireEvent.keyDown(window, { key: 'Enter' })
-    assert.equal(output('Selected node'), 'first')
-
-    fireEvent.keyDown(window, { key: 'Escape' })
-    assert.equal(output('Selected node'), 'none')
-
-    fireEvent.click(screen.getByRole('button', { name: 'Select node' }))
-    view.rerender(<AppShell />)
-    view.rerender(consumers)
     assert.equal(output('Selected node'), 'none')
   })
 

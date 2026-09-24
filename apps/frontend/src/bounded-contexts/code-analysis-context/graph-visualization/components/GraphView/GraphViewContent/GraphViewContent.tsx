@@ -16,6 +16,7 @@ import { GraphToolbar } from './GraphToolbar'
 import { GraphNode } from './GraphNode'
 import { NodeDetailsInspector } from './NodeDetailsInspector'
 import styles from './GraphViewContent.module.css'
+import { useEffectSelectionCleanup } from './useEffectSelectionCleanup'
 
 export interface GraphViewContentProps {
   className?: string
@@ -49,7 +50,7 @@ function GraphCanvas({
   const fitView = graphFacade.actions.useFitView()
   const selectNode = graphFacade.actions.useSelectNodeMouseHandler()
   const clearSelection = graphFacade.actions.useClearSelection()
-  graphFacade.actions.useSelectionCleanup()
+  useEffectSelectionCleanup()
 
   const entryNode = originalGraph.nodes[0]
   const rootLabel =
