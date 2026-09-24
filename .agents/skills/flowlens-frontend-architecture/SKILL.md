@@ -57,6 +57,12 @@ Forbidden:
 
 When dependency direction is ambiguous, keep domain pure and move orchestration outward.
 
+## Graph Facade
+
+Within the graph-visualization module, `graphFacade.ts` is the reconciliation point between the Redux store, React contexts, and React Query when server state is involved.
+
+The facade owns the plumbing required to combine these state sources and exposes ready-to-use hooks for components. Components should consume those hooks instead of repeating cross-source selection, dispatch, context access, or query wiring. Keep component-specific rendering and lifecycle effects colocated with their owning components rather than adding them to the facade.
+
 ## Domain Layer
 
 The `domain/` directory is the single source of truth for a module.
