@@ -150,6 +150,25 @@ function renderInspector(
 }
 
 describe('NodeDetailsInspector', () => {
+  it('uses display names for titles, accessibility, and connections', () => {
+    const labeledGraph = { ...graph, nodes: graph.nodes.map((node) => ({
+      ...node,
+      displayName: node.id === selectedNodeId ? 'click handler' : `${node.name} callback`,
+    })) }
+    renderInspector(labeledGraph, selectedNodeId)
+    assert.ok(screen.getByRole('complementary', { name: 'Node details for click handler' }))
+    assert.ok(screen.getByRole('heading', { name: 'click handler' }))
+    assert.ok(screen.getByText('caller callback'))
+    assert.ok(screen.getByText('callee callback'))
+  })
+
+  it('renders legacy nodes without display names', () => {
+    const legacyGraph = { ...graph, nodes: graph.nodes.map(({ displayName, ...node }) => node) }
+    renderInspector(legacyGraph, selectedNodeId)
+    assert.ok(screen.getByRole('heading', { name: 'process' }))
+    assert.ok(screen.getByText('caller'))
+  })
+
   it('renders facade-selected node details and available actions', () => {
     renderInspector(graph, selectedNodeId)
 

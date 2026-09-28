@@ -3,7 +3,7 @@ import * as path from 'node:path';
 
 import { normalizePath } from '@flowlens/common';
 import type { FlowGraph } from './flow-graph.js';
-import * as TsModule from './tsNode.js';
+import * as TsModule from './tsNode/index.js';
 
 export type GraphNodeKind =
   | 'functionDeclaration'
@@ -26,6 +26,7 @@ export interface Node {
   id: NodeId;
   kind: GraphNodeKind;
   name: string;
+  displayName?: string | undefined;
   filePath: string;
   fileName: string;
   sourceOrigin: SourceOrigin;
@@ -37,6 +38,7 @@ export interface FileNode extends Node {
 
 export interface FunctionDeclarationNode extends Node {
   kind: 'functionDeclaration' | 'methodDeclaration';
+  displayName: string;
   jsdoc?: string | undefined;
 }
 
@@ -135,6 +137,7 @@ export class NodeAdapter {
     return {
       id: TsModule.deriveIdFromTsNode(node),
       name: TsModule.getExecutableFunctionName(node, sourceFile),
+      displayName: TsModule.getDisplayName(node),
       filePath: normalizePath(sourceFile.fileName),
       fileName: path.basename(sourceFile.fileName),
       kind: TsModule.getExecutableFunctionKind(node),

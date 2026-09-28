@@ -2,7 +2,7 @@ import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import ts from 'typescript';
 
-import * as TsNodeModule from './tsNode.js';
+import * as TsNodeModule from './index.js';
 import { normalizePath } from '@flowlens/common';
 import { assertErr, assertOk } from '@flowlens/common/testing';
 import {
@@ -13,7 +13,7 @@ import {
   propertySignatureFixture,
   sourceFileFixture,
   variableStatementNodeFixture,
-} from './fixtures/ts-node.js';
+} from '../fixtures/ts-node.js';
 
 describe("createFileId", () => {
   it("uses the normalized source file path", () => {
@@ -145,6 +145,118 @@ describe("findEnclosingFunction", () => {
 
     assertErr(result);
     assert.equal(result.error, "not-found");
+  });
+});
+
+describe("findFirstMeaningfulParent", () => {
+  it("returns the outermost transparent wrapper and its parent", () => {
+    const sourceFile = ts.createSourceFile(
+      "fixture.ts",
+      "const validate = ((() => {}) as Handler)!;",
+      ts.ScriptTarget.Latest,
+      true,
+    );
+    let arrowFunction: ts.ArrowFunction | undefined;
+    const visit = (node: ts.Node): void => {
+      if (ts.isArrowFunction(node)) {
+        arrowFunction = node;
+      }
+      ts.forEachChild(node, visit);
+    };
+    visit(sourceFile);
+
+    if (!arrowFunction) {
+      assert.fail("Expected an arrow function.");
+    }
+
+    const result = TsNodeModule.findFirstMeaningfulParent(arrowFunction);
+    const variableStatement = sourceFile.statements[0];
+
+    if (!variableStatement || !ts.isVariableStatement(variableStatement)) {
+      assert.fail("Expected a variable statement.");
+    }
+
+    const declaration = variableStatement.declarationList.declarations[0]!;
+    assert.equal(result.directChild, declaration.initializer);
+    assert.equal(result.parent, declaration);
+  });
+});
+
+describe("isTransparentExpression", () => {
+  it("identifies expressions that preserve their surrounding context", () => {
+    const identifier = ts.factory.createIdentifier("callback");
+
+    assert.equal(
+      TsNodeModule.isTransparentExpression(ts.factory.createParenthesizedExpression(identifier)),
+      true,
+    );
+    assert.equal(TsNodeModule.isTransparentExpression(identifier), false);
+  });
+});
+
+describe("getUnwrappedExpression", () => {
+  it("removes all transparent expression wrappers", () => {
+    const identifier = ts.factory.createIdentifier("callback");
+    const wrapped = ts.factory.createNonNullExpression(
+      ts.factory.createAsExpression(
+        ts.factory.createParenthesizedExpression(identifier),
+        ts.factory.createTypeReferenceNode("Handler"),
+      ),
+    );
+
+    assert.equal(TsNodeModule.getUnwrappedExpression(wrapped), identifier);
+  });
+});
+
+describe("getLiteralName", () => {
+  it("returns names only for non-empty string-like and numeric literals", () => {
+    assert.equal(TsNodeModule.getLiteralName(ts.factory.createStringLiteral("submit")), "submit");
+    assert.equal(TsNodeModule.getLiteralName(ts.factory.createNumericLiteral(42)), "42");
+    assert.equal(TsNodeModule.getLiteralName(ts.factory.createStringLiteral("")), undefined);
+    assert.equal(TsNodeModule.getLiteralName(ts.factory.createIdentifier("submit")), undefined);
+  });
+});
+
+describe("getPropertyName", () => {
+  it("returns statically known property names", () => {
+    assert.equal(TsNodeModule.getPropertyName(ts.factory.createIdentifier("submit")), "submit");
+    assert.equal(TsNodeModule.getPropertyName(ts.factory.createStringLiteral("submit")), "submit");
+    assert.equal(
+      TsNodeModule.getPropertyName(
+        ts.factory.createComputedPropertyName(ts.factory.createStringLiteral("submit")),
+      ),
+      "submit",
+    );
+    assert.equal(
+      TsNodeModule.getPropertyName(
+        ts.factory.createComputedPropertyName(ts.factory.createIdentifier("key")),
+      ),
+      undefined,
+    );
+  });
+});
+
+describe("getExpressionName", () => {
+  it("returns the final statically known expression name", () => {
+    const object = ts.factory.createIdentifier("object");
+
+    const staticNameResults = [
+      TsNodeModule.getExpressionName(ts.factory.createIdentifier("submit")),
+      TsNodeModule.getExpressionName(ts.factory.createPropertyAccessExpression(object, "submit")),
+      TsNodeModule.getExpressionName(
+        ts.factory.createElementAccessExpression(object, ts.factory.createStringLiteral("submit")),
+      ),
+    ];
+    for (const result of staticNameResults) {
+      assertOk(result);
+      assert.equal(result.value, "submit");
+    }
+
+    const dynamicNameResult = TsNodeModule.getExpressionName(
+      ts.factory.createElementAccessExpression(object, ts.factory.createIdentifier("key")),
+    );
+    assertErr(dynamicNameResult);
+    assert.equal(dynamicNameResult.error, "not-found");
   });
 });
 

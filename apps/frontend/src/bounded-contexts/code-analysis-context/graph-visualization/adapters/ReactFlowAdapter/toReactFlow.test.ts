@@ -2,11 +2,22 @@ import assert from 'node:assert/strict'
 import { describe, it } from 'vitest'
 
 import { MarkerType } from 'reactflow'
+import { create as createNode } from '@flowlens/analyzer-core/fixtures/node'
 import type { FlowGraph } from '@flowlens/analyzer-core/flow-graph'
 
 import { toReactFlow } from './toReactFlow.ts'
 
 describe('toReactFlow', () => {
+  it('prefers presentation names without changing identity or source names', () => {
+    const node = createNode({ name: 'anonymous', displayName: 'map callback' })
+    const legacy = createNode({ id: 'legacy', name: 'oldName' })
+    const result = toReactFlow({ nodes: [node, legacy], edges: [] })
+    assert.deepEqual(result.nodes.map(({ id, data }) => [id, data.label]), [
+      [node.id, 'map callback'], ['legacy', 'oldName'],
+    ])
+    assert.equal(node.name, 'anonymous')
+  })
+
   it('maps graph nodes and edges to React Flow elements', () => {
     const graph: FlowGraph = {
       nodes: [

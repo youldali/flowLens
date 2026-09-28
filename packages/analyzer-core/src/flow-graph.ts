@@ -4,7 +4,7 @@ import { err, ok, type Result } from 'neverthrow';
 import { normalizePath } from '@flowlens/common';
 import { Queue } from '@flowlens/common/queue';
 import * as NodeModule from './node.js';
-import * as TsNodeModule from './tsNode.js';
+import * as TsNodeModule from './tsNode/index.js';
 import * as EdgeModule from './edge.js';
 import { loadProjectConfig } from './project-config.js';
 

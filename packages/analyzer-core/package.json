@@ -40,8 +40,8 @@
       "default": "./dist/src/transformer/index.js"
     },
     "./tsNode": {
-      "types": "./dist/src/tsNode.d.ts",
-      "default": "./dist/src/tsNode.js"
+      "types": "./dist/src/tsNode/index.d.ts",
+      "default": "./dist/src/tsNode/index.js"
     }
   },
   "dependencies": {

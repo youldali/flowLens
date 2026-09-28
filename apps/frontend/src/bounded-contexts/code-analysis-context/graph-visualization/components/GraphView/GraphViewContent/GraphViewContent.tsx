@@ -55,7 +55,7 @@ function GraphCanvas({
   const entryNode = originalGraph.nodes[0]
   const rootLabel =
     entryNode?.kind === 'functionDeclaration' || entryNode?.kind === 'methodDeclaration'
-      ? entryNode.name
+      ? entryNode.displayName ?? entryNode.name
       : undefined
 
   const isGraphEmpty = isEmpty(transformedGraph)

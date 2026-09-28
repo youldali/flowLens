@@ -27,6 +27,7 @@ const fileNodeFixture: FileNode = {
 
 const functionDeclarationNodeFixture: FunctionDeclarationNode = {
   ...nodeFixture,
+  displayName: "fixtureFunction",
   id: "fixture.ts:1:49",
   kind: "functionDeclaration",
   name: "fixtureFunction",
@@ -67,7 +68,12 @@ const unresolvedCallDeclarationNodeFixture: UnresolvedCallDeclarationNode = {
 export const create = createFixture<Node>(nodeFixture);
 export const createNode = create;
 export const createFileNode = createFixture<FileNode>(fileNodeFixture);
-export const createFunctionDeclarationNode = createFixture<FunctionDeclarationNode>(functionDeclarationNodeFixture);
+const functionDeclarationFixture = createFixture<FunctionDeclarationNode>(functionDeclarationNodeFixture);
+export const createFunctionDeclarationNode = (overrides: Partial<FunctionDeclarationNode> = {}): FunctionDeclarationNode =>
+  functionDeclarationFixture({
+    ...overrides,
+    displayName: overrides.displayName ?? overrides.name ?? functionDeclarationNodeFixture.displayName,
+  });
 export const createCallableTypeMemberDeclarationNode = createFixture<CallableTypeMemberDeclarationNode>(
   callableTypeMemberDeclarationNodeFixture,
 );

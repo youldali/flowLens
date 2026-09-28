@@ -46,7 +46,7 @@ function toReactFlowNode(node: Node): FlowNode<GraphViewNodeData> {
   return {
     id: String(node.id),
     data: {
-      label: node.name,
+      label: node.displayName ?? node.name,
       kind: node.kind,
       fileName: node.fileName,
       sourceOrigin: node.sourceOrigin,

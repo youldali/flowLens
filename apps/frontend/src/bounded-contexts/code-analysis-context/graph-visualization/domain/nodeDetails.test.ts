@@ -56,6 +56,16 @@ const graph: FlowGraph = {
 }
 
 describe('createGraphNodeConnectionSummaries', () => {
+  it('uses presentation names for connected nodes', () => {
+    const labeledGraph = { ...graph, nodes: graph.nodes.map((node) =>
+      node.id === repositoryNode.id ? { ...node, displayName: 'list callback' } : node,
+    ) }
+    const result = createGraphNodeConnectionSummaries(labeledGraph, processNode.id)
+    assert.equal(result.incomingConnections[0]?.name, 'list callback')
+    assert.equal(result.incomingConnections[0]?.connectedNodeId, repositoryNode.id)
+    assert.equal(result.outgoingConnections[0]?.name, 'database.query')
+  })
+
   it('builds connection summaries from the loaded graph', () => {
     assert.deepEqual(createGraphNodeConnectionSummaries(graph, processNode.id), {
       incomingConnections: [{

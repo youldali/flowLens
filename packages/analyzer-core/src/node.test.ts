@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import ts from 'typescript';
 
 import * as NodeModule from './node.js';
-import * as TsNodeModule from './tsNode.js';
+import * as TsNodeModule from './tsNode/index.js';
 import { normalizePath } from '@flowlens/common';
 import { create as createEdge } from './edge.js';
 import type { FlowGraph } from './flow-graph.js';
@@ -89,6 +89,33 @@ describe("isFileNode", () => {
 });
 
 describe("NodeAdapter", () => {
+  it("adds semantic labels without changing legacy names or IDs", () => {
+    const source = ts.createSourceFile("naming.ts", `
+      function parent() {
+        retry(() => {});
+        [() => {}, () => {}];
+        const validate = function actual() {};
+      }
+    `, ts.ScriptTarget.Latest, true);
+    const adapter = new NodeModule.NodeAdapter(createTypeChecker());
+    const nodes: NodeModule.FunctionDeclarationNode[] = [];
+    const visit = (node: ts.Node): void => {
+      if (TsNodeModule.isExecutableFunction(node)) {
+        const graphNode = adapter.buildFunctionDeclarationNode(node);
+        assert.equal(graphNode.id, TsNodeModule.deriveIdFromTsNode(node));
+        assert.equal(graphNode.name, TsNodeModule.getExecutableFunctionName(node, source));
+        nodes.push(graphNode);
+      }
+      ts.forEachChild(node, visit);
+    };
+    visit(source);
+    assert.deepEqual(nodes.map(({ name, displayName }) => [name, displayName]), [
+      ['parent', 'parent'], ['anonymous', 'retry callback'],
+      ['anonymous', 'anonymous at line 4'], ['anonymous', 'anonymous at line 4'],
+      ['actual', 'actual'],
+    ]);
+  });
+
   it("builds file nodes from source files", () => {
     const adapter = new NodeModule.NodeAdapter(createTypeChecker());
 
@@ -116,6 +143,7 @@ describe("NodeAdapter", () => {
     assert.deepEqual(adapter.buildFunctionDeclarationNode(functionDeclarationFixture), {
       id: TsNodeModule.deriveIdFromTsNode(functionDeclarationFixture),
       name: "fixtureFunction",
+      displayName: "fixtureFunction",
       filePath: normalizePath(sourceFileFixture.fileName),
       fileName: "fixture.ts",
       kind: "functionDeclaration",
@@ -130,6 +158,7 @@ describe("NodeAdapter", () => {
     assert.deepEqual(adapter.buildFunctionDeclarationNode(arrowFunctionFixture), {
       id: TsNodeModule.deriveIdFromTsNode(arrowFunctionFixture),
       name: "arrowFixture",
+      displayName: "arrowFixture",
       filePath: normalizePath(sourceFileFixture.fileName),
       fileName: "fixture.ts",
       kind: "functionDeclaration",

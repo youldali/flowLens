@@ -8,6 +8,7 @@ export type { FlowGraph } from './flow-graph.js';
 const nodeBaseSchema = z.object({
   id: z.string(),
   name: z.string(),
+  displayName: z.string().optional(),
   filePath: z.string(),
   fileName: z.string(),
   sourceOrigin: z.enum(['project', 'external', 'native-js-api', 'native-node-api', 'unknown']),

@@ -45,17 +45,18 @@ export function NodeDetailsInspector({
   const { incomingConnections, outgoingConnections } = connectionSummaries
   const showLocation = shouldDisplayNodeLocation(node.sourceOrigin)
   const sourceExcerpt = getSourceExcerpt(node)
+  const displayName = node.displayName ?? node.name
 
   return (
     <aside
       className={classNames(styles.inspector, className)}
       aria-label={t('graphVisualization.nodes.details.accessibleLabel', {
-        name: node.name,
+        name: displayName,
       })}
     >
       <header className={styles.header}>
         <div className={styles.identity}>
-          <h2 className={styles.title} title={node.name}>{node.name}</h2>
+          <h2 className={styles.title} title={displayName}>{displayName}</h2>
           <span className={styles.category}>
             {nodeTranslations.category(node.kind, node.sourceOrigin)}
           </span>

@@ -71,7 +71,7 @@ function toConnectionSummary(
   return connectedNode ? [{
     edgeId: edge.id,
     connectedNodeId: connectedNode.id,
-    name: connectedNode.name,
+    name: connectedNode.displayName ?? connectedNode.name,
     relationship: edge.type,
   }] : []
 }

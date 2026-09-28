@@ -53,3 +53,9 @@ export function nativeNodeApiFlow(): boolean {
 }
 
 export const topLevelValue = 1;
+
+export function closureNamingFlow(): void {
+  const callbacks = [() => { return () => 1; }, () => 2];
+  callbacks.map(() => 3);
+  (() => 4)();
+}

@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
-import { describe, it } from 'node:test';
+import { before, describe, it } from 'node:test';
 import ts from 'typescript';
 
 import {
@@ -18,12 +18,45 @@ import {
   createUnresolvedCallDeclarationNode,
 } from './fixtures/node.js';
 import { assertErr, assertOk } from '@flowlens/common/testing';
+import { deriveIdFromTsNode, isExecutableFunction } from './tsNode/index.js';
+import { collapseResolvedCallExpressionNodes } from './transformer/collapse-resolved-call-expression-nodes.js';
 import { createSyntheticNodesForCallExpressionsWithoutDeclarations } from './transformer/index.js';
 
 const tsconfigPath = path.resolve("tsconfig.json");
 const entryFilePath = path.resolve("src/fixtures/graph-builder-entry.ts");
 
 const createGraphAdapter = (): GraphAdapter => new GraphAdapter(tsconfigPath);
+
+const createClosureNamingTestContext = () => {
+  const sourceText = fs.readFileSync(entryFilePath, "utf8");
+  const sourceFile = ts.createSourceFile(entryFilePath, sourceText, ts.ScriptTarget.Latest, true);
+  const declaration = sourceFile.statements.find((node) =>
+    ts.isFunctionDeclaration(node) && node.name?.text === "closureNamingFlow");
+  assert.ok(declaration);
+
+  const functions: ts.Node[] = [];
+  const collectExecutableFunctions = (node: ts.Node): void => {
+    if (isExecutableFunction(node)) functions.push(node);
+    ts.forEachChild(node, collectExecutableFunctions);
+  };
+  collectExecutableFunctions(declaration);
+
+  const functionIds = functions.map(deriveIdFromTsNode);
+  const fullGraphAdapter = createGraphAdapter();
+  const focusedGraphAdapter = createGraphAdapter();
+  assertOk(fullGraphAdapter.fromFile(entryFilePath));
+  assertOk(focusedGraphAdapter.fromFilePosition(entryFilePath, declaration.getStart()));
+
+  const fullGraph = fullGraphAdapter.extract();
+
+  return {
+    functions,
+    functionIds,
+    fullGraph,
+    focusedGraph: focusedGraphAdapter.extract(),
+    fullFunctionNodes: functionIds.map((id) => fullGraph.nodes.find((node) => node.id === id)),
+  };
+};
 
 describe("isFlowGraph", () => {
   it("returns true for objects with node and edge arrays", () => {
@@ -262,6 +295,83 @@ describe("GraphAdapter.fromFile", () => {
 });
 
 describe("GraphAdapter.fromFilePosition", () => {
+  describe("anonymous function labels and identity", () => {
+    let context: ReturnType<typeof createClosureNamingTestContext>;
+
+    before(() => {
+      context = createClosureNamingTestContext();
+    });
+
+    it("keeps function nodes stable between full and focused graphs", () => {
+      const { focusedGraph, fullFunctionNodes, functionIds } = context;
+      const focusedFunctionNodes = functionIds.map((id) =>
+        focusedGraph.nodes.find((node) => node.id === id));
+
+      assert.deepEqual(focusedFunctionNodes, fullFunctionNodes);
+      assert.deepEqual(fullFunctionNodes.map((node) => node?.displayName), [
+        "closureNamingFlow",
+        "anonymous at line 58",
+        "anonymous at line 58",
+        "anonymous at line 58",
+        "map callback",
+        "anonymous at line 60",
+      ]);
+    });
+
+    it("keeps focused graph edge identities stable", () => {
+      const { focusedGraph, fullGraph, functionIds } = context;
+      const fullEdgeIds = new Set(fullGraph.edges.map((edge) => edge.id));
+      const focusedInternalEdges = focusedGraph.edges.filter((edge) => edge.target !== functionIds[0]);
+
+      assert.equal(focusedInternalEdges.every((edge) => fullEdgeIds.has(edge.id)), true);
+    });
+
+    it("keeps collapse results stable when display labels are absent", () => {
+      const { focusedGraph } = context;
+      const collapsedGraph = collapseResolvedCallExpressionNodes(focusedGraph);
+      const legacyGraph = {
+        ...focusedGraph,
+        nodes: focusedGraph.nodes.map(({ displayName, ...node }) => node),
+      };
+      const collapsedLegacyGraph = collapseResolvedCallExpressionNodes(legacyGraph);
+
+      assert.deepEqual(collapsedGraph.edges, collapsedLegacyGraph.edges);
+      assert.deepEqual(
+        collapsedGraph.nodes.map((node) => node.id),
+        collapsedLegacyGraph.nodes.map((node) => node.id),
+      );
+    });
+
+    it("preserves the IIFE label and relationships after collapsing calls", () => {
+      const { focusedGraph, functionIds } = context;
+      const collapsedGraph = collapseResolvedCallExpressionNodes(focusedGraph);
+      const flowId = functionIds[0];
+      const iifeId = functionIds.at(-1);
+
+      assert.ok(collapsedGraph.edges.some((edge) =>
+        edge.source === flowId && edge.target === iifeId && edge.type === "calls"));
+      assert.ok(collapsedGraph.edges.some((edge) =>
+        edge.target === iifeId && edge.type === "declares"));
+      assert.equal(
+        collapsedGraph.nodes.find((node) => node.id === iifeId)?.displayName,
+        "anonymous at line 60",
+      );
+    });
+
+    it("keeps function identity when entering through the nested IIFE", () => {
+      const { functions, fullFunctionNodes, functionIds } = context;
+      const iife = functions.at(-1);
+      const iifeId = functionIds.at(-1);
+      assert.ok(iife);
+
+      const nestedGraphAdapter = createGraphAdapter();
+      assertOk(nestedGraphAdapter.fromFilePosition(entryFilePath, iife.getStart()));
+
+      const nestedIife = nestedGraphAdapter.extract().nodes.find((node) => node.id === iifeId);
+      assert.deepEqual(nestedIife, fullFunctionNodes.at(-1));
+    });
+  });
+
   it("accepts a source file path and builds from the enclosing function", () => {
     const graphAdapter = createGraphAdapter();
     const sourceText = fs.readFileSync(entryFilePath, "utf8");
