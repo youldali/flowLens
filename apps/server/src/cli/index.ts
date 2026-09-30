@@ -35,5 +35,5 @@ if (args.length !== 1) {
   const graph = graphAdapter.extract();
   console.log(graph);
 
-  await serveGraphViewer(graph);
+  await serveGraphViewer(graphAdapter);
 }

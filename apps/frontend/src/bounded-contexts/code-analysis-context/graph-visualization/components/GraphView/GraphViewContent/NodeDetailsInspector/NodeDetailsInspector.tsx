@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
 import classNames from 'classnames'
-import type { Node } from '@flowlens/analyzer-core/node'
+import { isCallableTypeMemberDeclarationNode, type Node } from '@flowlens/analyzer-core/node'
 import { useTranslation } from '@common/hooks/useTranslation'
 import { graphFacade } from '@code-analysis-context/graph-visualization/adapters/graphFacade'
 import {
@@ -12,6 +12,7 @@ import {
 import { shouldDisplayNodeLocation } from '../nodePresentation'
 import { useNodeTranslations } from '../useNodeTranslations'
 import { ConnectionList } from './ConnectionList'
+import { ImplementationSection } from './ImplementationSection'
 import styles from './NodeDetailsInspector.module.css'
 
 export interface NodeDetailsInspectorProps {
@@ -24,7 +25,7 @@ export function NodeDetailsInspector({
   className,
 }: NodeDetailsInspectorProps) {
   const graph = graphFacade.data.useTransformedGraph()
-  const onOpenSource = graphFacade.data.useOnOpenSource()
+  const onOpenSource = graphFacade.actions.useOnOpenSource()
   const onClose = graphFacade.actions.useClearSelection()
   const onSelectNode = graphFacade.actions.useSelectAndFocusNode()
   const onFocusNode = graphFacade.actions.useFocusOnNode()
@@ -96,6 +97,10 @@ export function NodeDetailsInspector({
           <summary>{t('graphVisualization.nodes.details.source')}</summary>
           <code className={styles.source}>{sourceExcerpt}</code>
         </details>
+      )}
+
+      {isCallableTypeMemberDeclarationNode(node) && (
+        <ImplementationSection node={node} />
       )}
 
       {hasConnections(connectionSummaries) && (

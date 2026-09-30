@@ -7,6 +7,7 @@ import { afterEach, beforeEach, describe, it, vi } from 'vitest'
 import { create as createEdge } from '@flowlens/analyzer-core/fixtures/edge'
 import {
   createCallExpressionNode,
+  createCallableTypeMemberDeclarationNode,
   createFunctionDeclarationNode,
 } from '@flowlens/analyzer-core/fixtures/node'
 import type { FlowGraph } from '@flowlens/analyzer-core/flow-graph'
@@ -60,15 +61,19 @@ vi.mock('@common/hooks/useTranslation', () => ({
     t: (key: string, options?: { name?: string }) => ({
       'graphVisualization.nodes.categories.functionDeclaration': 'FUNCTION',
       'graphVisualization.nodes.categories.callExpression': 'CALL',
+      'graphVisualization.nodes.categories.callableTypeMemberDeclaration': 'TYPE MEMBER',
       'graphVisualization.nodes.classifications.project': 'Project code',
       'graphVisualization.nodes.declarations.functionDeclaration': 'Function declaration',
       'graphVisualization.nodes.declarations.callExpression': 'Call expression',
+      'graphVisualization.nodes.declarations.callableTypeMemberDeclaration': 'Callable type member declaration',
       'graphVisualization.nodes.relationships.calls': 'calls',
       'graphVisualization.nodes.details.close': 'Close node details',
       'graphVisualization.nodes.details.location': 'Location',
       'graphVisualization.nodes.details.declaration': 'Declaration',
       'graphVisualization.nodes.details.source': 'Source',
       'graphVisualization.nodes.details.connections': 'Connections',
+      'graphVisualization.nodes.details.implementations': 'Implementations',
+      'graphVisualization.nodes.details.implementationsEmpty': 'No implementations found',
       'graphVisualization.nodes.details.calledBy': 'Called by',
       'graphVisualization.nodes.details.calls': 'Calls',
       'graphVisualization.nodes.details.openSource': 'Open source',
@@ -163,7 +168,7 @@ describe('NodeDetailsInspector', () => {
   })
 
   it('renders legacy nodes without display names', () => {
-    const legacyGraph = { ...graph, nodes: graph.nodes.map(({ displayName, ...node }) => node) }
+    const legacyGraph = { ...graph, nodes: graph.nodes.map((node) => ({ ...node, displayName: undefined })) }
     renderInspector(legacyGraph, selectedNodeId)
     assert.ok(screen.getByRole('heading', { name: 'process' }))
     assert.ok(screen.getByText('caller'))
@@ -235,6 +240,37 @@ describe('NodeDetailsInspector', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Close node details' }))
     assert.equal(screen.queryByRole('complementary'), null)
+  })
+
+  it('shows eager implementation metadata and opens the selected declaration', () => {
+    const member = createCallableTypeMemberDeclarationNode({
+      id: 'contract-run',
+      name: 'run',
+      filePath: '/project/src/contract.ts',
+      implementations: [{
+        name: 'run',
+        filePath: '/project/src/runner.ts',
+        line: 12,
+        column: 3,
+        offset: 174,
+      }],
+    })
+    const onOpenSource = vi.fn()
+    renderInspector({ nodes: [member], edges: [] }, member.id, onOpenSource, true)
+
+    assert.ok(screen.getByRole('heading', { name: 'Implementations' }))
+    fireEvent.click(screen.getByRole('button', { name: /run.*runner.ts:12:3/ }))
+    assert.deepEqual(onOpenSource.mock.calls, [['/project/src/runner.ts', 174]])
+  })
+
+  it('shows an empty state when no implementations are found', () => {
+    const member = createCallableTypeMemberDeclarationNode({
+      id: 'contract-run',
+      implementations: [],
+    })
+    renderInspector({ nodes: [member], edges: [] }, member.id)
+
+    assert.ok(screen.getByText('No implementations found'))
   })
 
   it('does not display dependency source locations', () => {

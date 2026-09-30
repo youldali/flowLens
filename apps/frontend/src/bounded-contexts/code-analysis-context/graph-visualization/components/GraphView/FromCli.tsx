@@ -1,6 +1,7 @@
 import classNames from 'classnames'
 import { useTranslation } from '@common/hooks/useTranslation'
 import { QuerySuspense } from '@common/QuerySuspense'
+import { openCliSource } from '@code-analysis-context/graph-visualization/apis/openCliSource'
 import { useFetchGraph } from '@code-analysis-context/graph-visualization/apis/fetchGraph'
 import { GraphProvider } from '@code-analysis-context/graph-visualization/context'
 import { GraphViewContent } from './GraphViewContent'
@@ -26,7 +27,7 @@ export function FromCli() {
         )}
       >
         {(graph) => (
-          <GraphProvider graph={graph}>
+          <GraphProvider graph={graph} onOpenSource={openCliSource}>
             <GraphViewContent />
           </GraphProvider>
         )}

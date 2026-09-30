@@ -61,6 +61,8 @@
                 "declaration": "Declaration",
                 "source": "Source",
                 "connections": "Connections",
+                "implementations": "Implementations",
+                "implementationsEmpty": "No implementations found",
                 "calledBy": "Called by",
                 "calls": "Calls",
                 "openSource": "Open source",

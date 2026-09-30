@@ -40,6 +40,7 @@ const callableTypeMemberDeclarationNodeFixture: CallableTypeMemberDeclarationNod
   kind: "callableTypeMemberDeclaration",
   name: "property",
   filePath: "fixture.ts",
+  implementations: [],
 };
 
 const callExpressionNodeFixture: CallExpressionNode = {

@@ -53,7 +53,7 @@ function DataProbe() {
   const selectedNodeId = graphFacade.data.useSelectedNodeId()
   const selectedNode = graphFacade.data.useSelectedNode()
   const direction = graphFacade.data.useDirection()
-  const onOpenSource = graphFacade.data.useOnOpenSource()
+  const onOpenSource = graphFacade.actions.useOnOpenSource()
 
   return (
     <>

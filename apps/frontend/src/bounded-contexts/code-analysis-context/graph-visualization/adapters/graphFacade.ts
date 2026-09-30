@@ -138,6 +138,7 @@ export const graphFacade = {
     useSelectAndFocusNode,
     useFocusOnNode,
     useFitView,
+    useOnOpenSource,
   },
   data: {
     useOriginalGraph,
@@ -147,6 +148,5 @@ export const graphFacade = {
     useSelectedNodeId,
     useSelectedNode,
     useDirection,
-    useOnOpenSource,
   },
 }

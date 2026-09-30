@@ -19,6 +19,7 @@ import {
 } from './fixtures/node.js';
 import { assertErr, assertOk } from '@flowlens/common/testing';
 import { deriveIdFromTsNode, isExecutableFunction } from './tsNode/index.js';
+import { isCallableTypeMemberDeclarationNode } from './node.js';
 import { collapseResolvedCallExpressionNodes } from './transformer/collapse-resolved-call-expression-nodes.js';
 import { createSyntheticNodesForCallExpressionsWithoutDeclarations } from './transformer/index.js';
 
@@ -57,6 +58,64 @@ const createClosureNamingTestContext = () => {
     fullFunctionNodes: functionIds.map((id) => fullGraph.nodes.find((node) => node.id === id)),
   };
 };
+
+describe("GraphAdapter.extract implementations", () => {
+  it("includes class methods and object literal properties in callable type members", () => {
+    const adapter = createGraphAdapter();
+    const filePath = path.resolve("src/fixtures/implementation-entry.ts");
+    assertOk(adapter.fromFile(filePath));
+    const members = adapter.extract().nodes.filter(isCallableTypeMemberDeclarationNode);
+
+    const run = members.find((node) => node.name === "run");
+    const handle = members.find((node) => node.name === "handle");
+    const absent = members.find((node) => node.name === "absent");
+    assert.ok(run?.kind === "callableTypeMemberDeclaration");
+    assert.ok(handle?.kind === "callableTypeMemberDeclaration");
+    assert.ok(absent?.kind === "callableTypeMemberDeclaration");
+    assert.deepEqual(run.implementations.map((entry) => entry.name), ["run"]);
+    assert.deepEqual(handle.implementations.map((entry) => entry.name), ["handle"]);
+    assert.deepEqual(absent.implementations, []);
+
+    for (const entry of [...run.implementations, ...handle.implementations]) {
+      assert.equal(entry.filePath, filePath);
+      assert.ok(entry.line > 0);
+      assert.ok(entry.column > 0);
+      assert.equal(fs.readFileSync(entry.filePath, "utf8").slice(entry.offset, entry.offset + entry.name.length), entry.name);
+    }
+  });
+
+  it("deduplicates eager results and skips locations without navigable source", () => {
+    const adapter = createGraphAdapter();
+    const filePath = path.resolve("src/fixtures/implementation-entry.ts");
+    const source = fs.readFileSync(filePath, "utf8");
+    const offset = source.indexOf("run(): number", source.indexOf("class ClassRunner"));
+    const location: ts.ImplementationLocation = {
+      fileName: filePath,
+      textSpan: { start: offset, length: 3 },
+      kind: ts.ScriptElementKind.memberFunctionElement,
+      displayParts: [],
+    };
+    const languageService = (adapter as unknown as { languageService: ts.LanguageService }).languageService;
+    languageService.getImplementationAtPosition = () => [
+      location,
+      location,
+      { ...location, fileName: path.resolve("src/fixtures/missing.ts") },
+    ];
+
+    assertOk(adapter.fromFile(filePath));
+    const run = adapter.extract().nodes.filter(isCallableTypeMemberDeclarationNode)
+      .find((node) => node.name === "run");
+    assert.ok(run?.kind === "callableTypeMemberDeclaration");
+    assert.deepEqual(run.implementations.map((entry) => entry.name), ["run"]);
+    const sourceResult = adapter.getNavigableSource(filePath);
+    assertOk(sourceResult);
+    assert.equal(sourceResult.value, source);
+
+    const missingSourceResult = adapter.getNavigableSource(path.resolve("src/fixtures/missing.ts"));
+    assertErr(missingSourceResult);
+    assert.deepEqual(missingSourceResult.error, { reason: 'source-file-not-found' });
+  });
+});
 
 describe("isFlowGraph", () => {
   it("returns true for objects with node and edge arrays", () => {

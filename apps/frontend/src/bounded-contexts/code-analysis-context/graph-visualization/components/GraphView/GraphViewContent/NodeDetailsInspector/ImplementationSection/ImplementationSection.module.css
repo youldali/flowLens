@@ -1,0 +1,53 @@
+.section {
+  display: grid;
+  gap: 7px;
+  padding: 18px 0;
+  border-bottom: 1px solid var(--graph-toolbar-border, var(--border));
+  overflow-wrap: anywhere;
+  font-size: 13px;
+}
+
+.section h3 {
+  margin: 0;
+  color: var(--text);
+  font-size: 11px;
+  font-weight: 750;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.implementationList {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.implementationButton {
+  display: grid;
+  width: 100%;
+  gap: 2px;
+  padding: 8px;
+  border: 1px solid var(--graph-toolbar-border, var(--border));
+  border-radius: 4px;
+  color: inherit;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+  overflow-wrap: anywhere;
+}
+
+.implementationButton:hover {
+  background: var(--accent-bg);
+}
+
+.implementationButton:focus-visible {
+  outline: 2px solid var(--graph-focus-border, var(--accent));
+  outline-offset: 2px;
+}
+
+.implementationButton:disabled {
+  cursor: default;
+  opacity: 0.65;
+}

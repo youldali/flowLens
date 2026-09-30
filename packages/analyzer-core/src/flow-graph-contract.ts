@@ -5,6 +5,14 @@ import type { Node } from './node.js';
 
 export type { FlowGraph } from './flow-graph.js';
 
+const implementationEntrySchema = z.object({
+  name: z.string(),
+  filePath: z.string(),
+  line: z.number().int().positive(),
+  column: z.number().int().positive(),
+  offset: z.number().int().nonnegative(),
+});
+
 const nodeBaseSchema = z.object({
   id: z.string(),
   name: z.string(),
@@ -26,6 +34,7 @@ export const nodeSchema: z.ZodType<Node> = z.discriminatedUnion('kind', [
   nodeBaseSchema.extend({
     kind: z.literal('callableTypeMemberDeclaration'),
     jsdoc: z.string().optional(),
+    implementations: z.array(implementationEntrySchema),
   }),
   nodeBaseSchema.extend({
     kind: z.literal('callExpression'),

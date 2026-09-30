@@ -42,9 +42,18 @@ export interface FunctionDeclarationNode extends Node {
   jsdoc?: string | undefined;
 }
 
+export interface ImplementationEntry {
+  name: string;
+  filePath: string;
+  line: number;
+  column: number;
+  offset: number;
+}
+
 export interface CallableTypeMemberDeclarationNode extends Node {
   kind: 'callableTypeMemberDeclaration';
   jsdoc?: string | undefined;
+  implementations: ImplementationEntry[];
 }
 
 export interface CallExpressionNode extends Node {
@@ -91,12 +100,20 @@ export const isFileNode = (node: Node): node is FileNode => {
 
 export class NodeAdapter {
   private readonly checker: ts.TypeChecker
-  private readonly program: ts.Program | undefined
+  private readonly program: ts.Program
+  private readonly languageService: ts.LanguageService
   private readonly rootDir: string
+  private readonly callableTypeMemberNodesCache = new Map<NodeId, CallableTypeMemberDeclarationNode>()
 
-  constructor(checker: ts.TypeChecker, rootDir: string = process.cwd(), program?: ts.Program) {
+  constructor(
+    checker: ts.TypeChecker,
+    program: ts.Program,
+    languageService: ts.LanguageService,
+    rootDir: string = process.cwd(),
+  ) {
     this.checker = checker;
     this.program = program;
+    this.languageService = languageService;
     this.rootDir = normalizePath(rootDir);
   }
 
@@ -149,19 +166,28 @@ export class NodeAdapter {
   buildCallableTypeMemberDeclarationNode(
     node: TsModule.TypeCallableDeclaration,
   ): CallableTypeMemberDeclarationNode {
+    const id = TsModule.deriveIdFromTsNode(node);
+    const nodeFromCache = this.callableTypeMemberNodesCache.get(id);
+    if (nodeFromCache) {
+      return nodeFromCache;
+    }
+
     const sourceFile = node.getSourceFile();
     const symbol = this.checker.getSymbolAtLocation(node.name);
     const jsdoc = symbol ? ts.displayPartsToString(symbol.getDocumentationComment(this.checker)) : undefined;
 
-    return {
-      id: TsModule.deriveIdFromTsNode(node),
+    const graphNode: CallableTypeMemberDeclarationNode = {
+      id,
       name: node.name.getText(sourceFile),
       filePath: normalizePath(sourceFile.fileName),
       fileName: path.basename(sourceFile.fileName),
       kind: 'callableTypeMemberDeclaration',
       sourceOrigin: this.getSourceFileOrigin(sourceFile),
+      implementations: this.findImplementations(node),
       ...(jsdoc ? { jsdoc } : {}),
     };
+    this.callableTypeMemberNodesCache.set(id, graphNode);
+    return graphNode;
   }
 
   buildFileNode (sourceFile: ts.SourceFile): FileNode {
@@ -173,6 +199,48 @@ export class NodeAdapter {
       kind: 'file',
       sourceOrigin: this.getSourceFileOrigin(sourceFile),
     }
+  }
+
+  private findImplementations(
+    node: TsModule.TypeCallableDeclaration,
+  ): ImplementationEntry[] {
+    const sourceFile = node.getSourceFile();
+    const locations = this.languageService.getImplementationAtPosition(
+      sourceFile.fileName,
+      node.name.getStart(sourceFile),
+    ) ?? [];
+    const seen = new Set<string>();
+
+    return locations.flatMap((location) => {
+      const filePath = normalizePath(location.fileName);
+      const span = location.textSpan;
+      const key = filePath + ':' + span.start + ':' + span.length;
+      const implementationFile = this.program.getSourceFile(location.fileName);
+
+      if (seen.has(key) || !implementationFile || !this.isNavigableSourceFile(implementationFile)) {
+        return [];
+      }
+
+      seen.add(key);
+      const position = implementationFile.getLineAndCharacterOfPosition(span.start);
+      const name = implementationFile.text.slice(span.start, span.start + span.length);
+
+      return [{
+        name: name || path.basename(filePath),
+        filePath,
+        line: position.line + 1,
+        column: position.character + 1,
+        offset: span.start,
+      }];
+    });
+  }
+
+  private isNavigableSourceFile(sourceFile: ts.SourceFile): boolean {
+    const filePath = normalizePath(sourceFile.fileName);
+    return !sourceFile.isDeclarationFile
+      && !filePath.includes('/node_modules/')
+      && filePath.startsWith(this.rootDir + '/')
+      && ts.sys.fileExists(filePath);
   }
 
   private findDeclarationSourceFile(

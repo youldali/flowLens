@@ -40,6 +40,7 @@ type QueueItem =
 
 export class GraphAdapter {
   private readonly program: ts.Program
+  private readonly languageService: ts.LanguageService
   private readonly checker: ts.TypeChecker
   private readonly nodes = new Map<NodeModule.NodeId, NodeModule.Node>();
   private readonly tsNodesByNodeId = new Map<NodeModule.NodeId, ts.Node>();
@@ -63,9 +64,33 @@ export class GraphAdapter {
       createProgramOptions.projectReferences = projectConfig.parsed.projectReferences
     }
 
-    this.program = ts.createProgram(createProgramOptions)
+    const host: ts.LanguageServiceHost = {
+      getScriptFileNames: () => [...createProgramOptions.rootNames],
+      getScriptVersion: () => '0',
+      getScriptSnapshot: (fileName) => {
+        const content = ts.sys.readFile(fileName);
+        return content === undefined ? undefined : ts.ScriptSnapshot.fromString(content);
+      },
+      getCurrentDirectory: () => ts.sys.getCurrentDirectory(),
+      getCompilationSettings: () => createProgramOptions.options,
+      getDefaultLibFileName: (options) => ts.getDefaultLibFilePath(options),
+      getProjectReferences: () => createProgramOptions.projectReferences,
+      fileExists: ts.sys.fileExists,
+      readFile: ts.sys.readFile,
+      readDirectory: ts.sys.readDirectory,
+      directoryExists: ts.sys.directoryExists,
+      getDirectories: ts.sys.getDirectories,
+      useCaseSensitiveFileNames: () => ts.sys.useCaseSensitiveFileNames,
+    };
+
+    this.languageService = ts.createLanguageService(host);
+    const program = this.languageService.getProgram();
+    if (!program) {
+      throw new Error('Could not create a TypeScript program for the project.');
+    }
+    this.program = program;
     this.checker = this.program.getTypeChecker()
-    this.nodeAdapter = new NodeModule.NodeAdapter(this.checker, this.rootDir, this.program);
+    this.nodeAdapter = new NodeModule.NodeAdapter(this.checker, this.program, this.languageService, this.rootDir);
   }
 
   fromFile(entryFilePath: string): Result<void, SourceFileNotFoundError> {
@@ -239,5 +264,20 @@ export class GraphAdapter {
       nodes: Array.from(this.nodes.values()),
       edges: Array.from(this.edges.values()),
     }
+  }
+
+  getNavigableSource(filePath: string): Result<string, SourceFileNotFoundError> {
+    const sourceFile = this.program.getSourceFile(filePath);
+    return sourceFile && this.isNavigableSourceFile(sourceFile)
+      ? ok(sourceFile.text)
+      : err({ reason: 'source-file-not-found' });
+  }
+
+  private isNavigableSourceFile(sourceFile: ts.SourceFile): boolean {
+    const filePath = normalizePath(sourceFile.fileName);
+    return !sourceFile.isDeclarationFile
+      && !filePath.includes('/node_modules/')
+      && filePath.startsWith(this.rootDir + '/')
+      && ts.sys.fileExists(filePath);
   }
 }

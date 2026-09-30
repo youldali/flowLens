@@ -141,6 +141,9 @@ importers:
       fastify:
         specifier: ^5.7.4
         version: 5.8.5
+      zod:
+        specifier: ^4.1.13
+        version: 4.4.3
 
   apps/vscode-extension:
     dependencies:

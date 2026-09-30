@@ -7,6 +7,7 @@ import * as TsNodeModule from './tsNode/index.js';
 import { normalizePath } from '@flowlens/common';
 import { create as createEdge } from './edge.js';
 import type { FlowGraph } from './flow-graph.js';
+import { createLanguageService } from './mocks/language-service.js';
 import { createProgram } from './mocks/program.js';
 import { createTypeChecker } from './mocks/typechecker.js';
 import {
@@ -25,6 +26,13 @@ import {
   propertySignatureFixture,
   sourceFileFixture,
 } from './fixtures/ts-node.js';
+
+const createNodeAdapter = (
+  checker: ts.TypeChecker = createTypeChecker(),
+  program: ts.Program = createProgram(),
+): NodeModule.NodeAdapter => {
+  return new NodeModule.NodeAdapter(checker, program, createLanguageService());
+};
 
 describe("isFunctionDeclarationNode", () => {
   it("identifies function and method declaration nodes", () => {
@@ -97,7 +105,7 @@ describe("NodeAdapter", () => {
         const validate = function actual() {};
       }
     `, ts.ScriptTarget.Latest, true);
-    const adapter = new NodeModule.NodeAdapter(createTypeChecker());
+    const adapter = createNodeAdapter(createTypeChecker());
     const nodes: NodeModule.FunctionDeclarationNode[] = [];
     const visit = (node: ts.Node): void => {
       if (TsNodeModule.isExecutableFunction(node)) {
@@ -117,7 +125,7 @@ describe("NodeAdapter", () => {
   });
 
   it("builds file nodes from source files", () => {
-    const adapter = new NodeModule.NodeAdapter(createTypeChecker());
+    const adapter = createNodeAdapter(createTypeChecker());
 
     assert.deepEqual(adapter.buildFileNode(sourceFileFixture), {
       id: normalizePath(sourceFileFixture.fileName),
@@ -133,7 +141,7 @@ describe("NodeAdapter", () => {
     const symbol = {
       getDocumentationComment: () => [{ text: "Fixture docs", kind: "text" }],
     } as unknown as ts.Symbol;
-    const adapter = new NodeModule.NodeAdapter(createTypeChecker({
+    const adapter = createNodeAdapter(createTypeChecker({
       getSymbolAtLocation: (node) => {
         assert.equal(node, functionDeclarationFixture);
         return symbol;
@@ -153,7 +161,7 @@ describe("NodeAdapter", () => {
   });
 
   it("builds arrow function nodes from their variable declaration name", () => {
-    const adapter = new NodeModule.NodeAdapter(createTypeChecker());
+    const adapter = createNodeAdapter(createTypeChecker());
 
     assert.deepEqual(adapter.buildFunctionDeclarationNode(arrowFunctionFixture), {
       id: TsNodeModule.deriveIdFromTsNode(arrowFunctionFixture),
@@ -170,7 +178,7 @@ describe("NodeAdapter", () => {
     const symbol = {
       getDocumentationComment: () => [{ text: "Interface docs", kind: "text" }],
     } as unknown as ts.Symbol;
-    const adapter = new NodeModule.NodeAdapter(createTypeChecker({
+    const adapter = createNodeAdapter(createTypeChecker({
       getSymbolAtLocation: (node) => {
         assert.equal(node, propertySignatureFixture.name);
         return symbol;
@@ -188,6 +196,7 @@ describe("NodeAdapter", () => {
       fileName: "fixture.ts",
       kind: "callableTypeMemberDeclaration",
       sourceOrigin: "project",
+      implementations: [],
       jsdoc: "Interface docs",
     });
   });
@@ -196,7 +205,7 @@ describe("NodeAdapter", () => {
     const signature = {
       declaration: functionDeclarationFixture,
     } as ts.Signature;
-    const adapter = new NodeModule.NodeAdapter(createTypeChecker({
+    const adapter = createNodeAdapter(createTypeChecker({
       getResolvedSignature: (node) => {
         assert.equal(node, callExpressionFixture);
         return signature;
@@ -222,7 +231,7 @@ describe("NodeAdapter", () => {
     const signature = {
       declaration: propertySignatureFixture.type,
     } as ts.Signature;
-    const adapter = new NodeModule.NodeAdapter(createTypeChecker({
+    const adapter = createNodeAdapter(createTypeChecker({
       getResolvedSignature: () => signature,
     }));
 
@@ -233,7 +242,7 @@ describe("NodeAdapter", () => {
     const signature = {
       declaration: methodSignatureFixture,
     } as ts.Signature;
-    const adapter = new NodeModule.NodeAdapter(createTypeChecker({
+    const adapter = createNodeAdapter(createTypeChecker({
       getResolvedSignature: () => signature,
     }));
 
@@ -247,7 +256,7 @@ describe("NodeAdapter", () => {
     const signature = {
       declaration: functionDeclarationFixture,
     } as ts.Signature;
-    const adapter = new NodeModule.NodeAdapter(createTypeChecker({
+    const adapter = createNodeAdapter(createTypeChecker({
       getResolvedSignature: () => signature,
       getSymbolAtLocation: () => interfaceSymbol,
     }));
@@ -274,7 +283,7 @@ describe("NodeAdapter", () => {
     }
 
     const signature = { declaration: property.type } as ts.Signature;
-    const adapter = new NodeModule.NodeAdapter(createTypeChecker({
+    const adapter = createNodeAdapter(createTypeChecker({
       getResolvedSignature: () => signature,
     }));
 
@@ -300,7 +309,7 @@ describe("NodeAdapter", () => {
     }
 
     const signature = { declaration: property } as unknown as ts.Signature;
-    const adapter = new NodeModule.NodeAdapter(createTypeChecker({
+    const adapter = createNodeAdapter(createTypeChecker({
       getResolvedSignature: () => signature,
     }));
 
@@ -308,7 +317,7 @@ describe("NodeAdapter", () => {
   });
 
   it("marks unresolved call expression nodes with unknown source origin", () => {
-    const adapter = new NodeModule.NodeAdapter(createTypeChecker());
+    const adapter = createNodeAdapter(createTypeChecker());
 
     assert.equal(adapter.buildCallExpressionNode(callExpressionFixture).sourceOrigin, "unknown");
   });
@@ -325,7 +334,7 @@ describe("NodeAdapter", () => {
     const signature = {
       declaration: externalDeclaration,
     } as ts.Signature;
-    const adapter = new NodeModule.NodeAdapter(createTypeChecker({
+    const adapter = createNodeAdapter(createTypeChecker({
       getResolvedSignature: () => signature,
     }));
 
@@ -347,9 +356,9 @@ describe("NodeAdapter", () => {
     const program = createProgram({
       isSourceFileDefaultLibrary: (sourceFile: ts.SourceFile) => sourceFile === nativeSourceFile,
     });
-    const adapter = new NodeModule.NodeAdapter(createTypeChecker({
+    const adapter = createNodeAdapter(createTypeChecker({
       getResolvedSignature: () => signature,
-    }), process.cwd(), program);
+    }), program);
 
     assert.equal(adapter.buildCallExpressionNode(callExpressionFixture).sourceOrigin, "native-js-api");
   });
@@ -366,7 +375,7 @@ describe("NodeAdapter", () => {
     const signature = {
       declaration: nativeDeclaration,
     } as ts.Signature;
-    const adapter = new NodeModule.NodeAdapter(createTypeChecker({
+    const adapter = createNodeAdapter(createTypeChecker({
       getResolvedSignature: () => signature,
     }));
 
