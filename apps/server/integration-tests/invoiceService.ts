@@ -1,6 +1,10 @@
 import type { Invoice } from './invoice.js'
-import { get } from './invoiceRepository.js'
+import type { InvoiceRepositoryPort } from './invoiceRepositoryPort.js'
 
-export function readInvoice(id: string): Invoice | undefined {
-  return get(id)
+interface Dependencies {
+  invoiceRepository: InvoiceRepositoryPort
+}
+
+export function readInvoice(id: string, { invoiceRepository }: Dependencies): Invoice | undefined {
+  return invoiceRepository.get(id)
 }
