@@ -1,4 +1,4 @@
-import { pipe } from '@flowlens/common';
+import { pipe } from '@flowlens/common/utils';
 
 import type { FlowGraph } from '../flow-graph.js';
 import { collapseResolvedCallExpressionNodes } from './collapse-resolved-call-expression-nodes.js';

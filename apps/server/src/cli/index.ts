@@ -2,7 +2,7 @@
 import * as path from 'node:path';
 
 import { GraphAdapter } from '@flowlens/analyzer-core/flow-graph';
-import { findNearestTsconfig } from '@flowlens/common';
+import { findNearestTsconfig } from '@flowlens/common/fs';
 import { serveGraphViewer } from './server.js';
 
 const args = process.argv.slice(2);

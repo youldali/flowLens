@@ -1,0 +1,9 @@
+{
+  "compilerOptions": {
+    "target": "ES2023", "module": "NodeNext", "strict": true,
+    "composite": true, "types": [], "outDir": "./dist",
+    "paths": { "@fixture/core/*": ["../core/src/*"] }
+  },
+  "include": ["src/**/*.ts"],
+  "references": [{ "path": "../core" }]
+}

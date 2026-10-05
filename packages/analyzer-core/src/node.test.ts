@@ -4,10 +4,9 @@ import ts from 'typescript';
 
 import * as NodeModule from './node.js';
 import * as TsNodeModule from './tsNode/index.js';
-import { normalizePath } from '@flowlens/common';
+import { normalizePath } from '@flowlens/common/fs';
 import { create as createEdge } from './edge.js';
 import type { FlowGraph } from './flow-graph.js';
-import { createLanguageService } from './mocks/language-service.js';
 import { createProgram } from './mocks/program.js';
 import { createTypeChecker } from './mocks/typechecker.js';
 import {
@@ -31,7 +30,7 @@ const createNodeAdapter = (
   checker: ts.TypeChecker = createTypeChecker(),
   program: ts.Program = createProgram(),
 ): NodeModule.NodeAdapter => {
-  return new NodeModule.NodeAdapter(checker, program, createLanguageService());
+  return new NodeModule.NodeAdapter(checker, program, { findImplementations: () => [] });
 };
 
 describe("isFunctionDeclarationNode", () => {

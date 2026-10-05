@@ -8,7 +8,10 @@
     "declarationMap": true,
     "paths": {
       "@flowlens/analyzer-core": ["./packages/analyzer-core/src/index.ts"],
-      "@flowlens/common": ["./packages/common/src/index.ts"],
+      "@flowlens/common/fs": ["./packages/common/src/fs/index.ts"],
+      "@flowlens/common/utils": ["./packages/common/src/utils.ts"],
+      "@flowlens/common/sorting": ["./packages/common/src/sorting.ts"],
+      "@flowlens/common/queue": ["./packages/common/src/queue.ts"],
       "@flowlens/common/testing": ["./packages/common/src/testing/index.ts"],
       "@flowlens/registries": ["./packages/registries/src/index.ts"],
       "@flowlens/registries/vscode-events": ["./packages/registries/src/vscode-events.ts"],

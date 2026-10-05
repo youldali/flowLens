@@ -1,7 +1,16 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
+import { identity, pipe } from './utils.js';
 
-import { pipe } from './index.js';
+describe('identity', () => {
+  it('returns the original value, preserving object references', () => {
+    const values = ['config.json', 0, false, null, undefined, { name: 'project' }, ['project']];
+
+    for (const value of values) {
+      assert.strictEqual(identity(value), value);
+    }
+  });
+});
 
 describe("pipe", () => {
   it("applies transforms from left to right", () => {

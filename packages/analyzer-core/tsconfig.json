@@ -6,7 +6,7 @@
     "composite": true
   },
   "include": ["src/**/*.ts"],
-  "exclude": ["node_modules", "dist", "saved"],
+  "exclude": ["node_modules", "dist", "saved", "src/fixtures/workspace"],
   "references": [
     { "path": "../common" },
     { "path": "../test-utils" }

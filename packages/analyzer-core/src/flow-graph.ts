@@ -1,12 +1,13 @@
 import * as path from 'node:path';
 import * as ts from 'typescript';
 import { err, ok, type Result } from 'neverthrow';
-import { normalizePath } from '@flowlens/common';
+import { normalizePath } from '@flowlens/common/fs';
 import { Queue } from '@flowlens/common/queue';
 import * as NodeModule from './node.js';
 import * as TsNodeModule from './tsNode/index.js';
 import * as EdgeModule from './edge.js';
-import { loadProjectConfig } from './project-config.js';
+import { ProjectServiceRegistry } from './project-service-registry.js';
+import { ImplementationDiscovery } from './implementation-discovery.js';
 
 export { isFlowGraph } from './flow-graph-contract.js';
 
@@ -48,49 +49,18 @@ export class GraphAdapter {
   private readonly visitedNodes = new Set<ts.Node>();
   private readonly nodeQueue = new Queue<QueueItem>();
   private readonly rootDir: string;
+  private readonly implementationDiscovery: ImplementationDiscovery;
   private readonly nodeAdapter: NodeModule.NodeAdapter;
 
   constructor(tsconfigPath: string) {
-    const projectConfig = loadProjectConfig(tsconfigPath);
+    const projectService = ProjectServiceRegistry.getInstance().getService(tsconfigPath);
 
-    this.rootDir = path.dirname(projectConfig.configPath)
-    const createProgramOptions: ts.CreateProgramOptions = {
-      rootNames: projectConfig.parsed.fileNames,
-      options: projectConfig.parsed.options,
-      ...(projectConfig.parsed.projectReferences ? { projectReferences: projectConfig.parsed.projectReferences } : {}),
-    }
-
-    if (projectConfig.parsed.projectReferences) {
-      createProgramOptions.projectReferences = projectConfig.parsed.projectReferences
-    }
-
-    const host: ts.LanguageServiceHost = {
-      getScriptFileNames: () => [...createProgramOptions.rootNames],
-      getScriptVersion: () => '0',
-      getScriptSnapshot: (fileName) => {
-        const content = ts.sys.readFile(fileName);
-        return content === undefined ? undefined : ts.ScriptSnapshot.fromString(content);
-      },
-      getCurrentDirectory: () => ts.sys.getCurrentDirectory(),
-      getCompilationSettings: () => createProgramOptions.options,
-      getDefaultLibFileName: (options) => ts.getDefaultLibFilePath(options),
-      getProjectReferences: () => createProgramOptions.projectReferences,
-      fileExists: ts.sys.fileExists,
-      readFile: ts.sys.readFile,
-      readDirectory: ts.sys.readDirectory,
-      directoryExists: ts.sys.directoryExists,
-      getDirectories: ts.sys.getDirectories,
-      useCaseSensitiveFileNames: () => ts.sys.useCaseSensitiveFileNames,
-    };
-
-    this.languageService = ts.createLanguageService(host);
-    const program = this.languageService.getProgram();
-    if (!program) {
-      throw new Error('Could not create a TypeScript program for the project.');
-    }
-    this.program = program;
+    this.rootDir = path.dirname(projectService.projectConfig.configPath)
+    this.languageService = projectService.languageService;
+    this.program = projectService.program;
+    this.implementationDiscovery = new ImplementationDiscovery(tsconfigPath);
     this.checker = this.program.getTypeChecker()
-    this.nodeAdapter = new NodeModule.NodeAdapter(this.checker, this.program, this.languageService, this.rootDir);
+    this.nodeAdapter = new NodeModule.NodeAdapter(this.checker, this.program, this.implementationDiscovery, this.rootDir);
   }
 
   fromFile(entryFilePath: string): Result<void, SourceFileNotFoundError> {
@@ -267,17 +237,7 @@ export class GraphAdapter {
   }
 
   getNavigableSource(filePath: string): Result<string, SourceFileNotFoundError> {
-    const sourceFile = this.program.getSourceFile(filePath);
-    return sourceFile && this.isNavigableSourceFile(sourceFile)
-      ? ok(sourceFile.text)
-      : err({ reason: 'source-file-not-found' });
-  }
-
-  private isNavigableSourceFile(sourceFile: ts.SourceFile): boolean {
-    const filePath = normalizePath(sourceFile.fileName);
-    return !sourceFile.isDeclarationFile
-      && !filePath.includes('/node_modules/')
-      && filePath.startsWith(this.rootDir + '/')
-      && ts.sys.fileExists(filePath);
+    const sourceFile = this.implementationDiscovery.getNavigableSource(filePath);
+    return sourceFile ? ok(sourceFile.text) : err({ reason: 'source-file-not-found' });
   }
 }

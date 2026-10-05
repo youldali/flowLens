@@ -1,11 +1,37 @@
 import assert from 'node:assert/strict';
 import * as path from 'node:path';
+import * as fs from 'node:fs';
+import * as os from 'node:os';
 import { describe, it } from 'node:test';
 import { GraphAdapter } from '@flowlens/analyzer-core/flow-graph';
 import { assertOk } from '@flowlens/common/testing';
 import { createGraphViewerServer } from './server.js';
 
 describe('createGraphViewerServer', () => {
+  it('serves an implementation from a dependent workspace project', async (t) => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), 'flowlens-server-workspace-'));
+    t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+    fs.cpSync(path.resolve('../../packages/analyzer-core/src/fixtures/workspace'), root, { recursive: true });
+    fs.mkdirSync(path.join(root, '.git'));
+    const adapter = new GraphAdapter(path.join(root, 'core/tsconfig.json'));
+    assertOk(adapter.fromFile(path.join(root, 'core/src/use-case.ts')));
+    const app = createGraphViewerServer(adapter, path.resolve('../frontend/dist'));
+    t.after(() => app.close());
+    const graphResponse = await app.inject({ method: 'GET', url: '/graph.json' });
+    assert.equal(graphResponse.statusCode, 200);
+    const graph = graphResponse.json();
+    const member = graph.nodes.find((node: { implementations?: unknown[] }) => node.implementations?.length);
+    const [entry] = member.implementations;
+    assert.equal(entry.filePath, path.join(root, 'infrastructure/src/adapter.ts'));
+    const response = await app.inject({
+      method: 'GET',
+      url: '/source?filePath=' + encodeURIComponent(entry.filePath) + '&offset=' + entry.offset,
+    });
+    assert.equal(response.statusCode, 200);
+    assert.match(response.body, /PlainCustomerRepositoryAdapter/);
+    assert.match(response.body, /id="selected" class="selected"/);
+  });
+
   it('serves eager graph metadata and navigable project source while rejecting unknown files', async () => {
     const adapter = new GraphAdapter(path.resolve('../../packages/analyzer-core/tsconfig.json'));
     const filePath = path.resolve('../../packages/analyzer-core/src/fixtures/implementation-entry.ts');

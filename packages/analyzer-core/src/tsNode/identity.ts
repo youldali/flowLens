@@ -1,6 +1,6 @@
 import ts from 'typescript';
 
-import { normalizePath } from '@flowlens/common';
+import { normalizePath } from '@flowlens/common/fs';
 import type { NodeId } from '../node.js';
 
 export function createFileId(sourceFile: ts.SourceFile): NodeId {

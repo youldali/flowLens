@@ -1,21 +1,15 @@
 import * as ts from 'typescript';
 import * as path from 'node:path';
 
+export type ConfigPath = string;
+
 export interface ProjectConfig {
-  configPath: string;
+  configPath: ConfigPath;
   parsed: ts.ParsedCommandLine;
 }
 
 export function loadProjectConfig(tsconfigPath: string): ProjectConfig {
-  const configPath = ts.findConfigFile(
-    path.resolve(tsconfigPath),
-    ts.sys.fileExists,
-    path.basename(tsconfigPath),
-  )
-
-  if (!configPath) {
-    throw new Error(`Could not find tsconfig at or above ${tsconfigPath}`)
-  }
+  const configPath = path.resolve(tsconfigPath);
 
   const configFile = ts.readConfigFile(configPath, ts.sys.readFile)
 
@@ -27,6 +21,8 @@ export function loadProjectConfig(tsconfigPath: string): ProjectConfig {
     configFile.config,
     ts.sys,
     path.dirname(configPath),
+    undefined,
+    configPath,
   )
 
   if (parsed.errors.length > 0) {

@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import ts from 'typescript';
 
 import * as TsNodeModule from './index.js';
-import { normalizePath } from '@flowlens/common';
+import { normalizePath } from '@flowlens/common/fs';
 import { assertErr, assertOk } from '@flowlens/common/testing';
 import {
   arrowFunctionFixture,

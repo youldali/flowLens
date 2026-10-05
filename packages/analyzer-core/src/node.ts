@@ -1,9 +1,13 @@
+import type { ImplementationDiscovery } from './implementation-discovery.js';
 import ts from 'typescript';
 import * as path from 'node:path';
 
-import { normalizePath } from '@flowlens/common';
+import { normalizePath } from '@flowlens/common/fs';
 import type { FlowGraph } from './flow-graph.js';
+import type { ImplementationEntry } from './implementation.js';
 import * as TsModule from './tsNode/index.js';
+
+export type { ImplementationEntry } from './implementation.js';
 
 export type GraphNodeKind =
   | 'functionDeclaration'
@@ -40,14 +44,6 @@ export interface FunctionDeclarationNode extends Node {
   kind: 'functionDeclaration' | 'methodDeclaration';
   displayName: string;
   jsdoc?: string | undefined;
-}
-
-export interface ImplementationEntry {
-  name: string;
-  filePath: string;
-  line: number;
-  column: number;
-  offset: number;
 }
 
 export interface CallableTypeMemberDeclarationNode extends Node {
@@ -101,19 +97,19 @@ export const isFileNode = (node: Node): node is FileNode => {
 export class NodeAdapter {
   private readonly checker: ts.TypeChecker
   private readonly program: ts.Program
-  private readonly languageService: ts.LanguageService
+  private readonly implementationDiscovery: Pick<ImplementationDiscovery, 'findImplementations'>
   private readonly rootDir: string
   private readonly callableTypeMemberNodesCache = new Map<NodeId, CallableTypeMemberDeclarationNode>()
 
   constructor(
     checker: ts.TypeChecker,
     program: ts.Program,
-    languageService: ts.LanguageService,
+    implementationDiscovery: Pick<ImplementationDiscovery, 'findImplementations'>,
     rootDir: string = process.cwd(),
   ) {
     this.checker = checker;
     this.program = program;
-    this.languageService = languageService;
+    this.implementationDiscovery = implementationDiscovery;
     this.rootDir = normalizePath(rootDir);
   }
 
@@ -183,7 +179,7 @@ export class NodeAdapter {
       fileName: path.basename(sourceFile.fileName),
       kind: 'callableTypeMemberDeclaration',
       sourceOrigin: this.getSourceFileOrigin(sourceFile),
-      implementations: this.findImplementations(node),
+      implementations: this.implementationDiscovery.findImplementations(sourceFile.fileName, node.name.getStart(sourceFile)),
       ...(jsdoc ? { jsdoc } : {}),
     };
     this.callableTypeMemberNodesCache.set(id, graphNode);
@@ -199,48 +195,6 @@ export class NodeAdapter {
       kind: 'file',
       sourceOrigin: this.getSourceFileOrigin(sourceFile),
     }
-  }
-
-  private findImplementations(
-    node: TsModule.TypeCallableDeclaration,
-  ): ImplementationEntry[] {
-    const sourceFile = node.getSourceFile();
-    const locations = this.languageService.getImplementationAtPosition(
-      sourceFile.fileName,
-      node.name.getStart(sourceFile),
-    ) ?? [];
-    const seen = new Set<string>();
-
-    return locations.flatMap((location) => {
-      const filePath = normalizePath(location.fileName);
-      const span = location.textSpan;
-      const key = filePath + ':' + span.start + ':' + span.length;
-      const implementationFile = this.program.getSourceFile(location.fileName);
-
-      if (seen.has(key) || !implementationFile || !this.isNavigableSourceFile(implementationFile)) {
-        return [];
-      }
-
-      seen.add(key);
-      const position = implementationFile.getLineAndCharacterOfPosition(span.start);
-      const name = implementationFile.text.slice(span.start, span.start + span.length);
-
-      return [{
-        name: name || path.basename(filePath),
-        filePath,
-        line: position.line + 1,
-        column: position.character + 1,
-        offset: span.start,
-      }];
-    });
-  }
-
-  private isNavigableSourceFile(sourceFile: ts.SourceFile): boolean {
-    const filePath = normalizePath(sourceFile.fileName);
-    return !sourceFile.isDeclarationFile
-      && !filePath.includes('/node_modules/')
-      && filePath.startsWith(this.rootDir + '/')
-      && ts.sys.fileExists(filePath);
   }
 
   private findDeclarationSourceFile(
