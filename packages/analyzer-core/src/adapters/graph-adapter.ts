@@ -6,8 +6,8 @@ import { Queue } from '@flowlens/common/queue';
 import * as NodeModule from '../domain/node.js';
 import * as TsNodeModule from './ts-node/index.js';
 import * as EdgeModule from '../domain/edge.js';
-import { ProjectServiceRegistry } from '../services/project-service-registry.js';
-import { ImplementationDiscovery } from '../services/implementation-discovery.js';
+import { ProjectServiceRegistry } from '../infrastructure/project-service-registry.js';
+import { ImplementationDiscovery } from '../infrastructure/implementation-discovery.js';
 
 import type { FlowGraph } from '../domain/flow-graph.js';
 import { NodeAdapter } from './node-adapter.js';

@@ -5,8 +5,7 @@ import * as path from 'node:path';
 import { afterEach, beforeEach, describe, it } from 'node:test';
 import * as ts from 'typescript';
 import { ImplementationDiscovery } from './implementation-discovery.js';
-import type { ProjectService } from './project-service.js';
-import { ProjectServiceRegistry } from './project-service-registry.js';
+import { ProjectServiceRegistry, type ProjectService } from './project-service-registry.js';
 
 describe('ProjectServiceRegistry', () => {
   const registry = ProjectServiceRegistry.getInstance();

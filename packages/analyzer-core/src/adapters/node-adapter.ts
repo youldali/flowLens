@@ -1,4 +1,4 @@
-import type { ImplementationDiscovery } from '../services/implementation-discovery.js';
+import type { ImplementationDiscovery } from '../infrastructure/implementation-discovery.js';
 import ts from 'typescript';
 import * as path from 'node:path';
 
