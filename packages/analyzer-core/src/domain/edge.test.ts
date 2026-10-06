@@ -2,7 +2,7 @@ import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 
 import { create } from './edge.js';
-import { createCallExpressionEdgeMetadata } from './fixtures/edge.js';
+import { createCallExpressionEdgeMetadata } from '../fixtures/edge.js';
 
 describe("create", () => {
   it("creates an edge with a deterministic id", () => {

@@ -7,7 +7,7 @@ import {
   createCallExpressionNode,
   createFileNode,
   createFunctionDeclarationNode,
-} from '../fixtures/node.js';
+} from '../../fixtures/node.js';
 import { toReadableGraph } from './index.js';
 
 describe("toReadableGraph", () => {

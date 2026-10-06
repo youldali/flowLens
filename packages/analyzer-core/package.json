@@ -12,16 +12,16 @@
   "type": "module",
   "exports": {
     "./edge": {
-      "types": "./dist/src/edge.d.ts",
-      "default": "./dist/src/edge.js"
+      "types": "./dist/src/domain/edge.d.ts",
+      "default": "./dist/src/domain/edge.js"
     },
     "./flow-graph": {
-      "types": "./dist/src/flow-graph.d.ts",
-      "default": "./dist/src/flow-graph.js"
+      "types": "./dist/src/domain/flow-graph.d.ts",
+      "default": "./dist/src/domain/flow-graph.js"
     },
     "./flow-graph-contract": {
-      "types": "./dist/src/flow-graph-contract.d.ts",
-      "default": "./dist/src/flow-graph-contract.js"
+      "types": "./dist/src/domain/flow-graph-contract.d.ts",
+      "default": "./dist/src/domain/flow-graph-contract.js"
     },
     "./fixtures/edge": {
       "types": "./dist/src/fixtures/edge.d.ts",
@@ -32,16 +32,24 @@
       "default": "./dist/src/fixtures/node.js"
     },
     "./node": {
-      "types": "./dist/src/node.d.ts",
-      "default": "./dist/src/node.js"
+      "types": "./dist/src/domain/node.d.ts",
+      "default": "./dist/src/domain/node.js"
     },
     "./transformer": {
-      "types": "./dist/src/transformer/index.d.ts",
-      "default": "./dist/src/transformer/index.js"
+      "types": "./dist/src/domain/transformer/index.d.ts",
+      "default": "./dist/src/domain/transformer/index.js"
     },
     "./tsNode": {
-      "types": "./dist/src/tsNode/index.d.ts",
-      "default": "./dist/src/tsNode/index.js"
+      "types": "./dist/src/adapters/ts-node/index.d.ts",
+      "default": "./dist/src/adapters/ts-node/index.js"
+    },
+    "./node-adapter": {
+      "types": "./dist/src/adapters/node-adapter.d.ts",
+      "default": "./dist/src/adapters/node-adapter.js"
+    },
+    "./graph-adapter": {
+      "types": "./dist/src/adapters/graph-adapter.d.ts",
+      "default": "./dist/src/adapters/graph-adapter.js"
     }
   },
   "dependencies": {

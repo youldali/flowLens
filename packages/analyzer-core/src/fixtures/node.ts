@@ -5,7 +5,7 @@ import type {
   CallableTypeMemberDeclarationNode,
   Node,
   UnresolvedCallDeclarationNode,
-} from '../node.js';
+} from '../domain/node.js';
 import { createFixture } from '@flowlens/test-utils';
 
 const nodeFixture: Node = {

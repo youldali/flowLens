@@ -3,7 +3,7 @@ import * as path from 'node:path';
 import * as fs from 'node:fs';
 import * as os from 'node:os';
 import { describe, it } from 'node:test';
-import { GraphAdapter } from '@flowlens/analyzer-core/flow-graph';
+import { GraphAdapter } from '@flowlens/analyzer-core/graph-adapter';
 import { assertOk } from '@flowlens/common/testing';
 import { createGraphViewerServer } from './server.js';
 

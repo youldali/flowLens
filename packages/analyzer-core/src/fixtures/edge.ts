@@ -1,4 +1,4 @@
-import type { CallExpressionEdgeMetadata, Edge } from '../edge.js';
+import type { CallExpressionEdgeMetadata, Edge } from '../domain/edge.js';
 import { createFixture } from '@flowlens/test-utils';
 
 const edgeFixture: Edge = {

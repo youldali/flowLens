@@ -5,10 +5,10 @@ import * as path from 'node:path';
 import { after, afterEach, before, beforeEach, describe, it } from 'node:test';
 import * as ts from 'typescript';
 import { assertErr, assertOk } from '@flowlens/common/testing';
-import { GraphAdapter } from './flow-graph.js';
+import { GraphAdapter } from '../adapters/graph-adapter.js';
 import { ImplementationDiscovery } from './implementation-discovery.js';
 import { ProjectServiceRegistry } from './project-service-registry.js';
-import { isCallableTypeMemberDeclarationNode } from './node.js';
+import { isCallableTypeMemberDeclarationNode } from '../domain/node.js';
 import type { ProjectService } from './project-service.js';
 
 // Copy source fixtures into an isolated Git workspace so unrelated FlowLens

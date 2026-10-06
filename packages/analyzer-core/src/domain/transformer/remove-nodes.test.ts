@@ -3,8 +3,8 @@ import { describe, it } from 'node:test';
 
 import { create as createEdge } from '../edge.js';
 import type { FlowGraph } from '../flow-graph.js';
-import { createCallExpressionEdgeMetadata } from '../fixtures/edge.js';
-import { createFunctionDeclarationNode, createNode as createNodeFixture } from '../fixtures/node.js';
+import { createCallExpressionEdgeMetadata } from '../../fixtures/edge.js';
+import { createFunctionDeclarationNode, createNode as createNodeFixture } from '../../fixtures/node.js';
 import type { Node } from '../node.js';
 import type { BridgeEdgeContext } from './remove-nodes.js';
 import { removeNodes } from './remove-nodes.js';

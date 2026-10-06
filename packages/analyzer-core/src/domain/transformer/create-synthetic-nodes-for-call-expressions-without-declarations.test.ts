@@ -3,7 +3,7 @@ import { describe, it } from 'node:test';
 
 import { create as createEdge } from '../edge.js';
 import type { FlowGraph } from '../flow-graph.js';
-import { createCallExpressionNode, createNode } from '../fixtures/node.js';
+import { createCallExpressionNode, createNode } from '../../fixtures/node.js';
 import { createSyntheticNodesForCallExpressionsWithoutDeclarations } from './create-synthetic-nodes-for-call-expressions-without-declarations.js';
 
 describe("createSyntheticNodesForCallExpressionsWithoutDeclarations", () => {

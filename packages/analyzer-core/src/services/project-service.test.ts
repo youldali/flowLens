@@ -2,8 +2,8 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import ts from 'typescript';
 import { findImplementationsInProjectService, type ProjectService } from './project-service.js';
-import { createLanguageService } from './mocks/language-service.js';
-import { createProgram } from './mocks/program.js';
+import { createLanguageService } from '../mocks/language-service.js';
+import { createProgram } from '../mocks/program.js';
 
 describe('findImplementationsInProjectService', () => {
   it('builds entries for implementation locations with source files', () => {

@@ -3,29 +3,14 @@ import * as ts from 'typescript';
 import { err, ok, type Result } from 'neverthrow';
 import { normalizePath } from '@flowlens/common/fs';
 import { Queue } from '@flowlens/common/queue';
-import * as NodeModule from './node.js';
-import * as TsNodeModule from './tsNode/index.js';
-import * as EdgeModule from './edge.js';
-import { ProjectServiceRegistry } from './project-service-registry.js';
-import { ImplementationDiscovery } from './implementation-discovery.js';
+import * as NodeModule from '../domain/node.js';
+import * as TsNodeModule from './ts-node/index.js';
+import * as EdgeModule from '../domain/edge.js';
+import { ProjectServiceRegistry } from '../services/project-service-registry.js';
+import { ImplementationDiscovery } from '../services/implementation-discovery.js';
 
-export { isFlowGraph } from './flow-graph-contract.js';
-
-export interface FlowGraph {
-  nodes: NodeModule.Node[];
-  edges: EdgeModule.Edge[];
-}
-
-export function isEmpty(graph: FlowGraph): boolean {
-  return graph.nodes.length === 0;
-}
-
-export function findNodeInGraphById(
-  graph: FlowGraph,
-  nodeId: NodeModule.NodeId,
-): NodeModule.Node | undefined {
-  return graph.nodes.find((node) => node.id === nodeId);
-}
+import type { FlowGraph } from '../domain/flow-graph.js';
+import { NodeAdapter } from './node-adapter.js';
 
 export type SourceFileNotFoundError = { reason: 'source-file-not-found' };
 export type FromFilePositionError =
@@ -50,7 +35,7 @@ export class GraphAdapter {
   private readonly nodeQueue = new Queue<QueueItem>();
   private readonly rootDir: string;
   private readonly implementationDiscovery: ImplementationDiscovery;
-  private readonly nodeAdapter: NodeModule.NodeAdapter;
+  private readonly nodeAdapter: NodeAdapter;
 
   constructor(tsconfigPath: string) {
     const projectService = ProjectServiceRegistry.getInstance().getService(tsconfigPath);
@@ -60,7 +45,7 @@ export class GraphAdapter {
     this.program = projectService.program;
     this.implementationDiscovery = new ImplementationDiscovery(tsconfigPath);
     this.checker = this.program.getTypeChecker()
-    this.nodeAdapter = new NodeModule.NodeAdapter(this.checker, this.program, this.implementationDiscovery, this.rootDir);
+    this.nodeAdapter = new NodeAdapter(this.checker, this.program, this.implementationDiscovery, this.rootDir);
   }
 
   fromFile(entryFilePath: string): Result<void, SourceFileNotFoundError> {

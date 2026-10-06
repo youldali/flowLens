@@ -2,98 +2,21 @@ import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import ts from 'typescript';
 
-import * as NodeModule from './node.js';
-import * as TsNodeModule from './tsNode/index.js';
+import * as NodeModule from '../domain/node.js';
+import * as TsNodeModule from './ts-node/index.js';
 import { normalizePath } from '@flowlens/common/fs';
-import { create as createEdge } from './edge.js';
-import type { FlowGraph } from './flow-graph.js';
-import { createProgram } from './mocks/program.js';
-import { createTypeChecker } from './mocks/typechecker.js';
-import {
-  create as createNode,
-  createCallExpressionNode,
-  createFileNode,
-  createFunctionDeclarationNode,
-  createCallableTypeMemberDeclarationNode,
-  createUnresolvedCallDeclarationNode,
-} from './fixtures/node.js';
-import {
-  arrowFunctionFixture,
-  callExpressionFixture,
-  functionDeclarationFixture,
-  methodSignatureFixture,
-  propertySignatureFixture,
-  sourceFileFixture,
-} from './fixtures/ts-node.js';
+import { createProgram } from '../mocks/program.js';
+import { createTypeChecker } from '../mocks/typechecker.js';
+import { arrowFunctionFixture, callExpressionFixture, functionDeclarationFixture, methodSignatureFixture, propertySignatureFixture, sourceFileFixture } from '../fixtures/ts-node.js';
+
+import { NodeAdapter } from './node-adapter.js';
 
 const createNodeAdapter = (
   checker: ts.TypeChecker = createTypeChecker(),
   program: ts.Program = createProgram(),
-): NodeModule.NodeAdapter => {
-  return new NodeModule.NodeAdapter(checker, program, { findImplementations: () => [] });
+): NodeAdapter => {
+  return new NodeAdapter(checker, program, { findImplementations: () => [] });
 };
-
-describe("isFunctionDeclarationNode", () => {
-  it("identifies function and method declaration nodes", () => {
-    assert.equal(NodeModule.isFunctionDeclarationNode(createFunctionDeclarationNode()), true);
-    assert.equal(NodeModule.isFunctionDeclarationNode(createFunctionDeclarationNode({ kind: "methodDeclaration" })), true);
-    assert.equal(NodeModule.isFunctionDeclarationNode(createCallExpressionNode()), false);
-  });
-});
-
-describe("isCallableTypeMemberDeclarationNode", () => {
-  it("identifies callable type member declaration nodes", () => {
-    assert.equal(
-      NodeModule.isCallableTypeMemberDeclarationNode(createCallableTypeMemberDeclarationNode()),
-      true,
-    );
-    assert.equal(
-      NodeModule.isCallableTypeMemberDeclarationNode(createFunctionDeclarationNode()),
-      false,
-    );
-  });
-});
-
-describe("isCallExpressionNode", () => {
-  it("identifies call expression nodes", () => {
-    assert.equal(NodeModule.isCallExpressionNode(createCallExpressionNode()), true);
-    assert.equal(NodeModule.isCallExpressionNode(createFileNode()), false);
-  });
-});
-
-describe("isUnresolvedCallDeclarationNode", () => {
-  it("identifies unresolved call declaration nodes", () => {
-    assert.equal(
-      NodeModule.isUnresolvedCallDeclarationNode(createUnresolvedCallDeclarationNode()),
-      true,
-    );
-    assert.equal(NodeModule.isUnresolvedCallDeclarationNode(createCallExpressionNode()), false);
-  });
-});
-
-describe("hasOutgoingReferenceEdge", () => {
-  it("identifies nodes with outgoing reference edges", () => {
-    const node = createNode();
-    const graph: FlowGraph = {
-      nodes: [node],
-      edges: [
-        createEdge(node.id, "target-node", "references"),
-        createEdge(node.id, "called-node", "calls"),
-        createEdge("source-node", node.id, "references"),
-      ],
-    };
-
-    assert.equal(NodeModule.hasOutgoingReferenceEdge(graph, node), true);
-    assert.equal(NodeModule.hasOutgoingReferenceEdge({ ...graph, edges: graph.edges.slice(1) }, node), false);
-  });
-});
-
-describe("isFileNode", () => {
-  it("identifies file nodes", () => {
-    assert.equal(NodeModule.isFileNode(createFileNode()), true);
-    assert.equal(NodeModule.isFileNode(createNode({ kind: "if-statement" })), false);
-  });
-});
 
 describe("NodeAdapter", () => {
   it("adds semantic labels without changing legacy names or IDs", () => {

@@ -3,8 +3,8 @@ import type * as ts from 'typescript';
 import { err, ok, type Result } from 'neverthrow';
 import { identity } from '@flowlens/common/utils';
 import { normalizePath } from '@flowlens/common/fs';
-import { isNavigable } from './tsNode/processability.js';
-import type { ImplementationEntry } from './implementation.js';
+import { isNavigable } from '../adapters/ts-node/processability.js';
+import type { ImplementationEntry } from '../domain/implementation.js';
 import { findImplementationsFromProjectServices } from './project-service.js';
 import { ProjectServiceRegistry } from './project-service-registry.js';
 

@@ -1,9 +1,9 @@
 import * as path from 'node:path';
 import * as ts from 'typescript';
 import { normalizePath } from '@flowlens/common/fs';
-import type { ImplementationEntry } from './implementation.js';
+import type { ImplementationEntry } from '../domain/implementation.js';
 import type { ProjectConfig } from './project-config.js';
-import { isNavigable } from './tsNode/processability.js';
+import { isNavigable } from '../adapters/ts-node/processability.js';
 
 export interface ProjectService {
   projectConfig: ProjectConfig;

@@ -3,7 +3,7 @@ import { describe, it } from 'node:test';
 
 import { create as createEdge } from '../edge.js';
 import type { FlowGraph } from '../flow-graph.js';
-import { createCallExpressionNode, createFunctionDeclarationNode, createNode } from '../fixtures/node.js';
+import { createCallExpressionNode, createFunctionDeclarationNode, createNode } from '../../fixtures/node.js';
 import { toProjectSourceGraph } from './index.js';
 
 describe("toProjectSourceGraph", () => {

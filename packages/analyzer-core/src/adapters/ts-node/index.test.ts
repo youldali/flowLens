@@ -13,7 +13,7 @@ import {
   propertySignatureFixture,
   sourceFileFixture,
   variableStatementNodeFixture,
-} from '../fixtures/ts-node.js';
+} from '../../fixtures/ts-node.js';
 
 describe("createFileId", () => {
   it("uses the normalized source file path", () => {
