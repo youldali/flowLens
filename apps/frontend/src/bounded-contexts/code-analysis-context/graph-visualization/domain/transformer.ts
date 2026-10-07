@@ -1,8 +1,8 @@
-import type { FlowGraph } from '@flowlens/analyzer-core/flow-graph'
+import type { FlowGraph } from '@flowlens/analyzer-core/domain/flow-graph'
 import {
   toFlowGraph,
   toProjectSourceGraph,
-} from '@flowlens/analyzer-core/transformer'
+} from '@flowlens/analyzer-core/domain/transformer'
 
 export const GRAPH_TRANSFORMER_IDS = ['none', 'flow', 'projectSource'] as const
 

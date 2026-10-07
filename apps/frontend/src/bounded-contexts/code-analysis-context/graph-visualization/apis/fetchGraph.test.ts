@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import { describe, it } from 'vitest'
 
-import type { FlowGraph } from '@flowlens/analyzer-core/flow-graph'
+import type { FlowGraph } from '@flowlens/analyzer-core/domain/flow-graph'
 import { fetchGraph } from './fetchGraph.ts'
 
 describe('fetchGraph', () => {

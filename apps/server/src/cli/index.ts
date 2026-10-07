@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import * as path from 'node:path';
 
-import { GraphAdapter } from '@flowlens/analyzer-core/graph-adapter';
+import { GraphAdapter } from '@flowlens/analyzer-core/adapter/graph-adapter';
 import { findNearestTsconfig } from '@flowlens/common/fs';
 import { serveGraphViewer } from './server.js';
 

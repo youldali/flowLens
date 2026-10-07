@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, it, vi } from 'vitest'
-import type { FlowGraph } from '@flowlens/analyzer-core/flow-graph'
+import type { FlowGraph } from '@flowlens/analyzer-core/domain/flow-graph'
 import { createFunctionDeclarationNode } from '@flowlens/analyzer-core/fixtures/node'
 import { AppShell } from '@common/test-utils/appShell'
 import { GraphView } from './GraphView'

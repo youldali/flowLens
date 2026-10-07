@@ -1,8 +1,8 @@
 import type { Edge as FlowEdge, Node as FlowNode } from 'reactflow'
 import { MarkerType } from 'reactflow'
-import type { Edge as AnalyzerEdge, EdgeMetadata } from '@flowlens/analyzer-core/edge'
-import type { FlowGraph } from '@flowlens/analyzer-core/flow-graph'
-import type { Node } from '@flowlens/analyzer-core/node'
+import type { Edge as AnalyzerEdge, EdgeMetadata } from '@flowlens/analyzer-core/domain/edge'
+import type { FlowGraph } from '@flowlens/analyzer-core/domain/flow-graph'
+import type { Node } from '@flowlens/analyzer-core/domain/node'
 
 export interface GraphViewNodeData extends Record<string, unknown> {
   label: string

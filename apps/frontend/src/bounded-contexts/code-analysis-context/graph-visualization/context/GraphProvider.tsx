@@ -1,5 +1,5 @@
 import type { PropsWithChildren } from 'react'
-import type { FlowGraph } from '@flowlens/analyzer-core/flow-graph'
+import type { FlowGraph } from '@flowlens/analyzer-core/domain/flow-graph'
 
 import { GraphContext, type OnOpenSource } from './graphContext'
 

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useVsCodeApi } from '@common/hooks/useVsCodeApi'
-import type { FlowGraph } from '@flowlens/analyzer-core/flow-graph-contract'
+import type { FlowGraph } from '@flowlens/analyzer-core/domain/flow-graph-contract'
 import { createVsCodeEvent, parseVsCodeEvent } from '@flowlens/registries/vscode-events'
 
 export function useGraph(): FlowGraph | undefined {

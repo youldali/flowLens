@@ -1,5 +1,5 @@
 import { useQuery, type UseQueryResult } from 'react-query'
-import type { FlowGraph } from '@flowlens/analyzer-core/flow-graph'
+import type { FlowGraph } from '@flowlens/analyzer-core/domain/flow-graph'
 import { getConfig, useConfig } from '@common/config'
 import { fromFetchError, type QueryError } from '@common/utils/queryError'
 

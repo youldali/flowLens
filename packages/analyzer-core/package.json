@@ -11,15 +11,15 @@
   "license": "ISC",
   "type": "module",
   "exports": {
-    "./edge": {
+    "./domain/edge": {
       "types": "./dist/src/domain/edge.d.ts",
       "default": "./dist/src/domain/edge.js"
     },
-    "./flow-graph": {
+    "./domain/flow-graph": {
       "types": "./dist/src/domain/flow-graph.d.ts",
       "default": "./dist/src/domain/flow-graph.js"
     },
-    "./flow-graph-contract": {
+    "./domain/flow-graph-contract": {
       "types": "./dist/src/domain/flow-graph-contract.d.ts",
       "default": "./dist/src/domain/flow-graph-contract.js"
     },
@@ -31,11 +31,11 @@
       "types": "./dist/src/fixtures/node.d.ts",
       "default": "./dist/src/fixtures/node.js"
     },
-    "./node": {
+    "./domain/node": {
       "types": "./dist/src/domain/node.d.ts",
       "default": "./dist/src/domain/node.js"
     },
-    "./transformer": {
+    "./domain/transformer": {
       "types": "./dist/src/domain/transformer/index.d.ts",
       "default": "./dist/src/domain/transformer/index.js"
     },
@@ -43,11 +43,11 @@
       "types": "./dist/src/adapters/ts-node/index.d.ts",
       "default": "./dist/src/adapters/ts-node/index.js"
     },
-    "./node-adapter": {
+    "./adapter/node-adapter": {
       "types": "./dist/src/adapters/node-adapter.d.ts",
       "default": "./dist/src/adapters/node-adapter.js"
     },
-    "./graph-adapter": {
+    "./adapter/graph-adapter": {
       "types": "./dist/src/adapters/graph-adapter.d.ts",
       "default": "./dist/src/adapters/graph-adapter.js"
     }

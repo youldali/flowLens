@@ -1,11 +1,11 @@
-import type { Edge, EdgeId, EdgeType } from '@flowlens/analyzer-core/edge'
-import type { FlowGraph } from '@flowlens/analyzer-core/flow-graph'
+import type { Edge, EdgeId, EdgeType } from '@flowlens/analyzer-core/domain/edge'
+import type { FlowGraph } from '@flowlens/analyzer-core/domain/flow-graph'
 import {
   isCallExpressionNode,
   isUnresolvedCallDeclarationNode,
   type Node,
   type NodeId,
-} from '@flowlens/analyzer-core/node'
+} from '@flowlens/analyzer-core/domain/node'
 
 export interface GraphConnectionSummary {
   edgeId: EdgeId

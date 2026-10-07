@@ -2,8 +2,8 @@ import { createSelector, createSlice, type PayloadAction } from '@reduxjs/toolki
 import {
   findNodeInGraphById,
   type FlowGraph,
-} from '@flowlens/analyzer-core/flow-graph'
-import type { NodeId } from '@flowlens/analyzer-core/node'
+} from '@flowlens/analyzer-core/domain/flow-graph'
+import type { NodeId } from '@flowlens/analyzer-core/domain/node'
 import {
   adaptToReactFlow,
   type LayoutDirection,

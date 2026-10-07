@@ -1,4 +1,4 @@
-import type { NodeId } from '@flowlens/analyzer-core/node'
+import type { NodeId } from '@flowlens/analyzer-core/domain/node'
 import type { GraphConnectionSummary } from '@code-analysis-context/graph-visualization/domain/nodeDetails'
 import { useNodeTranslations } from '../../useNodeTranslations'
 import styles from './ConnectionList.module.css'

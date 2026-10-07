@@ -3,7 +3,7 @@
 import assert from 'node:assert/strict'
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, beforeEach, describe, it, vi } from 'vitest'
-import type { FlowGraph } from '@flowlens/analyzer-core/flow-graph'
+import type { FlowGraph } from '@flowlens/analyzer-core/domain/flow-graph'
 import { create as createEdge } from '@flowlens/analyzer-core/fixtures/edge'
 import { createNode } from '@flowlens/analyzer-core/fixtures/node'
 import type { Node } from 'reactflow'

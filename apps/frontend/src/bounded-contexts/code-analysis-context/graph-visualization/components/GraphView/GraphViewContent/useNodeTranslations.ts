@@ -1,5 +1,5 @@
-import type { EdgeType } from '@flowlens/analyzer-core/edge'
-import type { GraphNodeKind, SourceOrigin } from '@flowlens/analyzer-core/node'
+import type { EdgeType } from '@flowlens/analyzer-core/domain/edge'
+import type { GraphNodeKind, SourceOrigin } from '@flowlens/analyzer-core/domain/node'
 import {
   useTranslation,
   type I18nKey_CODE_ANALYSIS_CONTEXT,

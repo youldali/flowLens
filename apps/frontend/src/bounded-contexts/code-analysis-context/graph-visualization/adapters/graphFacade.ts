@@ -4,7 +4,7 @@ import {
   type FitViewOptions,
   type NodeMouseHandler,
 } from 'reactflow'
-import type { NodeId } from '@flowlens/analyzer-core/node'
+import type { NodeId } from '@flowlens/analyzer-core/domain/node'
 import type { LayoutDirection } from '@code-analysis-context/graph-visualization/adapters/ReactFlowAdapter'
 import { useGraphContext } from '@code-analysis-context/graph-visualization/context'
 import type { GraphTransformerId } from '@code-analysis-context/graph-visualization/domain/transformer'

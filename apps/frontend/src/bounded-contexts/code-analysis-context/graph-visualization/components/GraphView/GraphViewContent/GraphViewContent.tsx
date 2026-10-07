@@ -8,7 +8,7 @@ import ReactFlow, {
   type NodeProps,
   type NodeTypes,
 } from 'reactflow'
-import { isEmpty } from '@flowlens/analyzer-core/flow-graph'
+import { isEmpty } from '@flowlens/analyzer-core/domain/flow-graph'
 import { useConfig } from '@common/config'
 import { graphFacade } from '@code-analysis-context/graph-visualization/adapters/graphFacade'
 import type { GraphViewNodeData } from '@code-analysis-context/graph-visualization/adapters/ReactFlowAdapter/toReactFlow'

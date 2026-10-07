@@ -2,7 +2,7 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { GraphAdapter } from '@flowlens/analyzer-core/graph-adapter';
+import { GraphAdapter } from '@flowlens/analyzer-core/adapter/graph-adapter';
 import Fastify, { type FastifyReply } from 'fastify';
 import { z } from 'zod';
 

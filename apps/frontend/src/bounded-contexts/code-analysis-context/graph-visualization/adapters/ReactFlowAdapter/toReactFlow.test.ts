@@ -3,7 +3,7 @@ import { describe, it } from 'vitest'
 
 import { MarkerType } from 'reactflow'
 import { create as createNode } from '@flowlens/analyzer-core/fixtures/node'
-import type { FlowGraph } from '@flowlens/analyzer-core/flow-graph'
+import type { FlowGraph } from '@flowlens/analyzer-core/domain/flow-graph'
 
 import { toReactFlow } from './toReactFlow.ts'
 

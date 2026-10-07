@@ -1,4 +1,4 @@
-import type { CallableTypeMemberDeclarationNode } from '@flowlens/analyzer-core/node'
+import type { CallableTypeMemberDeclarationNode } from '@flowlens/analyzer-core/domain/node'
 import { useTranslation } from '@common/hooks/useTranslation'
 import { graphFacade } from '@code-analysis-context/graph-visualization/adapters/graphFacade'
 import styles from './ImplementationSection.module.css'

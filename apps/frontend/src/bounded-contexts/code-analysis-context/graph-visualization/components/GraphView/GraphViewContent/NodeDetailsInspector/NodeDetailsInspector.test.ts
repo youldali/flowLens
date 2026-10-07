@@ -10,7 +10,7 @@ import {
   createCallableTypeMemberDeclarationNode,
   createFunctionDeclarationNode,
 } from '@flowlens/analyzer-core/fixtures/node'
-import type { FlowGraph } from '@flowlens/analyzer-core/flow-graph'
+import type { FlowGraph } from '@flowlens/analyzer-core/domain/flow-graph'
 import type { Node } from 'reactflow'
 import { AppShell } from '@common/test-utils/appShell'
 import { graphFacade } from '@code-analysis-context/graph-visualization/adapters/graphFacade'

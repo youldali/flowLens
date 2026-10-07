@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { err, ok, type Result } from 'neverthrow';
-import { flowGraphSchema } from '@flowlens/analyzer-core/flow-graph-contract';
+import { flowGraphSchema } from '@flowlens/analyzer-core/domain/flow-graph-contract';
 import { createEventSchema, type EventDefinition, type EventFromDefinition } from './event-definition.js';
 
 export const eventRegistry = {

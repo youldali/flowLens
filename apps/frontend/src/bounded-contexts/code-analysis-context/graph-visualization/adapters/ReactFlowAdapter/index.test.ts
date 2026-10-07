@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import { describe, it } from 'vitest'
 
 import { Position } from 'reactflow'
-import type { FlowGraph } from '@flowlens/analyzer-core/flow-graph'
+import type { FlowGraph } from '@flowlens/analyzer-core/domain/flow-graph'
 
 import { adaptToReactFlow } from './index.ts'
 

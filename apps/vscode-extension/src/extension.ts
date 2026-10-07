@@ -1,7 +1,7 @@
 import * as path from "node:path";
 import * as vscode from "vscode";
 
-import { GraphAdapter } from "@flowlens/analyzer-core/graph-adapter";
+import { GraphAdapter } from "@flowlens/analyzer-core/adapter/graph-adapter";
 import { findNearestTsconfig } from "@flowlens/common/fs";
 
 import { FlowLensGraphWebview } from "./webview.js";

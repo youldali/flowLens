@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
 import classNames from 'classnames'
-import { isCallableTypeMemberDeclarationNode, type Node } from '@flowlens/analyzer-core/node'
+import { isCallableTypeMemberDeclarationNode, type Node } from '@flowlens/analyzer-core/domain/node'
 import { useTranslation } from '@common/hooks/useTranslation'
 import { graphFacade } from '@code-analysis-context/graph-visualization/adapters/graphFacade'
 import {
