@@ -41,6 +41,7 @@ export class FlowLensGraphWebview {
       vscode.ViewColumn.Beside,
       {
         enableScripts: true,
+        retainContextWhenHidden: true,
         localResourceRoots: [this.frontendDistUri],
       },
     );
