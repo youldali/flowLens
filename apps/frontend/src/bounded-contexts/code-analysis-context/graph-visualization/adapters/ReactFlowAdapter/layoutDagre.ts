@@ -1,7 +1,7 @@
 import dagre from 'dagre'
 import { Position, type Edge as FlowEdge, type Node as FlowNode } from 'reactflow'
 
-export type LayoutDirection = 'TB' | 'BT' | 'LR' | 'RL'
+export type LayoutDirection = 'LR' | 'TB'
 
 export interface DagreLayoutOptions {
   direction?: LayoutDirection
@@ -25,7 +25,7 @@ export function layoutDagre<TData extends Record<string, unknown>>(
   const direction = options.direction ?? 'LR'
   const nodeWidth = options.nodeWidth ?? DEFAULT_NODE_WIDTH
   const nodeHeight = options.nodeHeight ?? DEFAULT_NODE_HEIGHT
-  const isHorizontal = direction === 'LR' || direction === 'RL'
+  const isHorizontal = direction === 'LR'
   const dagreGraph = new dagre.graphlib.Graph()
 
   dagreGraph.setDefaultEdgeLabel(() => ({}))
@@ -52,12 +52,8 @@ export function layoutDagre<TData extends Record<string, unknown>>(
 
     return {
       ...node,
-      sourcePosition: isHorizontal
-        ? (direction === 'LR' ? Position.Right : Position.Left)
-        : (direction === 'TB' ? Position.Bottom : Position.Top),
-      targetPosition: isHorizontal
-        ? (direction === 'LR' ? Position.Left : Position.Right)
-        : (direction === 'TB' ? Position.Top : Position.Bottom),
+      sourcePosition: isHorizontal ? Position.Right : Position.Bottom,
+      targetPosition: isHorizontal ? Position.Left : Position.Top,
       position: {
         x: positionedNode.x - nodeWidth / 2,
         y: positionedNode.y - nodeHeight / 2,

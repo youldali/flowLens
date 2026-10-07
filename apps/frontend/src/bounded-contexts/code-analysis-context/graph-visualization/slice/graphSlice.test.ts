@@ -78,7 +78,7 @@ describe('graphReducer', () => {
 
     assert.equal(selectors.selectDirection(store.getState()), 'LR')
 
-    for (const direction of ['TB', 'BT', 'LR', 'RL'] as const) {
+    for (const direction of ['TB', 'LR'] as const) {
       store.dispatch(actions.selectDirection(direction))
       assert.equal(selectors.selectDirection(store.getState()), direction)
     }
@@ -98,7 +98,7 @@ describe('graphReducer', () => {
       })],
     }
 
-    for (const direction of ['TB', 'BT', 'LR', 'RL'] as const) {
+    for (const direction of ['TB', 'LR'] as const) {
       store.dispatch(actions.selectDirection(direction))
       assert.deepEqual(
         selectors.selectReactFlowGraph(store.getState(), graph),
@@ -109,7 +109,7 @@ describe('graphReducer', () => {
     store.dispatch(actions.selectNode('target'))
     assert.deepEqual(
       selectors.selectReactFlowGraph(store.getState(), graph),
-      adaptToReactFlow(graph, { direction: 'RL', selectedNodeId: 'target' }),
+      adaptToReactFlow(graph, { direction: 'LR', selectedNodeId: 'target' }),
     )
   })
 })

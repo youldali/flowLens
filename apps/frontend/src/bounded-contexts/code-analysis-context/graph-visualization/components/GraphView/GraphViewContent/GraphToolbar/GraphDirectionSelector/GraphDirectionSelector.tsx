@@ -7,13 +7,11 @@ import { graphFacade } from '@code-analysis-context/graph-visualization/adapters
 import type { LayoutDirection } from '@code-analysis-context/graph-visualization/adapters/ReactFlowAdapter'
 import styles from './GraphDirectionSelector.module.css'
 
-const LAYOUT_DIRECTIONS = ['LR', 'RL', 'TB', 'BT'] as const satisfies readonly LayoutDirection[]
+const LAYOUT_DIRECTIONS = ['LR', 'TB'] as const satisfies readonly LayoutDirection[]
 
 const DIRECTION_LABEL_KEYS = {
   LR: 'graphVisualization.directions.options.leftToRight',
-  RL: 'graphVisualization.directions.options.rightToLeft',
   TB: 'graphVisualization.directions.options.topToBottom',
-  BT: 'graphVisualization.directions.options.bottomToTop',
 } satisfies Record<LayoutDirection, I18nKey_CODE_ANALYSIS_CONTEXT>
 
 export function GraphDirectionSelector() {

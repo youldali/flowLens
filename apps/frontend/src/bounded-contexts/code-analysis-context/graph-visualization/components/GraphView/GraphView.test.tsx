@@ -37,7 +37,7 @@ describe('GraphView', () => {
         assert.ok(markup.includes(`value="${value}"`))
       }
       assert.ok(markup.includes('graphVisualization.directions.label'))
-      for (const direction of ['LR', 'RL', 'TB', 'BT']) {
+      for (const direction of ['LR', 'TB']) {
         assert.ok(markup.includes(`value="${direction}"`))
       }
       assert.ok(markup.includes('graphVisualization.fit'))

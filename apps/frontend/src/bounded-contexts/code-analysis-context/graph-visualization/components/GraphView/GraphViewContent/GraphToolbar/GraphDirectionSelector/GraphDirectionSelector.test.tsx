@@ -11,9 +11,7 @@ import { GraphDirectionSelector } from './GraphDirectionSelector'
 const translations: Record<string, string> = {
   'graphVisualization.directions.label': 'Direction',
   'graphVisualization.directions.options.leftToRight': 'Left to right',
-  'graphVisualization.directions.options.rightToLeft': 'Right to left',
   'graphVisualization.directions.options.topToBottom': 'Top to bottom',
-  'graphVisualization.directions.options.bottomToTop': 'Bottom to top',
 }
 
 vi.mock('@common/hooks/useTranslation', () => ({
@@ -39,14 +37,13 @@ describe('GraphDirectionSelector', () => {
     const view = render(consumers)
     const select = screen.getByRole<HTMLSelectElement>('combobox', { name: 'Direction' })
 
+    assert.deepEqual(screen.getAllByRole<HTMLOptionElement>('option').map(option => option.value), ['LR', 'TB'])
     assert.equal(select.value, 'LR')
     assert.equal(screen.getByRole('status').textContent, 'LR')
 
     const directions = [
       ['LR', 'Left to right'],
-      ['RL', 'Right to left'],
       ['TB', 'Top to bottom'],
-      ['BT', 'Bottom to top'],
     ] as const satisfies readonly [LayoutDirection, string][]
 
     for (const [direction, label] of directions) {
@@ -60,7 +57,7 @@ describe('GraphDirectionSelector', () => {
     view.rerender(consumers)
     assert.equal(
       screen.getByRole<HTMLSelectElement>('combobox', { name: 'Direction' }).value,
-      'BT',
+      'TB',
     )
   })
 })
