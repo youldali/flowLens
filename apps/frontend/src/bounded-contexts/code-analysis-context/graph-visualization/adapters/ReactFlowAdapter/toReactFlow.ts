@@ -36,7 +36,7 @@ function toReactFlowEdge(edge: AnalyzerEdge): FlowEdge<GraphViewEdgeData> {
     markerEnd: {
       type: MarkerType.ArrowClosed,
     },
-    type: 'smoothstep',
+    type: 'relationship',
     animated: false,
     ...(edge.metadata ? { data: { metadata: edge.metadata } } : {}),
   }

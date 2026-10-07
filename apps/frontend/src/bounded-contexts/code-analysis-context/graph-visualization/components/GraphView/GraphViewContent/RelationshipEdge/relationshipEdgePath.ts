@@ -1,0 +1,28 @@
+import { getSmoothStepPath, Position } from 'reactflow'
+
+// Room for the longest relationship ("references"), padding, and the arrow.
+const LABEL_DISTANCE = 68
+const TARGET_SEGMENT_LENGTH = 116
+const SHORT_EDGE_LABEL_OFFSET = 60
+type PathOptions = Parameters<typeof getSmoothStepPath>[0]
+
+export function getRelationshipEdgePath(options: PathOptions) {
+  const { sourceX, sourceY, targetX, targetY, targetPosition = Position.Top } = options
+  const horizontal = targetPosition === Position.Left
+  const distance = horizontal ? Math.abs(targetX - sourceX) : Math.abs(targetY - sourceY)
+  const segmentLength = horizontal ? TARGET_SEGMENT_LENGTH : 48
+  const short = distance < segmentLength * 2
+  const labelDistance = short ? Math.min(20, distance / 4) : (horizontal ? LABEL_DISTANCE : 30)
+  const [path] = getSmoothStepPath({
+    ...options,
+    offset: short ? Math.min(20, distance / 2) : segmentLength,
+  })
+
+  // Crowded/manual layouts cannot fit a label inline. Lift it beside the
+  // destination branch, clear of the node (88px high) and its arrowhead.
+  return {
+    path,
+    labelX: horizontal ? targetX - labelDistance : targetX + (short ? 168 : 0),
+    labelY: horizontal ? targetY - (short ? SHORT_EDGE_LABEL_OFFSET : 0) : targetY - labelDistance,
+  }
+}

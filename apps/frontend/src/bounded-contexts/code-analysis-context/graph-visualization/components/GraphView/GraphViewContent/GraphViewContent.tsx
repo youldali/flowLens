@@ -4,6 +4,7 @@ import ReactFlow, {
   Controls,
   MiniMap,
   ReactFlowProvider,
+  type EdgeTypes,
   type FitViewOptions,
   type NodeProps,
   type NodeTypes,
@@ -14,6 +15,7 @@ import { graphFacade } from '@code-analysis-context/graph-visualization/adapters
 import type { GraphViewNodeData } from '@code-analysis-context/graph-visualization/adapters/ReactFlowAdapter/toReactFlow'
 import { GraphToolbar } from './GraphToolbar'
 import { GraphNode } from './GraphNode'
+import { RelationshipEdge } from './RelationshipEdge'
 import { NodeDetailsInspector } from './NodeDetailsInspector'
 import styles from './GraphViewContent.module.css'
 import { useEffectSelectionCleanup } from './useEffectSelectionCleanup'
@@ -25,10 +27,12 @@ export interface GraphViewContentProps {
 
 const DEFAULT_FIT_VIEW_OPTIONS = { padding: 0.2 } satisfies FitViewOptions
 const NODE_TYPES = {
-  default: ({ data, selected }: NodeProps<GraphViewNodeData>) => (
-    <GraphNode node={data} selected={selected} />
+  default: ({ data, selected, sourcePosition, targetPosition }: NodeProps<GraphViewNodeData>) => (
+    <GraphNode node={data} selected={selected} sourcePosition={sourcePosition} targetPosition={targetPosition} />
   ),
 } satisfies NodeTypes
+
+const EDGE_TYPES = { relationship: RelationshipEdge } satisfies EdgeTypes
 
 export function GraphViewContent(props: GraphViewContentProps) {
   return (
@@ -82,6 +86,7 @@ function GraphCanvas({
                 nodes={nodes}
                 edges={edges}
                 nodeTypes={NODE_TYPES}
+                edgeTypes={EDGE_TYPES}
                 fitView
                 fitViewOptions={fitViewOptions}
                 onNodeClick={selectNode}

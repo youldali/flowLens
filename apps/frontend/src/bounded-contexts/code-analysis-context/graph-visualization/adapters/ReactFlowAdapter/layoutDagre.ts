@@ -13,7 +13,8 @@ export interface DagreLayoutOptions {
 
 const DEFAULT_NODE_WIDTH = 224
 const DEFAULT_NODE_HEIGHT = 88
-const DEFAULT_RANK_SEPARATION = 120
+const DEFAULT_HORIZONTAL_RANK_SEPARATION = 280
+const DEFAULT_VERTICAL_RANK_SEPARATION = 120
 const DEFAULT_NODE_SEPARATION = 80
 
 export function layoutDagre<TData extends Record<string, unknown>>(
@@ -30,7 +31,9 @@ export function layoutDagre<TData extends Record<string, unknown>>(
   dagreGraph.setDefaultEdgeLabel(() => ({}))
   dagreGraph.setGraph({
     rankdir: direction,
-    ranksep: options.rankSeparation ?? DEFAULT_RANK_SEPARATION,
+    ranksep: options.rankSeparation ?? (isHorizontal
+      ? DEFAULT_HORIZONTAL_RANK_SEPARATION
+      : DEFAULT_VERTICAL_RANK_SEPARATION),
     nodesep: options.nodeSeparation ?? DEFAULT_NODE_SEPARATION,
   })
 
@@ -49,8 +52,12 @@ export function layoutDagre<TData extends Record<string, unknown>>(
 
     return {
       ...node,
-      sourcePosition: isHorizontal ? Position.Right : Position.Bottom,
-      targetPosition: isHorizontal ? Position.Left : Position.Top,
+      sourcePosition: isHorizontal
+        ? (direction === 'LR' ? Position.Right : Position.Left)
+        : (direction === 'TB' ? Position.Bottom : Position.Top),
+      targetPosition: isHorizontal
+        ? (direction === 'LR' ? Position.Left : Position.Right)
+        : (direction === 'TB' ? Position.Top : Position.Bottom),
       position: {
         x: positionedNode.x - nodeWidth / 2,
         y: positionedNode.y - nodeHeight / 2,

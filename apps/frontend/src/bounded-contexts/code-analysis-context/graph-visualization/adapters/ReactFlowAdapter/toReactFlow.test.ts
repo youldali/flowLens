@@ -80,7 +80,7 @@ describe('toReactFlow', () => {
           markerEnd: {
             type: MarkerType.ArrowClosed,
           },
-          type: 'smoothstep',
+          type: 'relationship',
           animated: false,
         },
       ],
@@ -118,7 +118,7 @@ describe('toReactFlow', () => {
         markerEnd: {
           type: MarkerType.ArrowClosed,
         },
-        type: 'smoothstep',
+        type: 'relationship',
         animated: false,
         data: {
           metadata: {

@@ -45,4 +45,19 @@ describe('layoutDagre', () => {
     assert.ok(source && target && source.position.y < target.position.y)
     assert.equal(source.position.x, target.position.x)
   })
+
+  it('faces connectors toward the next rank in reversed layouts', () => {
+    const nodes = [createNode({ id: 'source' }), createNode({ id: 'target' })]
+    const edges = [createEdge({ source: 'source', target: 'target' })]
+
+    for (const [direction, sourcePosition, targetPosition] of [
+      ['RL', Position.Left, Position.Right],
+      ['BT', Position.Top, Position.Bottom],
+    ] as const) {
+      const [source, target] = layoutDagre(nodes, edges, { direction })
+
+      assert.equal(source?.sourcePosition, sourcePosition)
+      assert.equal(target?.targetPosition, targetPosition)
+    }
+  })
 })
