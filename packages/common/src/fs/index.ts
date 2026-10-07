@@ -11,7 +11,15 @@ export function isWithinDirectory(directory: string, filePath: string): boolean 
 
 export function findWorkspaceRoot(configPath: string): string {
   const projectDirectory = path.dirname(path.resolve(configPath));
-  return findGitRoot(projectDirectory) ?? projectDirectory;
+  let directory = projectDirectory;
+
+  while (true) {
+    if (declaresWorkspace(directory) || fs.existsSync(path.join(directory, '.git'))) return directory;
+    const parent = path.dirname(directory);
+
+    if (parent === directory) return projectDirectory;
+    directory = parent;
+  }
 }
 
 export function findNearestTsconfig(startDir: string): Result<string, "not-found"> {
@@ -42,12 +50,6 @@ export function findTsConfigPaths(directory: string): string[] {
   });
 }
 
-export function findGitRoot(directory: string): string | undefined {
-  if (fs.existsSync(path.join(directory, '.git'))) return directory;
-  const parent = path.dirname(directory);
-  return parent === directory ? undefined : findGitRoot(parent);
-}
-
 export function isWithinWorkspace(tsconfigPath: string, filePath: string): boolean {
   const workspaceRoot = findWorkspaceRoot(tsconfigPath);
   const resolvedFilePath = path.resolve(filePath);
@@ -57,4 +59,19 @@ export function isWithinWorkspace(tsconfigPath: string, filePath: string): boole
 
 export function normalizePath(filePath: string): string {
   return path.resolve(filePath).replaceAll(path.sep, '/');
+}
+
+function declaresWorkspace(directory: string): boolean {
+  if (fs.existsSync(path.join(directory, 'pnpm-workspace.yaml'))) return true;
+  const manifestPath = path.join(directory, 'package.json');
+
+  if (!fs.existsSync(manifestPath)) return false;
+
+  try {
+    const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+
+    return Array.isArray(manifest?.workspaces) || Array.isArray(manifest?.workspaces?.packages);
+  } catch (error) {
+    throw new Error(`Failed to read workspace declaration from ${manifestPath}`, { cause: error });
+  }
 }

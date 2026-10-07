@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import * as fs from 'node:fs';
 import * as os from 'node:os';
 import * as path from 'node:path';
-import { afterEach, describe, it } from 'node:test';
+import { afterEach, beforeEach, describe, it } from 'node:test';
 
 import { findNearestTsconfig, findTsConfigPaths, findWorkspaceRoot, isWithinDirectory, isWithinWorkspace } from './index.js';
 import { assertErr, assertOk } from '../testing/index.js';
@@ -65,18 +65,80 @@ describe('isWithinDirectory', () => {
 });
 
 describe('findWorkspaceRoot', () => {
-  it('detects the nearest Git directory or worktree marker and falls back outside Git', (t) => {
-    const root = fs.mkdtempSync(path.join(os.tmpdir(), 'flowlens-roots-'));
-    t.after(() => fs.rmSync(root, { recursive: true, force: true }));
-    const project = path.join(root, 'packages/core');
-    fs.mkdirSync(project, { recursive: true });
-    const configPath = path.join(project, 'tsconfig.json');
-    assert.equal(findWorkspaceRoot(configPath), project);
-    fs.mkdirSync(path.join(root, '.git'));
-    assert.equal(findWorkspaceRoot(configPath), root);
-    fs.writeFileSync(path.join(root, 'packages/.git'), 'gitdir: /some/repository/.git/worktrees/test');
-    assert.equal(findWorkspaceRoot(configPath), path.join(root, 'packages'));
+  let root: string;
+
+  beforeEach(() => {
+    root = fs.mkdtempSync(path.join(os.tmpdir(), 'flowlens-roots-'));
   });
+
+  afterEach(() => fs.rmSync(root, { recursive: true, force: true }));
+
+  for (const [label, marker, contents] of [
+    ['pnpm', 'pnpm-workspace.yaml', 'packages: ["packages/*"]'],
+    ['workspaces array', 'package.json', JSON.stringify({ workspaces: ['packages/*'] })],
+    ['workspaces object', 'package.json', JSON.stringify({ workspaces: { packages: ['packages/*'] } })],
+  ] as const) {
+    it(`detects sibling packages without Git using ${label}`, () => {
+      fs.writeFileSync(path.join(root, marker), contents);
+
+      for (const name of ['core', 'common']) {
+        const project = path.join(root, 'packages', name);
+
+        fs.mkdirSync(project, { recursive: true });
+        fs.writeFileSync(path.join(project, 'package.json'), JSON.stringify({ name }));
+        assert.equal(findWorkspaceRoot(path.join(project, 'tsconfig.json')), root);
+      }
+    });
+  }
+
+  it('prefers the nearest workspace declaration inside a Git repository', () => {
+    const nested = path.join(root, 'nested');
+    const project = path.join(nested, 'packages/core');
+    const configPath = path.join(project, 'tsconfig.json');
+
+    fs.mkdirSync(project, { recursive: true });
+    fs.mkdirSync(path.join(root, '.git'));
+    fs.writeFileSync(path.join(root, 'pnpm-workspace.yaml'), 'packages: ["nested"]');
+    fs.writeFileSync(path.join(nested, 'package.json'), JSON.stringify({ workspaces: ['packages/*'] }));
+    assert.equal(findWorkspaceRoot(configPath), nested);
+  });
+
+  it('reports malformed package manifests with their path and cause', () => {
+    const manifestPath = path.join(root, 'package.json');
+
+    fs.writeFileSync(manifestPath, '{');
+    assert.throws(() => findWorkspaceRoot(path.join(root, 'tsconfig.json')), (error: Error) => {
+      assert.ok(error.message.includes(manifestPath));
+      assert.ok(error.cause instanceof SyntaxError);
+      return true;
+    });
+  });
+
+  it('falls back to the config directory without workspace or Git markers', () => {
+    const project = path.join(root, 'packages/core');
+
+    fs.mkdirSync(project, { recursive: true });
+    fs.writeFileSync(path.join(root, 'package.json'), '{}');
+    assert.equal(findWorkspaceRoot(path.join(project, 'tsconfig.json')), project);
+  });
+
+  for (const markerType of ['directory', 'file']) {
+    it(`stops at a Git ${markerType} before an enclosing workspace`, () => {
+      const repository = path.join(root, 'nested');
+      const project = path.join(repository, 'packages/core');
+      const marker = path.join(repository, '.git');
+
+      fs.mkdirSync(project, { recursive: true });
+      fs.writeFileSync(path.join(root, 'pnpm-workspace.yaml'), 'packages: ["nested"]');
+      if (markerType === 'directory') {
+        fs.mkdirSync(marker);
+      } else {
+        fs.writeFileSync(marker, 'gitdir: /some/repository/.git/worktrees/test');
+      }
+
+      assert.equal(findWorkspaceRoot(path.join(project, 'tsconfig.json')), repository);
+    });
+  }
 });
 
 describe('findTsConfigPaths', () => {
