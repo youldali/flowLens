@@ -82,6 +82,7 @@ describe('toReactFlow', () => {
           },
           type: 'relationship',
           animated: false,
+          data: { relationship: 'declares' },
         },
       ],
     })
@@ -121,6 +122,7 @@ describe('toReactFlow', () => {
         type: 'relationship',
         animated: false,
         data: {
+          relationship: 'calls',
           metadata: {
             kind: 'call-expression',
             callSite: {

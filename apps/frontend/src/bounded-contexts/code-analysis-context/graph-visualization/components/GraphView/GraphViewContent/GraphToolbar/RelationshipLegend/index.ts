@@ -1,0 +1,1 @@
+export { RelationshipLegend } from './RelationshipLegend'

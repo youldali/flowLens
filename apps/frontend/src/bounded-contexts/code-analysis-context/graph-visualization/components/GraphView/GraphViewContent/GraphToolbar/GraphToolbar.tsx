@@ -1,6 +1,7 @@
 import { useTranslation } from '@common/hooks/useTranslation'
 import { GraphDirectionSelector } from './GraphDirectionSelector'
 import { GraphTransformerSelector } from './GraphTransformerSelector'
+import { RelationshipLegend } from './RelationshipLegend'
 import styles from './GraphToolbar.module.css'
 
 type GraphToolbarProps = {
@@ -20,6 +21,7 @@ export function GraphToolbar({ onFitView, rootLabel }: GraphToolbarProps) {
       )}
       <GraphTransformerSelector />
       <GraphDirectionSelector />
+      <RelationshipLegend />
       <button className={styles.fitButton} onClick={onFitView} type="button">
         {t('graphVisualization.fit')}
       </button>

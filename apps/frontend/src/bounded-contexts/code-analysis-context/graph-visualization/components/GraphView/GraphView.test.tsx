@@ -41,6 +41,9 @@ describe('GraphView', () => {
         assert.ok(markup.includes(`value="${direction}"`))
       }
       assert.ok(markup.includes('graphVisualization.fit'))
+      assert.ok(markup.includes('graphVisualization.relationshipLegend'))
+      assert.ok(markup.includes('graphVisualization.nodes.relationships.calls'))
+      assert.ok(markup.includes('graphVisualization.nodes.relationships.declares'))
       assert.ok(markup.includes(`title="${name}"`))
       assert.ok(markup.includes('react-flow'))
       assert.ok(!markup.includes('<fieldset'))

@@ -1,6 +1,7 @@
 {
     "graphVisualization": {
         "fit": "Fit",
+        "relationshipLegend": "Relationship types",
         "loading": "Loading graph...",
         "transformers": {
             "label": "Transform",

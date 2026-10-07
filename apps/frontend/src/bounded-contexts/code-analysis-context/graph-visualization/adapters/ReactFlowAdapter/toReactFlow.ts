@@ -12,7 +12,8 @@ export interface GraphViewNodeData extends Record<string, unknown> {
 }
 
 export interface GraphViewEdgeData extends Record<string, unknown> {
-  metadata: EdgeMetadata
+  relationship: AnalyzerEdge['type']
+  metadata?: EdgeMetadata
 }
 
 export interface ReactFlowGraph {
@@ -38,7 +39,10 @@ function toReactFlowEdge(edge: AnalyzerEdge): FlowEdge<GraphViewEdgeData> {
     },
     type: 'relationship',
     animated: false,
-    ...(edge.metadata ? { data: { metadata: edge.metadata } } : {}),
+    data: {
+      relationship: edge.type,
+      ...(edge.metadata ? { metadata: edge.metadata } : {}),
+    },
   }
 }
 
