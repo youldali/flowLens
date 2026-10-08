@@ -28,6 +28,27 @@ describe('discoverWorkspaceProjects', () => {
   });
 
 
+  it('discovers shared configs without inputs and projects inheriting their options', (t) => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), 'flowlens-configs-'));
+    const basePath = path.join(root, 'config/tsconfig.base.json');
+    const projectPath = path.join(root, 'core/tsconfig.json');
+    const sourcePath = path.join(root, 'core/index.ts');
+
+    t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+    fs.mkdirSync(path.dirname(basePath), { recursive: true });
+    fs.mkdirSync(path.dirname(projectPath), { recursive: true });
+    fs.writeFileSync(basePath, JSON.stringify({ compilerOptions: { strict: true } }));
+    fs.writeFileSync(projectPath, JSON.stringify({ extends: '../config/tsconfig.base.json' }));
+    fs.writeFileSync(sourcePath, 'export const value = 1;');
+
+    const configs = discoverWorkspaceProjects(root);
+
+    assert.deepEqual(configs.map(config => config.configPath), [basePath, projectPath]);
+    assert.deepEqual(configs[0]!.parsed.fileNames, []);
+    assert.deepEqual(configs[1]!.parsed.fileNames, [sourcePath]);
+    assert.equal(configs[1]!.parsed.options.strict, true);
+  });
+
   it('throws with the config path and original error as the cause for malformed configs', (t) => {
     const root = fs.mkdtempSync(path.join(os.tmpdir(), 'flowlens-configs-'));
     const configPath = path.join(root, 'tsconfig.json');

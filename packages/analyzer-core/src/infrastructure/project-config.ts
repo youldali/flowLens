@@ -25,8 +25,11 @@ export function loadProjectConfig(tsconfigPath: string): ProjectConfig {
     configPath,
   )
 
-  if (parsed.errors.length > 0) {
-    const message = parsed.errors
+  // Shared configs can have no source inputs when loaded independently (TS18003).
+  const errors = parsed.errors.filter(error => error.code !== 18003);
+
+  if (errors.length > 0) {
+    const message = errors
       .map((error) => ts.flattenDiagnosticMessageText(error.messageText, '\n'))
       .join('\n')
 
