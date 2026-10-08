@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
 import assert from 'node:assert/strict'
-import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, renderHook, screen } from '@testing-library/react'
 import { afterEach, beforeEach, describe, it, vi } from 'vitest'
 import type { FlowGraph } from '@flowlens/analyzer-core/domain/flow-graph'
 import { create as createEdge } from '@flowlens/analyzer-core/fixtures/edge'
@@ -197,5 +197,38 @@ describe('graphFacade', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Fit view' }))
     assert.deepEqual(reactFlow.fitView.mock.calls[0], [{ padding: 0.25 }])
 
+  })
+
+  it('returns the highlighted edge and updates it when highlighting changes', () => {
+    const hoverGraph: FlowGraph = {
+      nodes: ['source', 'first', 'second', 'unrelated'].map(id => createNode({ id })),
+      edges: [
+        createEdge({ id: 'first-edge', source: 'source', target: 'first' }),
+        createEdge({ id: 'second-edge', source: 'source', target: 'second' }),
+      ],
+    }
+    const { result } = renderHook(() => {
+      return {
+        highlightedEdge: graphFacade.data.useHighlightedEdge(),
+        highlight: graphFacade.actions.useHighlightEdge(),
+        clear: graphFacade.actions.useClearHighlightedEdge(),
+      }
+    }, {
+      wrapper: ({ children }) => (
+        <AppShell>
+          <GraphProvider graph={hoverGraph}>{children}</GraphProvider>
+        </AppShell>
+      ),
+    })
+
+    assert.equal(result.current.highlightedEdge, undefined)
+    act(() => result.current.highlight('first-edge'))
+    assert.equal(result.current.highlightedEdge, hoverGraph.edges[0])
+
+    act(() => result.current.highlight('second-edge'))
+    assert.equal(result.current.highlightedEdge, hoverGraph.edges[1])
+
+    act(() => result.current.clear())
+    assert.equal(result.current.highlightedEdge, undefined)
   })
 })

@@ -4,6 +4,7 @@ import {
   type FitViewOptions,
   type NodeMouseHandler,
 } from 'reactflow'
+import type { Edge, EdgeId } from '@flowlens/analyzer-core/domain/edge'
 import type { NodeId } from '@flowlens/analyzer-core/domain/node'
 import type { LayoutDirection } from '@code-analysis-context/graph-visualization/adapters/ReactFlowAdapter'
 import { useGraphContext } from '@code-analysis-context/graph-visualization/context'
@@ -54,6 +55,22 @@ function useClearSelection() {
 
   return useCallback(() => {
     dispatch(actions.clearNodeSelection())
+  }, [dispatch])
+}
+
+function useHighlightEdge() {
+  const dispatch = useAppDispatch()
+
+  return useCallback((edgeId: EdgeId) => {
+    dispatch(actions.highlightEdge(edgeId))
+  }, [dispatch])
+}
+
+function useClearHighlightedEdge() {
+  const dispatch = useAppDispatch()
+
+  return useCallback((edgeId?: EdgeId) => {
+    dispatch(actions.clearHighlightedEdge(edgeId))
   }, [dispatch])
 }
 
@@ -121,6 +138,16 @@ function useSelectedNode() {
   return useAppSelector((state) => selectors.selectSelectedNode(state, graph))
 }
 
+function useHighlightedEdgeId() {
+  return useAppSelector(selectors.selectHighlightedEdgeId)
+}
+
+function useHighlightedEdge(): Edge | undefined {
+  const graph = useOriginalGraph()
+
+  return useAppSelector(state => selectors.selectHighlightedEdge(state, graph))
+}
+
 function useDirection() {
   return useAppSelector(selectors.selectDirection)
 }
@@ -131,6 +158,8 @@ function useOnOpenSource() {
 
 export const graphFacade = {
   actions: {
+    useHighlightEdge,
+    useClearHighlightedEdge,
     useSelectTransformer,
     useSelectDirection,
     useSelectNodeMouseHandler,
@@ -141,6 +170,8 @@ export const graphFacade = {
     useOnOpenSource,
   },
   data: {
+    useHighlightedEdgeId,
+    useHighlightedEdge,
     useOriginalGraph,
     useTransformedGraph,
     useReactFlowGraph,

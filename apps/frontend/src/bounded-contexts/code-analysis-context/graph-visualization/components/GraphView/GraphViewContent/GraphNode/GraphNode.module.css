@@ -54,3 +54,12 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+.nodeConnected {
+  border-color: var(--graph-focus-border, var(--accent));
+  box-shadow: 0 0 0 1px var(--graph-focus-border, var(--accent));
+}
+
+.nodeDimmed {
+  opacity: 0.25;
+}

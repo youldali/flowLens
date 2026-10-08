@@ -112,4 +112,58 @@ describe('graphReducer', () => {
       adaptToReactFlow(graph, { direction: 'LR', selectedNodeId: 'target' }),
     )
   })
+
+  it('stores the highlighted edge independently of selection and ignores stale delayed clears', () => {
+    const store = createAppStore()
+    const graph: FlowGraph = { nodes: [createNode({ id: 'selected' })], edges: [] }
+
+    assert.equal(selectors.selectHighlightedEdgeId(store.getState()), undefined)
+    store.dispatch(actions.selectNode('selected'))
+    const layout = selectors.selectReactFlowGraph(store.getState(), graph)
+
+    store.dispatch(actions.highlightEdge('first'))
+    assert.equal(selectors.selectHighlightedEdgeId(store.getState()), 'first')
+    store.dispatch(actions.highlightEdge('second'))
+    store.dispatch(actions.clearHighlightedEdge('first'))
+    assert.equal(selectors.selectHighlightedEdgeId(store.getState()), 'second')
+    assert.equal(selectors.selectSelectedNodeId(store.getState()), 'selected')
+    assert.equal(selectors.selectReactFlowGraph(store.getState(), graph), layout)
+
+    store.dispatch(actions.clearHighlightedEdge('second'))
+    assert.equal(selectors.selectHighlightedEdgeId(store.getState()), undefined)
+    store.dispatch(actions.highlightEdge('first'))
+    store.dispatch(actions.clearHighlightedEdge())
+    assert.equal(selectors.selectHighlightedEdgeId(store.getState()), undefined)
+  })
+
+  it('returns the highlighted edge and ignores edges missing from the graph', () => {
+    const store = createAppStore()
+    const graph: FlowGraph = {
+      nodes: ['source', 'target', 'other'].map(id => createNode({ id })),
+      edges: [createEdge({ id: 'connection', source: 'source', target: 'target' })],
+    }
+
+    store.dispatch(actions.selectTransformer('none'))
+    store.dispatch(actions.highlightEdge('connection'))
+    assert.equal(selectors.selectHighlightedEdge(store.getState(), graph), graph.edges[0])
+
+    store.dispatch(actions.highlightEdge('missing'))
+    assert.equal(selectors.selectHighlightedEdge(store.getState(), graph), undefined)
+  })
+
+  it('clears the highlighted edge when selecting a transformer or direction while preserving node selection', () => {
+    const store = createAppStore()
+
+    store.dispatch(actions.selectNode('selected'))
+
+    for (const action of [actions.selectTransformer('none'), actions.selectDirection('TB')]) {
+      store.dispatch(actions.highlightEdge('connection'))
+      store.dispatch(action)
+      assert.equal(selectors.selectHighlightedEdgeId(store.getState()), undefined)
+      assert.equal(selectors.selectSelectedNodeId(store.getState()), 'selected')
+    }
+
+    assert.equal(selectors.selectSelectedTransformer(store.getState()), 'none')
+    assert.equal(selectors.selectDirection(store.getState()), 'TB')
+  })
 })

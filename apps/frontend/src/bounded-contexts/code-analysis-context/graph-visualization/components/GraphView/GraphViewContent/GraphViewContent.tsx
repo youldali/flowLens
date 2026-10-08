@@ -19,6 +19,7 @@ import { RelationshipEdge } from './RelationshipEdge'
 import { NodeDetailsInspector } from './NodeDetailsInspector'
 import styles from './GraphViewContent.module.css'
 import { useEffectSelectionCleanup } from './useEffectSelectionCleanup'
+import { useConnectionHover } from './useConnectionHover'
 
 export interface GraphViewContentProps {
   className?: string
@@ -27,8 +28,8 @@ export interface GraphViewContentProps {
 
 const DEFAULT_FIT_VIEW_OPTIONS = { padding: 0.2 } satisfies FitViewOptions
 const NODE_TYPES = {
-  default: ({ data, selected, sourcePosition, targetPosition }: NodeProps<GraphViewNodeData>) => (
-    <GraphNode node={data} selected={selected} sourcePosition={sourcePosition} targetPosition={targetPosition} />
+  default: ({ id, data, selected, sourcePosition, targetPosition }: NodeProps<GraphViewNodeData>) => (
+    <GraphNode id={id} node={data} selected={selected} sourcePosition={sourcePosition} targetPosition={targetPosition} />
   ),
 } satisfies NodeTypes
 
@@ -50,6 +51,7 @@ function GraphCanvas({
   const originalGraph = graphFacade.data.useOriginalGraph()
   const transformedGraph = graphFacade.data.useTransformedGraph()
   const { nodes, edges } = graphFacade.data.useReactFlowGraph()
+  const connectionHover = useConnectionHover()
   const selectedNode = graphFacade.data.useSelectedNode()
   const fitView = graphFacade.actions.useFitView()
   const selectNode = graphFacade.actions.useSelectNodeMouseHandler()
@@ -81,7 +83,7 @@ function GraphCanvas({
           </div>
         ) : (
           <>
-            <div className={graphViewClassName}>
+            <div className={graphViewClassName} onMouseLeave={connectionHover.clearHover}>
               <ReactFlow
                 nodes={nodes}
                 edges={edges}
@@ -89,6 +91,9 @@ function GraphCanvas({
                 edgeTypes={EDGE_TYPES}
                 fitView
                 fitViewOptions={fitViewOptions}
+                onEdgeMouseEnter={connectionHover.onEdgeMouseEnter}
+                onEdgeMouseLeave={connectionHover.onEdgeMouseLeave}
+                onMoveStart={connectionHover.clearHover}
                 onNodeClick={selectNode}
                 onPaneClick={clearSelection}
                 proOptions={{ hideAttribution: true }}

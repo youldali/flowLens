@@ -2,6 +2,8 @@ import assert from 'node:assert/strict'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, it } from 'vitest'
 import { Position } from 'reactflow'
+import { AppShell } from '@common/test-utils/appShell'
+import { GraphProvider } from '@code-analysis-context/graph-visualization/context'
 import { RelationshipEdge } from './RelationshipEdge'
 
 describe('RelationshipEdge', () => {
@@ -13,23 +15,27 @@ describe('RelationshipEdge', () => {
       ['references', 'none'],
     ] as const) {
       const markup = renderToStaticMarkup(
-        <svg>
-          <RelationshipEdge
-            id="connection"
-            source="source"
-            target="target"
-            sourceX={0}
-            sourceY={0}
-            targetX={280}
-            targetY={150}
-            sourcePosition={Position.Right}
-            targetPosition={Position.Left}
-            data={{ relationship }}
-            label="Translated relationship"
-            markerEnd="url(#target-arrow)"
-            style={{ opacity: 0.5 }}
-          />
-        </svg>,
+        <AppShell>
+          <GraphProvider graph={{ nodes: [], edges: [] }}>
+            <svg>
+              <RelationshipEdge
+                id="connection"
+                source="source"
+                target="target"
+                sourceX={0}
+                sourceY={0}
+                targetX={280}
+                targetY={150}
+                sourcePosition={Position.Right}
+                targetPosition={Position.Left}
+                data={{ relationship }}
+                label="Translated relationship"
+                markerEnd="url(#target-arrow)"
+                style={{ opacity: 0.5 }}
+              />
+            </svg>
+          </GraphProvider>
+        </AppShell>,
       )
 
       assert.ok(markup.includes(`stroke-dasharray:${strokeDasharray}`))

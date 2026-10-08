@@ -9,6 +9,7 @@ import {
 } from '@flowlens/analyzer-core/fixtures/node'
 import {
   createGraphNodeConnectionSummaries,
+  getNodeHighlightState,
   getSourceExcerpt,
   getSourceOffset,
   getSourceTarget,
@@ -161,5 +162,17 @@ describe('getSourceTarget', () => {
 
   it('returns undefined when the node has no source offset', () => {
     assert.equal(getSourceTarget(processNode), undefined)
+  })
+})
+
+
+describe('getNodeHighlightState', () => {
+  it('highlights both endpoints, dims other nodes, and resets without a highlighted edge', () => {
+    const edge = createEdge({ source: 'source', target: 'target' })
+
+    assert.equal(getNodeHighlightState('source', edge), 'highlighted')
+    assert.equal(getNodeHighlightState('target', edge), 'highlighted')
+    assert.equal(getNodeHighlightState('other', edge), 'dimmed')
+    assert.equal(getNodeHighlightState('source', undefined), 'none')
   })
 })

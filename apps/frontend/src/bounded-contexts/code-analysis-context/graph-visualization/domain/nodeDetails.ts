@@ -7,6 +7,8 @@ import {
   type NodeId,
 } from '@flowlens/analyzer-core/domain/node'
 
+export type HighlightState = 'highlighted' | 'dimmed' | 'none'
+
 export interface GraphConnectionSummary {
   edgeId: EdgeId
   connectedNodeId: NodeId
@@ -17,6 +19,15 @@ export interface GraphConnectionSummary {
 export interface GraphNodeConnectionSummaries {
   incomingConnections: GraphConnectionSummary[]
   outgoingConnections: GraphConnectionSummary[]
+}
+
+export function getNodeHighlightState(
+  nodeId: NodeId,
+  highlightedEdge: Edge | undefined,
+): HighlightState {
+  return highlightedEdge
+    ? (highlightedEdge.source === nodeId || highlightedEdge.target === nodeId ? 'highlighted' : 'dimmed')
+    : 'none'
 }
 
 export function hasConnections(connectionSummaries: GraphNodeConnectionSummaries): boolean {

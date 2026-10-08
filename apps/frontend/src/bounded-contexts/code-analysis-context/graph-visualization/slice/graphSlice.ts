@@ -3,6 +3,7 @@ import {
   findNodeInGraphById,
   type FlowGraph,
 } from '@flowlens/analyzer-core/domain/flow-graph'
+import type { EdgeId } from '@flowlens/analyzer-core/domain/edge'
 import type { NodeId } from '@flowlens/analyzer-core/domain/node'
 import {
   adaptToReactFlow,
@@ -17,6 +18,7 @@ import {
 export interface GraphState {
   selectedTransformer: GraphTransformerId
   selectedNodeId: NodeId | undefined
+  highlightedEdgeId: EdgeId | undefined
   direction: LayoutDirection
 }
 
@@ -25,6 +27,7 @@ const DEFAULT_LAYOUT_DIRECTION = 'LR' satisfies LayoutDirection
 const initialState: GraphState = {
   selectedTransformer: DEFAULT_GRAPH_TRANSFORMER_ID,
   selectedNodeId: undefined,
+  highlightedEdgeId: undefined,
   direction: DEFAULT_LAYOUT_DIRECTION,
 }
 
@@ -34,6 +37,7 @@ const graphSlice = createSlice({
   reducers: {
     selectTransformer(state, action: PayloadAction<GraphTransformerId>) {
       state.selectedTransformer = action.payload
+      state.highlightedEdgeId = undefined
     },
     selectNode(state, action: PayloadAction<NodeId>) {
       state.selectedNodeId = action.payload
@@ -41,8 +45,18 @@ const graphSlice = createSlice({
     clearNodeSelection(state) {
       state.selectedNodeId = undefined
     },
+    highlightEdge(state, action: PayloadAction<EdgeId>) {
+      state.highlightedEdgeId = action.payload
+    },
+    clearHighlightedEdge(state, action: PayloadAction<EdgeId | undefined>) {
+      // A delayed leave from an old edge must not clear a newer highlight.
+      if (action.payload === undefined || state.highlightedEdgeId === action.payload) {
+        state.highlightedEdgeId = undefined
+      }
+    },
     selectDirection(state, action: PayloadAction<LayoutDirection>) {
       state.direction = action.payload
+      state.highlightedEdgeId = undefined
     },
   },
 })
@@ -62,6 +76,10 @@ const selectSelectedNodeId = (
   state: GraphRootState,
 ): NodeId | undefined => state.graph.selectedNodeId
 
+const selectHighlightedEdgeId = (
+  state: GraphRootState,
+): EdgeId | undefined => state.graph.highlightedEdgeId
+
 const selectDirection = (
   state: GraphRootState,
 ): LayoutDirection => state.graph.direction
@@ -76,7 +94,14 @@ const selectTransformedGraph = createSelector(
   (selectedTransformer, graph) => transformGraph(graph, selectedTransformer),
 )
 
+const selectHighlightedEdge = createSelector(
+  [selectTransformedGraph, selectHighlightedEdgeId],
+  (graph, highlightedEdgeId) => graph.edges.find(edge => edge.id === highlightedEdgeId),
+)
+
 export const selectors = {
+  selectHighlightedEdgeId,
+  selectHighlightedEdge,
   selectSelectedTransformer,
   selectSelectedNodeId,
   selectDirection,

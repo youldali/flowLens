@@ -1,0 +1,8 @@
+.edge :global(.react-flow__edge-textwrapper) {
+  pointer-events: all;
+  cursor: pointer;
+}
+
+.dimmed {
+  opacity: 0.18;
+}
