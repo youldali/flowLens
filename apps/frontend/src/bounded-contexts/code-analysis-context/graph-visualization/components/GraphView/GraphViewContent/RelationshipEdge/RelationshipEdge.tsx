@@ -22,6 +22,7 @@ export function RelationshipEdge(props: EdgeProps<GraphViewEdgeData>) {
     >
       <BaseEdge
         {...props}
+        interactionWidth={props.interactionWidth ?? 32}
         style={{
           ...props.style,
           ...(highlighted ? { stroke: 'var(--graph-focus-border, var(--accent))', strokeWidth: 3 } : {}),
