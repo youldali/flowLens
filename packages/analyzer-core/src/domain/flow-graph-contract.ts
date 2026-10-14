@@ -25,10 +25,12 @@ const nodeBaseSchema = z.object({
 export const nodeSchema: z.ZodType<Node> = z.discriminatedUnion('kind', [
   nodeBaseSchema.extend({
     kind: z.literal('functionDeclaration'),
+    sourceText: z.string(),
     jsdoc: z.string().optional(),
   }),
   nodeBaseSchema.extend({
     kind: z.literal('methodDeclaration'),
+    sourceText: z.string(),
     jsdoc: z.string().optional(),
   }),
   nodeBaseSchema.extend({

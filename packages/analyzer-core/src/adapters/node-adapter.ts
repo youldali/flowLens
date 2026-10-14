@@ -64,6 +64,7 @@ export class NodeAdapter {
       id: TsModule.deriveIdFromTsNode(node),
       name: TsModule.getExecutableFunctionName(node, sourceFile),
       displayName: TsModule.getDisplayName(node),
+      sourceText: node.getText(sourceFile),
       filePath: normalizePath(sourceFile.fileName),
       fileName: path.basename(sourceFile.fileName),
       kind: TsModule.getExecutableFunctionKind(node),

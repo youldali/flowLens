@@ -28,6 +28,7 @@ const fileNodeFixture: FileNode = {
 const functionDeclarationNodeFixture: FunctionDeclarationNode = {
   ...nodeFixture,
   displayName: "fixtureFunction",
+  sourceText: "function fixtureFunction() {\n  return dependency();\n}",
   id: "fixture.ts:1:49",
   kind: "functionDeclaration",
   name: "fixtureFunction",

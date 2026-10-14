@@ -37,6 +37,7 @@ export interface FileNode extends Node {
 export interface FunctionDeclarationNode extends Node {
   kind: 'functionDeclaration' | 'methodDeclaration';
   displayName: string;
+  sourceText: string;
   jsdoc?: string | undefined;
 }
 
