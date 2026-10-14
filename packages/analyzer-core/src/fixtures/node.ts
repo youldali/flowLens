@@ -29,6 +29,8 @@ const functionDeclarationNodeFixture: FunctionDeclarationNode = {
   ...nodeFixture,
   displayName: "fixtureFunction",
   sourceText: "function fixtureFunction() {\n  return dependency();\n}",
+  start: 1,
+  end: 54,
   id: "fixture.ts:1:49",
   kind: "functionDeclaration",
   name: "fixtureFunction",

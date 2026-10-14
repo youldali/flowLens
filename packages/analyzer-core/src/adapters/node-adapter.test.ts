@@ -75,6 +75,8 @@ describe("NodeAdapter", () => {
       name: "fixtureFunction",
       displayName: "fixtureFunction",
       sourceText: "function fixtureFunction() {\n  return dependency();\n}",
+      start: functionDeclarationFixture.getStart(sourceFileFixture),
+      end: functionDeclarationFixture.getEnd(),
       filePath: normalizePath(sourceFileFixture.fileName),
       fileName: "fixture.ts",
       kind: "functionDeclaration",
@@ -91,11 +93,42 @@ describe("NodeAdapter", () => {
       name: "arrowFixture",
       displayName: "arrowFixture",
       sourceText: "() => dependency()",
+      start: arrowFunctionFixture.getStart(sourceFileFixture),
+      end: arrowFunctionFixture.getEnd(),
       filePath: normalizePath(sourceFileFixture.fileName),
       fileName: "fixture.ts",
       kind: "functionDeclaration",
       sourceOrigin: "project",
     });
+  });
+
+  it('captures exact implementation ranges without leading comments or whitespace', () => {
+    const source = ts.createSourceFile('ranges.ts', `
+      /** Function docs */
+      async function run() { return 1; }
+      class Runner {
+        /** Method docs */
+        run() { return 2; }
+      }
+      const callback = () => 3;
+    `, ts.ScriptTarget.Latest, true);
+    const adapter = createNodeAdapter();
+    const implementations: NodeModule.FunctionDeclarationNode[] = [];
+    const visit = (node: ts.Node): void => {
+      if (TsNodeModule.isExecutableFunction(node)) {
+        implementations.push(adapter.buildFunctionDeclarationNode(node));
+      }
+
+      ts.forEachChild(node, visit);
+    };
+
+    visit(source);
+    assert.deepEqual(implementations.map(node => source.text.slice(node.start, node.end)), [
+      'async function run() { return 1; }',
+      'run() { return 2; }',
+      '() => 3',
+    ]);
+    assert.deepEqual(implementations.map(node => source.text.slice(node.start, node.end)), implementations.map(node => node.sourceText));
   });
 
   it("builds callable type member declaration nodes with jsdoc data", () => {

@@ -33,6 +33,8 @@ describe("isFlowGraph", () => {
           id: "fixture.ts:1:49",
           kind: "functionDeclaration",
           sourceText: "function fixtureFunction() { return dependency(); }",
+          start: 0,
+          end: 49,
           name: "fixtureFunction",
           filePath: "fixture.ts",
           fileName: "fixture.ts",

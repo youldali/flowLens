@@ -38,6 +38,10 @@ export interface FunctionDeclarationNode extends Node {
   kind: 'functionDeclaration' | 'methodDeclaration';
   displayName: string;
   sourceText: string;
+  /** Zero-based source offset of the first implementation token. */
+  start: number;
+  /** Exclusive source offset after the implementation. */
+  end: number;
   jsdoc?: string | undefined;
 }
 

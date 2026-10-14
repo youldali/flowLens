@@ -12,7 +12,7 @@ describe('flowGraphSchema', () => {
     assert.deepEqual(flowGraphSchema.parse(graph), graph);
   });
 
-  it('preserves implementation source through JSON serialization for functions and methods', () => {
+  it('preserves implementation source and offsets through JSON serialization for functions and methods', () => {
     const graph = {
       nodes: [
         createFunctionDeclarationNode(),
@@ -30,6 +30,18 @@ describe('flowGraphSchema', () => {
         const node = { ...createFunctionDeclarationNode({ kind }), sourceText };
 
         assert.equal(flowGraphSchema.safeParse({ nodes: [node], edges: [] }).success, false);
+      }
+    }
+  });
+
+  it('requires nonnegative integer offsets for functions and methods', () => {
+    for (const kind of ['functionDeclaration', 'methodDeclaration'] as const) {
+      for (const field of ['start', 'end']) {
+        for (const value of [undefined, -1, 1.5, '1']) {
+          const node = { ...createFunctionDeclarationNode({ kind }), [field]: value };
+
+          assert.equal(flowGraphSchema.safeParse({ nodes: [node], edges: [] }).success, false);
+        }
       }
     }
   });
