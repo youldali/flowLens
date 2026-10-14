@@ -9,5 +9,5 @@ export function createFileId(sourceFile: ts.SourceFile): NodeId {
 
 export function deriveIdFromTsNode(node: ts.Node): NodeId {
   const sourceFile = node.getSourceFile();
-  return `${sourceFile.fileName}:${node.pos}:${node.end}`;
+  return `${sourceFile.fileName}:${node.kind}:${node.pos}:${node.end}`;
 }

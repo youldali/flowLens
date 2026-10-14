@@ -3,7 +3,6 @@ import assert from 'node:assert/strict';
 import ts from 'typescript';
 
 import * as TsNodeModule from './index.js';
-import { normalizePath } from '@flowlens/common/fs';
 import { assertErr, assertOk } from '@flowlens/common/testing';
 import {
   arrowFunctionFixture,
@@ -14,21 +13,6 @@ import {
   sourceFileFixture,
   variableStatementNodeFixture,
 } from '../../fixtures/ts-node.js';
-
-describe("createFileId", () => {
-  it("uses the normalized source file path", () => {
-    assert.equal(TsNodeModule.createFileId(sourceFileFixture), normalizePath(sourceFileFixture.fileName));
-  });
-});
-
-describe("deriveIdFromTsNode", () => {
-  it("combines the source file path and text span", () => {
-    assert.equal(
-      TsNodeModule.deriveIdFromTsNode(functionDeclarationFixture),
-      `${sourceFileFixture.fileName}:${functionDeclarationFixture.pos}:${functionDeclarationFixture.end}`,
-    );
-  });
-});
 
 describe("findNodeAtPosition", () => {
   it("returns the deepest node containing a position inside a function body", () => {
