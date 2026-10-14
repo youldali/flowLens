@@ -3,6 +3,7 @@
   "references": [
     { "path": "./packages/test-utils" },
     { "path": "./packages/common" },
+    { "path": "./packages/code-insights" },
     { "path": "./packages/analyzer-core" },
     { "path": "./apps/server" }
   ]

@@ -1,0 +1,19 @@
+{
+  "name": "@flowlens/code-insights",
+  "version": "1.0.0",
+  "description": "AI-assisted code insights for FlowLens.",
+  "type": "module",
+  "license": "ISC",
+  "scripts": {
+    "build": "tsc -p tsconfig.json"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "dependencies": {
+    "ai": "^7.0.138"
+  }
+}
