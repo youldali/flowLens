@@ -202,6 +202,13 @@ importers:
       ai:
         specifier: ^7.0.138
         version: 7.0.138(zod@4.4.3)
+      zod:
+        specifier: ^4.4.3
+        version: 4.4.3
+    devDependencies:
+      '@flowlens/test-utils':
+        specifier: workspace:*
+        version: link:../test-utils
 
   packages/common:
     dependencies:

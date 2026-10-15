@@ -16,6 +16,10 @@
   },
   "dependencies": {
     "@flowlens/analyzer-core": "workspace:*",
-    "ai": "^7.0.138"
+    "ai": "^7.0.138",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@flowlens/test-utils": "workspace:*"
   }
 }
