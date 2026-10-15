@@ -196,6 +196,9 @@ importers:
 
   packages/code-insights:
     dependencies:
+      '@flowlens/analyzer-core':
+        specifier: workspace:*
+        version: link:../analyzer-core
       ai:
         specifier: ^7.0.138
         version: 7.0.138(zod@4.4.3)

@@ -5,7 +5,8 @@
   "type": "module",
   "license": "ISC",
   "scripts": {
-    "build": "tsc -p tsconfig.json"
+    "build": "tsc -p tsconfig.json",
+    "test": "pnpm build && node --test \"dist/**/*.test.js\""
   },
   "exports": {
     ".": {
@@ -14,6 +15,7 @@
     }
   },
   "dependencies": {
+    "@flowlens/analyzer-core": "workspace:*",
     "ai": "^7.0.138"
   }
 }
