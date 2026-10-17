@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import { createFunctionDeclarationNode } from '@flowlens/analyzer-core/fixtures/node';
 import { NoObjectGeneratedError } from 'ai';
+import { assertErr, assertOk } from '@flowlens/common/testing';
 import { MockLanguageModelV4 } from 'ai/test';
 
 import { create as createExplanation } from '../fixtures/function-explanation.js';
@@ -16,7 +17,10 @@ describe('createFunctionExplanationGenerator', () => {
     const prompt = buildFunctionExplanationPrompt(node);
     const generate = createFunctionExplanationGenerator({ model });
 
-    assert.deepEqual(await generate(node), explanation);
+    const result = await generate(node);
+
+    assertOk(result);
+    assert.deepEqual(result.value, explanation);
     assert.equal(model.doGenerateCalls.length, 1);
     assert.deepEqual(model.doGenerateCalls[0]?.prompt.map(({ role, content }) => ({ role, content })), [
       { role: 'system', content: prompt.system },
@@ -28,7 +32,10 @@ describe('createFunctionExplanationGenerator', () => {
     const explanation = createExplanation({ behavior: [], uncertainties: [] });
     const generate = createFunctionExplanationGenerator({ model: createModel(JSON.stringify(explanation)) });
 
-    assert.deepEqual(await generate(createFunctionDeclarationNode()), explanation);
+    const result = await generate(createFunctionDeclarationNode());
+
+    assertOk(result);
+    assert.deepEqual(result.value, explanation);
   });
 
   it('rejects malformed JSON, missing fields, wrong types, and additional fields', async () => {
@@ -44,12 +51,12 @@ describe('createFunctionExplanationGenerator', () => {
     for (const response of invalidResponses) {
       const generate = createFunctionExplanationGenerator({ model: createModel(response) });
 
-      await assert.rejects(generate(createFunctionDeclarationNode()), (error: unknown) => {
-        assert.ok(error instanceof Error);
-        assert.match(error.message, /Failed to generate explanation for function fixtureFunction/);
-        assert.ok(NoObjectGeneratedError.isInstance(error.cause));
-        return true;
-      });
+      const result = await generate(createFunctionDeclarationNode());
+
+      assertErr(result);
+      assert.equal(result.error.reason, 'invalid-output');
+      assert.equal(result.error.statusCode, undefined);
+      assert.ok(NoObjectGeneratedError.isInstance(result.error.cause));
     }
   });
 
@@ -58,12 +65,13 @@ describe('createFunctionExplanationGenerator', () => {
     const model = new MockLanguageModelV4({ doGenerate: async () => { throw cause; } });
     const generate = createFunctionExplanationGenerator({ model });
 
-    await assert.rejects(generate(createFunctionDeclarationNode()), (error: unknown) => {
-      assert.ok(error instanceof Error);
-      assert.match(error.message, /Failed to generate explanation for function fixtureFunction/);
-      assert.equal(error.cause, cause);
-      return true;
-    });
+    const node = createFunctionDeclarationNode();
+    const result = await generate(node);
+
+    assertErr(result);
+    assert.equal(result.error.cause, cause);
+    assert.equal(result.error.reason, 'generation-failed');
+    assert.equal(result.error.statusCode, undefined);
   });
 });
 

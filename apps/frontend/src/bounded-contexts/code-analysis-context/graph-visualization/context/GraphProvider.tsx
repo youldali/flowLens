@@ -1,24 +1,21 @@
-import { useEffect, type PropsWithChildren } from 'react'
+import type { GraphId } from '@flowlens/analyzer-core/domain/graph-session'
+import type { PropsWithChildren } from 'react'
 import type { FlowGraph } from '@flowlens/analyzer-core/domain/flow-graph'
 
-import { useAppDispatch } from '@store/hooks'
-import { actions } from '../slice'
 import { GraphContext, type OnOpenSource } from './graphContext'
+import { useGraphCleanupEffect } from './useGraphCleanupEffect'
 
 type GraphProviderProps = PropsWithChildren<{
+  graphId: GraphId
   graph: FlowGraph
   onOpenSource?: OnOpenSource
 }>
 
-export function GraphProvider({ children, graph, onOpenSource }: GraphProviderProps) {
-  const dispatch = useAppDispatch()
-
-  useEffect(() => () => {
-    dispatch(actions.clearHighlightedEdge())
-  }, [dispatch, graph])
+export function GraphProvider({ children, graphId, graph, onOpenSource }: GraphProviderProps) {
+  useGraphCleanupEffect(graphId)
 
   return (
-    <GraphContext.Provider value={{ graph, onOpenSource }}>
+    <GraphContext.Provider value={{ graphId, graph, onOpenSource }}>
       {children}
     </GraphContext.Provider>
   )

@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react'
 import { useVsCodeApi } from '@common/hooks/useVsCodeApi'
-import type { FlowGraph } from '@flowlens/analyzer-core/domain/flow-graph-contract'
+import type { GraphSession } from '@flowlens/analyzer-core/domain/graph-session'
 import { createVsCodeEvent, parseVsCodeEvent } from '@flowlens/registries/vscode-events'
 
-export function useGraph(): FlowGraph | undefined {
-  const [graph, setGraph] = useState<FlowGraph>()
+export function useGraph(): GraphSession | undefined {
+  const [graph, setGraph] = useState<GraphSession>()
   const vscodeApi = useVsCodeApi()
 
   useEffect(() => {
@@ -25,7 +25,7 @@ export function useGraph(): FlowGraph | undefined {
   return graph
 }
 
-function getGraphFromMessage(message: unknown): FlowGraph | undefined {
+function getGraphFromMessage(message: unknown): GraphSession | undefined {
   const graphMessageResult = parseVsCodeEvent(message, 'flowgraph')
-  return graphMessageResult.isOk() ? graphMessageResult.value.payload.graph : undefined
+  return graphMessageResult.isOk() ? graphMessageResult.value.payload : undefined
 }

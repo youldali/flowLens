@@ -7,7 +7,7 @@ import styles from '../GraphView.module.css'
 import { useGraph } from './useGraph'
 
 export function FromVsCode() {
-  const graph = useGraph()
+  const session = useGraph()
   const vscodeApi = useVsCodeApi()
   const { t } = useTranslation('code-analysis-context')
   const onOpenSource = (filePath: string, offset: number) => {
@@ -16,8 +16,8 @@ export function FromVsCode() {
 
   return (
     <main className={styles.container}>
-      {graph ? (
-        <GraphProvider graph={graph} onOpenSource={onOpenSource}>
+      {session ? (
+        <GraphProvider graphId={session.graphId} graph={session.graph} onOpenSource={onOpenSource}>
           <GraphViewContent />
         </GraphProvider>
       ) : (

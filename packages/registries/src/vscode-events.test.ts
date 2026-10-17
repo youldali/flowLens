@@ -79,3 +79,33 @@ describe('isOpenSourceEvent', () => {
     }), false);
   });
 });
+
+describe('explanation messages', () => {
+  it('round-trips requests, results, and errors', () => {
+    const ids = { graphId: 'graph', nodeId: 'node', requestId: 'request' };
+    const messages = [
+      createVsCodeEvent('explain.node', ids),
+      createVsCodeEvent('explain.node.result', { ...ids, explanation: {
+        purpose: 'Test', behavior: [], sideEffects: [], failureCases: [], uncertainties: [],
+      } }),
+      createVsCodeEvent('explain.node.error', { ...ids, reason: 'stale-graph' }),
+    ];
+
+    for (const message of messages) {
+      const result = parseVsCodeEvent(JSON.parse(JSON.stringify(message)), message.type);
+      assertOk(result);
+      assert.deepEqual(result.value, message);
+      for (const field of ['graphId', 'nodeId', 'requestId']) {
+        assertErr(parseVsCodeEvent({ ...message, payload: { ...message.payload, [field]: '' } }, message.type));
+      }
+    }
+  });
+
+  it('rejects incomplete graphs and invalid explanation payloads', () => {
+    const event = createFlowGraphEvent();
+    assertErr(parseVsCodeEvent({ ...event, payload: { graph: event.payload.graph } }, 'flowgraph'));
+    const ids = { graphId: 'graph', nodeId: 'node', requestId: 'request' };
+    assertErr(parseVsCodeEvent({ type: 'explain.node.result', payload: { ...ids, explanation: {} } }, 'explain.node.result'));
+    assertErr(parseVsCodeEvent({ type: 'explain.node.error', payload: { ...ids, reason: 'unknown' } }, 'explain.node.error'));
+  });
+});

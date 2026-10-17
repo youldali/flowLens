@@ -1,5 +1,5 @@
 import { createFixture } from '@flowlens/test-utils';
-import type { FunctionExplanation } from '../domain/function-explanation.js';
+import type { FunctionExplanation } from '@domain/function-explanation.js';
 
 export const create = createFixture<FunctionExplanation>({
   purpose: 'Returns the dependency result.',

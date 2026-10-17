@@ -4,14 +4,31 @@
     "rootDir": "src",
     "outDir": "dist",
     "composite": true,
-    "types": ["node", "vscode"],
+    "types": [
+      "node",
+      "vscode"
+    ],
     "tsBuildInfoFile": "dist/tsconfig.tsbuildinfo"
   },
-  "include": ["src/**/*.ts"],
-  "exclude": ["node_modules", "dist"],
+  "include": [
+    "src/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist"
+  ],
   "references": [
-    { "path": "../../packages/analyzer-core" },
-    { "path": "../../packages/common" },
-    { "path": "../../packages/registries" }
+    {
+      "path": "../../packages/analyzer-core"
+    },
+    {
+      "path": "../../packages/common"
+    },
+    {
+      "path": "../../packages/registries"
+    },
+    {
+      "path": "../../packages/code-insights"
+    }
   ]
 }

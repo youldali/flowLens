@@ -111,7 +111,7 @@ function FacadeConsumer() {
 function renderFacade(onOpenSource = vi.fn()) {
   const consumers = (
     <AppShell>
-      <GraphProvider graph={graph} onOpenSource={onOpenSource}>
+      <GraphProvider graphId="test-graph" graph={graph} onOpenSource={onOpenSource}>
         <FacadeConsumer />
       </GraphProvider>
     </AppShell>
@@ -216,7 +216,7 @@ describe('graphFacade', () => {
     }, {
       wrapper: ({ children }) => (
         <AppShell>
-          <GraphProvider graph={hoverGraph}>{children}</GraphProvider>
+          <GraphProvider graphId="hover-graph" graph={hoverGraph}>{children}</GraphProvider>
         </AppShell>
       ),
     })

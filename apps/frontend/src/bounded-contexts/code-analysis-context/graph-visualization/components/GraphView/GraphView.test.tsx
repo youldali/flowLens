@@ -17,9 +17,9 @@ vi.mock('@common/hooks/useVsCodeApi', () => ({
   useVsCodeApi: () => ({ postMessage: vi.fn() }),
 }))
 vi.mock('@code-analysis-context/graph-visualization/apis/fetchGraph', () => ({
-  useFetchGraph: () => ({ status: 'success', data: graph }),
+  useFetchGraph: () => ({ status: 'success', data: { graphId: 'test-graph', graph } }),
 }))
-vi.mock('./FromVsCode/useGraph', () => ({ useGraph: () => graph }))
+vi.mock('./FromVsCode/useGraph', () => ({ useGraph: () => ({ graphId: 'test-graph', graph }) }))
 
 describe('GraphView', () => {
   for (const runtimeHost of ['web-app', 'cli', 'vscode'] as const) {

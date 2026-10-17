@@ -1,5 +1,5 @@
 import { useQuery, type UseQueryResult } from 'react-query'
-import type { FlowGraph } from '@flowlens/analyzer-core/domain/flow-graph'
+import type { GraphSession } from '@flowlens/analyzer-core/domain/graph-session'
 import { getConfig, useConfig } from '@common/config'
 import { fromFetchError, type QueryError } from '@common/utils/queryError'
 
@@ -10,7 +10,7 @@ export interface FetchGraphOptions {
 export async function fetchGraph(
   fetcher: typeof fetch = fetch,
   options: FetchGraphOptions = {},
-): Promise<FlowGraph> {
+): Promise<GraphSession> {
   const request = new Request(new URL('/graph.json', options.baseUrl ?? getConfig().apiBaseUrl), {
     method: 'GET',
     headers: {
@@ -25,7 +25,7 @@ export async function fetchGraph(
       throw await fromFetchError(request, response)
     }
 
-    return await response.json() as FlowGraph
+    return await response.json() as GraphSession
   } catch (error) {
     throw await fromFetchError(
       request,
@@ -34,10 +34,10 @@ export async function fetchGraph(
   }
 }
 
-export function useFetchGraph(): UseQueryResult<FlowGraph, QueryError<unknown>> {
+export function useFetchGraph(): UseQueryResult<GraphSession, QueryError<unknown>> {
   const { apiBaseUrl } = useConfig()
 
-  return useQuery<FlowGraph, QueryError<unknown>>(
+  return useQuery<GraphSession, QueryError<unknown>>(
     ['graph', { apiBaseUrl }],
     () => fetchGraph(fetch, { baseUrl: apiBaseUrl }),
   )

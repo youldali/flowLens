@@ -19,6 +19,10 @@
       "types": "./dist/src/domain/flow-graph.d.ts",
       "default": "./dist/src/domain/flow-graph.js"
     },
+    "./domain/graph-session": {
+      "types": "./dist/src/domain/graph-session.d.ts",
+      "default": "./dist/src/domain/graph-session.js"
+    },
     "./domain/flow-graph-contract": {
       "types": "./dist/src/domain/flow-graph-contract.d.ts",
       "default": "./dist/src/domain/flow-graph-contract.js"

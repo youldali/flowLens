@@ -1,4 +1,5 @@
 import { useState, type PropsWithChildren } from 'react'
+import { QueryClient, QueryClientProvider } from 'react-query'
 import { Provider } from 'react-redux'
 import { ConfigProvider, type Config, type VsCodeApi } from '@common/config'
 import { createAppStore } from '@store'
@@ -14,12 +15,15 @@ const defaultVsCodeApi: VsCodeApi = {
 }
 
 export function AppShell({ children, config: configOverrides }: AppShellProps) {
+  const [queryClient] = useState(() => new QueryClient({ defaultOptions: { queries: { retry: false, cacheTime: 0 } } }))
   const [store] = useState(createAppStore)
   const config = createConfig(configOverrides)
 
   return (
     <ConfigProvider config={config}>
-      <Provider store={store}>{children}</Provider>
+      <QueryClientProvider client={queryClient}>
+        <Provider store={store}>{children}</Provider>
+      </QueryClientProvider>
     </ConfigProvider>
   )
 }

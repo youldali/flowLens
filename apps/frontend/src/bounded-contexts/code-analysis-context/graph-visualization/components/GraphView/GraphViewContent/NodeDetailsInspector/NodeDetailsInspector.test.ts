@@ -139,6 +139,7 @@ function renderInspector(
     createElement(
       GraphProvider,
       {
+        graphId: 'test-graph',
         graph: sourceGraph,
         ...(onOpenSource ? { onOpenSource } : {}),
       },

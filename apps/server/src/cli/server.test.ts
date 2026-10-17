@@ -8,6 +8,24 @@ import { assertOk } from '@flowlens/common/testing';
 import { createGraphViewerServer } from './server.js';
 
 describe('createGraphViewerServer', () => {
+  it('generates a new graph ID per request while preserving graph contents', async (t) => {
+    const adapter = new GraphAdapter(path.resolve('../../packages/analyzer-core/tsconfig.json'));
+    const app = createGraphViewerServer(adapter, path.resolve('../frontend/dist'));
+    t.after(() => app.close());
+    const first = await app.inject({ method: 'GET', url: '/graph.json' });
+    const second = await app.inject({ method: 'GET', url: '/graph.json' });
+    const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+    for (const response of [first, second]) {
+      assert.equal(response.statusCode, 200);
+      assert.equal(response.headers['cache-control'], 'no-store');
+      assert.match(response.json().graphId, uuidPattern);
+      assert.deepEqual(response.json().graph, adapter.extract());
+    }
+
+    assert.notEqual(first.json().graphId, second.json().graphId);
+  });
+
   it('serves an implementation from a dependent workspace project', async (t) => {
     const root = fs.mkdtempSync(path.join(os.tmpdir(), 'flowlens-server-workspace-'));
     t.after(() => fs.rmSync(root, { recursive: true, force: true }));
@@ -19,7 +37,7 @@ describe('createGraphViewerServer', () => {
     t.after(() => app.close());
     const graphResponse = await app.inject({ method: 'GET', url: '/graph.json' });
     assert.equal(graphResponse.statusCode, 200);
-    const graph = graphResponse.json();
+    const { graph } = graphResponse.json();
     const member = graph.nodes.find((node: { implementations?: unknown[] }) => node.implementations?.length);
     const [entry] = member.implementations;
     assert.equal(entry.filePath, path.join(root, 'infrastructure/src/adapter.ts'));
@@ -44,7 +62,7 @@ describe('createGraphViewerServer', () => {
     try {
       const graphResponse = await app.inject({ method: 'GET', url: '/graph.json' });
       assert.equal(graphResponse.statusCode, 200);
-      const graph = graphResponse.json();
+      const { graph } = graphResponse.json();
       const graphMember = graph.nodes.find((node: { id: string }) => node.id === member.id);
       const [entry] = graphMember.implementations;
       assert.equal(entry.name, 'run');

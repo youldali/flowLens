@@ -5,6 +5,7 @@ import type { FlowGraphEvent } from '../vscode-events.js';
 const flowGraphEventFixture: FlowGraphEvent = {
   type: 'flowgraph',
   payload: {
+    graphId: 'fixture-graph',
     graph: {
       nodes: [
         createFunctionDeclarationNode({

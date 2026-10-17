@@ -26,8 +26,8 @@ export function FromCli() {
           </div>
         )}
       >
-        {(graph) => (
-          <GraphProvider graph={graph} onOpenSource={openCliSource}>
+        {(session) => (
+          <GraphProvider graphId={session.graphId} graph={session.graph} onOpenSource={openCliSource}>
             <GraphViewContent />
           </GraphProvider>
         )}

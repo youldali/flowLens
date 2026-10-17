@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -32,7 +33,7 @@ export function createGraphViewerServer(graphAdapter: GraphAdapter, frontendDist
   app.get('/graph.json', async (_request, reply) => {
     return reply
       .header('cache-control', 'no-store')
-      .send(graphAdapter.extract());
+      .send({ graphId: randomUUID(), graph: graphAdapter.extract() });
   });
 
   app.get('/source', async (request, reply) => {

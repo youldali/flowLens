@@ -75,6 +75,8 @@
     "@vscode/vsce": "^3.6.2",
     "esbuild": "^0.25.12",
     "tsx": "^4.23.12",
-    "vscode": "^1.1.37"
+    "vscode": "^1.1.37",
+    "@flowlens/code-insights": "workspace:*",
+    "neverthrow": "^8.2.0"
   }
 }

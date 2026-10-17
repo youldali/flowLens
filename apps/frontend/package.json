@@ -25,7 +25,8 @@
     "react-i18next": "^17.0.8",
     "react-query": "^3.39.3",
     "react-redux": "^9.3.0",
-    "reactflow": "^11.11.4"
+    "reactflow": "^11.11.4",
+    "@flowlens/code-insights": "workspace:*"
   },
   "devDependencies": {
     "@babel/core": "^7.29.0",

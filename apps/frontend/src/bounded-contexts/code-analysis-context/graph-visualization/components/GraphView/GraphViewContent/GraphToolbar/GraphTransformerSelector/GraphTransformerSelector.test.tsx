@@ -52,7 +52,7 @@ describe('GraphTransformerSelector', () => {
     }
     const consumers = (
       <AppShell>
-        <GraphProvider graph={graph}>
+        <GraphProvider graphId="test-graph" graph={graph}>
           <GraphTransformerSelector />
           <TransformedGraph />
         </GraphProvider>

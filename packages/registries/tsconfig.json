@@ -5,10 +5,22 @@
     "outDir": "dist",
     "composite": true
   },
-  "include": ["src/**/*.ts"],
-  "exclude": ["node_modules", "dist"],
+  "include": [
+    "src/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist"
+  ],
   "references": [
-    { "path": "../analyzer-core" },
-    { "path": "../test-utils" }
+    {
+      "path": "../analyzer-core"
+    },
+    {
+      "path": "../test-utils"
+    },
+    {
+      "path": "../code-insights"
+    }
   ]
 }

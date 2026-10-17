@@ -47,3 +47,24 @@ For command-line publishing, authenticate and publish the packaged VSIX:
 pnpm --dir apps/vscode-extension exec vsce login flowlens
 pnpm --dir apps/vscode-extension exec vsce publish --packagePath flowlens-vscode-0.1.1.vsix
 ```
+
+## Explanation transport
+
+The webview host retains one `{ graphId, graph }` session. Each successful graph
+replacement gets a fresh ID; `view.ready` resends the current session with the
+same ID. Closing the panel retains the session until it is replaced.
+
+`explain.node` requests carry `graphId`, `nodeId`, and `requestId`. The host resolves
+function implementations from the retained graph and replies with
+`explain.node.result` or `explain.node.error`, echoing all three IDs. Stale requests
+are rejected; accepted requests use the captured source snapshot. Replies are
+sent only to the originating panel while it remains open.
+
+`FlowLensGraphWebview` accepts an optional explanation function as its second
+constructor argument. Production provider configuration is not wired yet, so
+otherwise valid requests currently return `missing-api-token`.
+
+The frontend `useExplainNodeQuery(graphId)` hook provides the transport for later UI
+integration. Graph changes and unmounting reject pending requests, and unmatched
+or late responses are ignored. Synchronous message-delivery failures reject with
+`delivery-failed`. No Explain button, provider setup, or request timeout is included.

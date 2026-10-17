@@ -19,12 +19,13 @@ describe('fetchGraph', () => {
       ],
       edges: [],
     }
+    const session = { graphId: 'backend-graph-id', graph }
     const fetcher: typeof fetch = async (url) => {
       assert.equal(url instanceof Request ? url.url : url, 'http://localhost/graph.json')
-      return Response.json(graph)
+      return Response.json(session)
     }
 
-    assert.deepEqual(await fetchGraph(fetcher), graph)
+    assert.deepEqual(await fetchGraph(fetcher), session)
   })
 
   it('throws when graph data cannot be loaded', async () => {
@@ -44,11 +45,12 @@ describe('fetchGraph', () => {
       nodes: [],
       edges: [],
     }
+    const session = { graphId: 'backend-graph-id', graph }
     const fetcher: typeof fetch = async (url) => {
       assert.equal(url instanceof Request ? url.url : url, 'https://flowlens.test/graph.json')
-      return Response.json(graph)
+      return Response.json(session)
     }
 
-    assert.deepEqual(await fetchGraph(fetcher, { baseUrl: 'https://flowlens.test' }), graph)
+    assert.deepEqual(await fetchGraph(fetcher, { baseUrl: 'https://flowlens.test' }), session)
   })
 })

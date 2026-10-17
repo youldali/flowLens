@@ -5,21 +5,28 @@
   "type": "module",
   "license": "ISC",
   "scripts": {
-    "build": "tsc -p tsconfig.json",
+    "build": "tsc -p tsconfig.json && tsc-alias -p tsconfig.json",
     "test": "pnpm build && node --test \"dist/**/*.test.js\""
   },
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
+    },
+    "./domain/function-explanation-contract": {
+      "types": "./dist/domain/function-explanation-contract.d.ts",
+      "default": "./dist/domain/function-explanation-contract.js"
     }
   },
   "dependencies": {
     "@flowlens/analyzer-core": "workspace:*",
     "ai": "^7.0.138",
+    "neverthrow": "^8.2.0",
     "zod": "^4.4.3"
   },
   "devDependencies": {
-    "@flowlens/test-utils": "workspace:*"
+    "@flowlens/common": "workspace:*",
+    "@flowlens/test-utils": "workspace:*",
+    "tsc-alias": "^1.9.7"
   }
 }

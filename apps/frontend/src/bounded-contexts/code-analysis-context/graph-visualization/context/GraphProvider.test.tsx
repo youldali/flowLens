@@ -9,6 +9,7 @@ import { createNode } from '@flowlens/analyzer-core/fixtures/node'
 import { AppShell } from '@common/test-utils/appShell'
 import { graphFacade } from '../adapters/graphFacade'
 import { GraphProvider } from './GraphProvider'
+import { useGraphContext } from './useGraphContext'
 
 afterEach(cleanup)
 
@@ -32,7 +33,7 @@ describe('GraphProvider', () => {
     }
     const view = render(
       <AppShell>
-        <GraphProvider graph={graph}><span>First render</span></GraphProvider>
+        <GraphProvider graphId="test-graph" graph={graph}><span>First render</span></GraphProvider>
         <HighlightProbe />
       </AppShell>,
     )
@@ -44,7 +45,7 @@ describe('GraphProvider', () => {
 
     view.rerender(
       <AppShell>
-        <GraphProvider graph={graph} onOpenSource={vi.fn()}><span>New children</span></GraphProvider>
+        <GraphProvider graphId="test-graph" graph={graph} onOpenSource={vi.fn()}><span>New children</span></GraphProvider>
         <HighlightProbe />
       </AppShell>,
     )
@@ -52,7 +53,7 @@ describe('GraphProvider', () => {
 
     view.rerender(
       <AppShell>
-        <GraphProvider graph={{ ...graph }}><span>Updated graph</span></GraphProvider>
+        <GraphProvider graphId="replacement-graph" graph={{ ...graph }}><span>Updated graph</span></GraphProvider>
         <HighlightProbe />
       </AppShell>,
     )
@@ -62,5 +63,36 @@ describe('GraphProvider', () => {
     assert.equal(highlightedEdge(), 'connection')
     view.rerender(<AppShell><HighlightProbe /></AppShell>)
     assert.equal(highlightedEdge(), 'none')
+  })
+})
+
+function SessionProbe() {
+  const context = useGraphContext()
+  const graphId = graphFacade.data.useGraphId()
+  const graph = graphFacade.data.useOriginalGraph()
+  assert.equal(context.graphId, graphId)
+  assert.equal(context.graph, graph)
+  return <output aria-label="Graph session">{graphId}</output>
+}
+
+describe('GraphProvider session', () => {
+  it('exposes and updates the session ID even when the graph object is reused', () => {
+    const graph: FlowGraph = { nodes: [], edges: [] }
+    const view = render(
+      <AppShell>
+        <GraphProvider graphId="first" graph={graph}><SessionProbe /></GraphProvider>
+        <HighlightProbe />
+      </AppShell>,
+    )
+    assert.equal(screen.getByRole('status', { name: 'Graph session' }).textContent, 'first')
+    fireEvent.click(screen.getByRole('button', { name: 'Highlight' }))
+    view.rerender(
+      <AppShell>
+        <GraphProvider graphId="second" graph={graph}><SessionProbe /></GraphProvider>
+        <HighlightProbe />
+      </AppShell>,
+    )
+    assert.equal(screen.getByRole('status', { name: 'Graph session' }).textContent, 'second')
+    assert.equal(screen.getByRole('status', { name: 'Highlighted edge' }).textContent, 'none')
   })
 })

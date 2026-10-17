@@ -108,6 +108,10 @@ function useSelectAndFocusNode() {
   }, [focusOnNode, selectNode])
 }
 
+function useGraphId() {
+  return useGraphContext().graphId
+}
+
 function useOriginalGraph() {
   return useGraphContext().graph
 }
@@ -172,6 +176,7 @@ export const graphFacade = {
   data: {
     useHighlightedEdgeId,
     useHighlightedEdge,
+    useGraphId,
     useOriginalGraph,
     useTransformedGraph,
     useReactFlowGraph,

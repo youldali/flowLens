@@ -9,6 +9,7 @@ if (!packageManager) {
 }
 
 await runPackageScript("@flowlens/analyzer-core", "build");
+await runPackageScript("@flowlens/code-insights", "build");
 await runPackageScript("@flowlens/registries", "build");
 await runPackageScript("frontend", "build");
 

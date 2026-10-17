@@ -16,7 +16,7 @@ describe('RelationshipEdge', () => {
     ] as const) {
       const markup = renderToStaticMarkup(
         <AppShell>
-          <GraphProvider graph={{ nodes: [], edges: [] }}>
+          <GraphProvider graphId="empty-graph" graph={{ nodes: [], edges: [] }}>
             <svg>
               <RelationshipEdge
                 id="connection"

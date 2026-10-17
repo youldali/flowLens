@@ -9,6 +9,12 @@ metadata:
 
 Use these project style preferences when editing FlowLens code.
 
+## Package Path Aliases
+
+- Inside a package, use path aliases when referring to top-level folders directly under `src/`, such as `domain`, `infrastructure`, and `common`.
+- Use `@domain/...`, `@infrastructure/...`, and `@common/...` instead of relative paths such as `../domain/...` or `../../common/...`, including in re-exports.
+- Keep aliases local to the package and ensure its TypeScript and build/runtime tooling resolve them correctly.
+
 ## Error Handling
 
 Follow a Rust-inspired distinction between failures that prevent correct operation and expected outcomes.
@@ -32,6 +38,11 @@ function findImplementations(): Result<ImplementationEntry[], 'not-found'> {
   return entries.length > 0 ? ok(entries) : err('not-found');
 }
 ```
+
+## Function Naming
+
+- Generally start function names with a verb that describes their action, such as `fetch`, `get`, `generate`, `verify`, or `check`.
+- For example, prefer `getExplanationQueryKey` over `explanationQueryKey`.
 
 ## Function Ordering
 
