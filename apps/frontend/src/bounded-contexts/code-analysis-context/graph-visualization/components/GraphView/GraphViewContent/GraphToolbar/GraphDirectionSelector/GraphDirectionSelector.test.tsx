@@ -3,9 +3,9 @@
 import assert from 'node:assert/strict'
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, describe, it, vi } from 'vitest'
-import { AppShell } from '@common/test-utils/appShell'
-import { graphFacade } from '@code-analysis-context/graph-visualization/adapters/graphFacade'
-import type { LayoutDirection } from '@code-analysis-context/graph-visualization/adapters/ReactFlowAdapter'
+import { AppShell } from '#common/test-utils/appShell.tsx'
+import { graphFacade } from '#code-analysis-context/graph-visualization/adapters/graphFacade.ts'
+import type { LayoutDirection } from '#code-analysis-context/graph-visualization/adapters/ReactFlowAdapter/index.ts'
 import { GraphDirectionSelector } from './GraphDirectionSelector'
 
 const translations: Record<string, string> = {
@@ -14,7 +14,7 @@ const translations: Record<string, string> = {
   'graphVisualization.directions.options.topToBottom': 'Top to bottom',
 }
 
-vi.mock('@common/hooks/useTranslation', () => ({
+vi.mock('#common/hooks/useTranslation.ts', () => ({
   useTranslation: () => ({ t: (key: string) => translations[key] ?? key }),
 }))
 

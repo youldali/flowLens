@@ -1,6 +1,6 @@
 import type { CallableTypeMemberDeclarationNode } from '@flowlens/analyzer-core/domain/node'
-import { useTranslation } from '@common/hooks/useTranslation'
-import { graphFacade } from '@code-analysis-context/graph-visualization/adapters/graphFacade'
+import { useTranslation } from '#common/hooks/useTranslation.ts'
+import { graphFacade } from '#code-analysis-context/graph-visualization/adapters/graphFacade.ts'
 import styles from './ImplementationSection.module.css'
 
 export interface ImplementationSectionProps {

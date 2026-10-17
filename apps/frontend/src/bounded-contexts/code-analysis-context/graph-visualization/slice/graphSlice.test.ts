@@ -3,13 +3,13 @@ import { describe, it } from 'vitest'
 import type { FlowGraph } from '@flowlens/analyzer-core/domain/flow-graph'
 import { create as createEdge } from '@flowlens/analyzer-core/fixtures/edge'
 import { createNode } from '@flowlens/analyzer-core/fixtures/node'
-import { createAppStore } from '@store'
-import { adaptToReactFlow } from '@code-analysis-context/graph-visualization/adapters/ReactFlowAdapter'
+import { createAppStore } from '#store/index.ts'
+import { adaptToReactFlow } from '#code-analysis-context/graph-visualization/adapters/ReactFlowAdapter/index.ts'
 import {
   DEFAULT_GRAPH_TRANSFORMER_ID,
   GRAPH_TRANSFORMER_IDS,
   transformGraph,
-} from '@code-analysis-context/graph-visualization/domain/transformer'
+} from '#code-analysis-context/graph-visualization/domain/transformer.ts'
 import { selectors, actions } from './graphSlice'
 
 describe('graphReducer', () => {

@@ -1,5 +1,5 @@
 import type { NodeId } from '@flowlens/analyzer-core/domain/node'
-import type { GraphConnectionSummary } from '@code-analysis-context/graph-visualization/domain/nodeDetails'
+import type { GraphConnectionSummary } from '#code-analysis-context/graph-visualization/domain/nodeDetails.ts'
 import { useNodeTranslations } from '../../useNodeTranslations'
 import styles from './ConnectionList.module.css'
 

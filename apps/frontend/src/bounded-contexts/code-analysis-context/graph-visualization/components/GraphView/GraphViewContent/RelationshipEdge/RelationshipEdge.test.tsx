@@ -2,8 +2,8 @@ import assert from 'node:assert/strict'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, it } from 'vitest'
 import { Position } from 'reactflow'
-import { AppShell } from '@common/test-utils/appShell'
-import { GraphProvider } from '@code-analysis-context/graph-visualization/context'
+import { AppShell } from '#common/test-utils/appShell.tsx'
+import { GraphProvider } from '#code-analysis-context/graph-visualization/context/index.ts'
 import { RelationshipEdge } from './RelationshipEdge'
 
 describe('RelationshipEdge', () => {

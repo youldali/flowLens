@@ -3,13 +3,13 @@
   "version": "1.0.0",
   "description": "",
   "bin": {
-    "flow-graph": "./dist/src/cli.js"
+    "flow-graph": "./dist/src/cli/index.js"
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",
-    "start": "node dist/cli.js",
-    "dev": "node --loader ts-node/esm ./src/cli.ts",
-    "flow-graph": "node --loader ts-node/esm ./src/cli.ts",
+    "start": "node dist/src/cli/index.js",
+    "dev": "node --loader ts-node/esm ./src/cli/index.ts",
+    "flow-graph": "node --loader ts-node/esm ./src/cli/index.ts",
     "integration-tests": "node --loader ts-node/esm ./src/cli/index.ts apps/server/integration-tests/invoiceService.ts",
     "test": "pnpm build && node --test \"dist/src/**/*.test.js\""
   },

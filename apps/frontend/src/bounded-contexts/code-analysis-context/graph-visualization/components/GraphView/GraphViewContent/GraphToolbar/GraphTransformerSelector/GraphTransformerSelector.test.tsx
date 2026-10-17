@@ -6,16 +6,16 @@ import { afterEach, describe, it, vi } from 'vitest'
 import type { FlowGraph } from '@flowlens/analyzer-core/domain/flow-graph'
 import { create as createEdge } from '@flowlens/analyzer-core/fixtures/edge'
 import { createCallExpressionNode, createNode } from '@flowlens/analyzer-core/fixtures/node'
-import { AppShell } from '@common/test-utils/appShell'
-import { graphFacade } from '@code-analysis-context/graph-visualization/adapters/graphFacade'
+import { AppShell } from '#common/test-utils/appShell.tsx'
+import { graphFacade } from '#code-analysis-context/graph-visualization/adapters/graphFacade.ts'
 import {
   type GraphTransformerId,
   transformGraph,
-} from '@code-analysis-context/graph-visualization/domain/transformer'
-import { GraphProvider } from '@code-analysis-context/graph-visualization/context'
+} from '#code-analysis-context/graph-visualization/domain/transformer.ts'
+import { GraphProvider } from '#code-analysis-context/graph-visualization/context/index.ts'
 import { GraphTransformerSelector } from './GraphTransformerSelector'
 
-vi.mock('@common/hooks/useTranslation', () => ({
+vi.mock('#common/hooks/useTranslation.ts', () => ({
   useTranslation: () => ({ t: (key: string) => key }),
 }))
 

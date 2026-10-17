@@ -10,9 +10,9 @@ import ReactFlow, {
   type NodeTypes,
 } from 'reactflow'
 import { isEmpty } from '@flowlens/analyzer-core/domain/flow-graph'
-import { useConfig } from '@common/config'
-import { graphFacade } from '@code-analysis-context/graph-visualization/adapters/graphFacade'
-import type { GraphViewNodeData } from '@code-analysis-context/graph-visualization/adapters/ReactFlowAdapter/toReactFlow'
+import { useConfig } from '#common/config/index.ts'
+import { graphFacade } from '#code-analysis-context/graph-visualization/adapters/graphFacade.ts'
+import type { GraphViewNodeData } from '#code-analysis-context/graph-visualization/adapters/ReactFlowAdapter/toReactFlow.ts'
 import { GraphToolbar } from './GraphToolbar'
 import { GraphNode } from './GraphNode'
 import { RelationshipEdge } from './RelationshipEdge'

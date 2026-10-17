@@ -1,4 +1,4 @@
-import { useTranslation } from '@common/hooks/useTranslation'
+import { useTranslation } from '#common/hooks/useTranslation.ts'
 import { useNodeTranslations } from '../../useNodeTranslations'
 import { RELATIONSHIP_STROKE_DASHARRAY } from '../../relationshipPresentation'
 import styles from './RelationshipLegend.module.css'

@@ -3,7 +3,7 @@ import type { GraphNodeKind, SourceOrigin } from '@flowlens/analyzer-core/domain
 import {
   useTranslation,
   type I18nKey_CODE_ANALYSIS_CONTEXT,
-} from '@common/hooks/useTranslation'
+} from '#common/hooks/useTranslation.ts'
 
 const CATEGORY_KEY_BY_KIND = {
   functionDeclaration: 'graphVisualization.nodes.categories.functionDeclaration',

@@ -3,20 +3,20 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, it, vi } from 'vitest'
 import type { FlowGraph } from '@flowlens/analyzer-core/domain/flow-graph'
 import { createFunctionDeclarationNode } from '@flowlens/analyzer-core/fixtures/node'
-import { AppShell } from '@common/test-utils/appShell'
+import { AppShell } from '#common/test-utils/appShell.tsx'
 import { GraphView } from './GraphView'
 
 const { graph } = vi.hoisted(() => ({
   graph: { nodes: [], edges: [] } as FlowGraph,
 }))
 
-vi.mock('@common/hooks/useTranslation', () => ({
+vi.mock('#common/hooks/useTranslation.ts', () => ({
   useTranslation: () => ({ t: (key: string) => key }),
 }))
-vi.mock('@common/hooks/useVsCodeApi', () => ({
+vi.mock('#common/hooks/useVsCodeApi.ts', () => ({
   useVsCodeApi: () => ({ postMessage: vi.fn() }),
 }))
-vi.mock('@code-analysis-context/graph-visualization/apis/fetchGraph', () => ({
+vi.mock('#code-analysis-context/graph-visualization/apis/fetchGraph.ts', () => ({
   useFetchGraph: () => ({ status: 'success', data: { graphId: 'test-graph', graph } }),
 }))
 vi.mock('./FromVsCode/useGraph', () => ({ useGraph: () => ({ graphId: 'test-graph', graph }) }))

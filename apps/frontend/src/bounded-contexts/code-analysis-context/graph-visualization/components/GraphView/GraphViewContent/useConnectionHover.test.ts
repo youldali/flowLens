@@ -1,8 +1,8 @@
 // @vitest-environment jsdom
 
 import assert from 'node:assert/strict'
-import { AppShell } from '@common/test-utils/appShell'
-import { graphFacade } from '@code-analysis-context/graph-visualization/adapters/graphFacade'
+import { AppShell } from '#common/test-utils/appShell.tsx'
+import { graphFacade } from '#code-analysis-context/graph-visualization/adapters/graphFacade.ts'
 import type { MouseEvent } from 'react'
 import { act, cleanup, renderHook } from '@testing-library/react'
 import { afterEach, describe, it, vi } from 'vitest'

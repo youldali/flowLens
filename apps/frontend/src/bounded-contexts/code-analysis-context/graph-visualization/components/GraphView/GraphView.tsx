@@ -1,4 +1,4 @@
-import { useConfig } from '@common/config'
+import { useConfig } from '#common/config/index.ts'
 import { FromCli } from './FromCli'
 import { FromVsCode } from './FromVsCode'
 

@@ -7,9 +7,9 @@ import type { FlowGraph } from '@flowlens/analyzer-core/domain/flow-graph'
 import { create as createEdge } from '@flowlens/analyzer-core/fixtures/edge'
 import { createNode } from '@flowlens/analyzer-core/fixtures/node'
 import type { Node } from 'reactflow'
-import { AppShell } from '@common/test-utils/appShell'
-import { GraphProvider } from '@code-analysis-context/graph-visualization/context'
-import { transformGraph } from '@code-analysis-context/graph-visualization/domain/transformer'
+import { AppShell } from '#common/test-utils/appShell.tsx'
+import { GraphProvider } from '#code-analysis-context/graph-visualization/context/index.ts'
+import { transformGraph } from '#code-analysis-context/graph-visualization/domain/transformer.ts'
 
 import { graphFacade } from './graphFacade'
 

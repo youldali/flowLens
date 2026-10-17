@@ -12,9 +12,9 @@ import {
 } from '@flowlens/analyzer-core/fixtures/node'
 import type { FlowGraph } from '@flowlens/analyzer-core/domain/flow-graph'
 import type { Node } from 'reactflow'
-import { AppShell } from '@common/test-utils/appShell'
-import { graphFacade } from '@code-analysis-context/graph-visualization/adapters/graphFacade'
-import { GraphProvider } from '@code-analysis-context/graph-visualization/context'
+import { AppShell } from '#common/test-utils/appShell.tsx'
+import { graphFacade } from '#code-analysis-context/graph-visualization/adapters/graphFacade.ts'
+import { GraphProvider } from '#code-analysis-context/graph-visualization/context/index.ts'
 import { NodeDetailsInspector } from './NodeDetailsInspector'
 
 const reactFlow = vi.hoisted(() => ({
@@ -56,7 +56,7 @@ const graph: FlowGraph = {
   ],
 }
 
-vi.mock('@common/hooks/useTranslation', () => ({
+vi.mock('#common/hooks/useTranslation.ts', () => ({
   useTranslation: () => ({
     t: (key: string, options?: { name?: string }) => ({
       'graphVisualization.nodes.categories.functionDeclaration': 'FUNCTION',

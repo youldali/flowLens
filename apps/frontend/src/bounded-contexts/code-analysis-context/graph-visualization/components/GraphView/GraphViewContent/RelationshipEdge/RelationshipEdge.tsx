@@ -1,9 +1,9 @@
-import type { HighlightState } from '@code-analysis-context/graph-visualization/domain/nodeDetails'
+import type { HighlightState } from '#code-analysis-context/graph-visualization/domain/nodeDetails.ts'
 import classNames from 'classnames'
 import { BaseEdge, type EdgeProps } from 'reactflow'
-import type { GraphViewEdgeData } from '@code-analysis-context/graph-visualization/adapters/ReactFlowAdapter/toReactFlow'
+import type { GraphViewEdgeData } from '#code-analysis-context/graph-visualization/adapters/ReactFlowAdapter/toReactFlow.ts'
 import { RELATIONSHIP_STROKE_DASHARRAY } from '../relationshipPresentation'
-import { graphFacade } from '@code-analysis-context/graph-visualization/adapters/graphFacade'
+import { graphFacade } from '#code-analysis-context/graph-visualization/adapters/graphFacade.ts'
 import styles from './RelationshipEdge.module.css'
 import { getRelationshipEdgePath } from './relationshipEdgePath'
 

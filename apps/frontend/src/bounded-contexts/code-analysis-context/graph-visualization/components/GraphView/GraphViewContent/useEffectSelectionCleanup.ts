@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import { graphFacade } from '@code-analysis-context/graph-visualization/adapters/graphFacade'
+import { graphFacade } from '#code-analysis-context/graph-visualization/adapters/graphFacade.ts'
 
 export function useEffectSelectionCleanup() {
   const clearSelection = graphFacade.actions.useClearSelection()

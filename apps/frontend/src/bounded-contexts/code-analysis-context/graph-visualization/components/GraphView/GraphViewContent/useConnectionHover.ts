@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef } from 'react'
 import type { EdgeMouseHandler } from 'reactflow'
-import { graphFacade } from '@code-analysis-context/graph-visualization/adapters/graphFacade'
+import { graphFacade } from '#code-analysis-context/graph-visualization/adapters/graphFacade.ts'
 
 const HOVER_EXIT_DELAY = 150
 

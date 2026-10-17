@@ -1,10 +1,10 @@
 import classNames from 'classnames'
 import { Handle, Position } from 'reactflow'
-import type { GraphViewNodeData } from '@code-analysis-context/graph-visualization/adapters/ReactFlowAdapter/toReactFlow'
-import { getNodeHighlightState } from '@code-analysis-context/graph-visualization/domain/nodeDetails'
+import type { GraphViewNodeData } from '#code-analysis-context/graph-visualization/adapters/ReactFlowAdapter/toReactFlow.ts'
+import { getNodeHighlightState } from '#code-analysis-context/graph-visualization/domain/nodeDetails.ts'
 import { shouldDisplayNodeLocation } from '../nodePresentation'
 import { useNodeTranslations } from '../useNodeTranslations'
-import { graphFacade } from '@code-analysis-context/graph-visualization/adapters/graphFacade'
+import { graphFacade } from '#code-analysis-context/graph-visualization/adapters/graphFacade.ts'
 import styles from './GraphNode.module.css'
 
 interface GraphNodeProps {

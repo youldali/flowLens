@@ -5,7 +5,7 @@
   "type": "module",
   "license": "ISC",
   "scripts": {
-    "build": "tsc -p tsconfig.json && tsc-alias -p tsconfig.json",
+    "build": "tsc -p tsconfig.json",
     "test": "pnpm build && node --test \"dist/**/*.test.js\""
   },
   "exports": {
@@ -26,7 +26,16 @@
   },
   "devDependencies": {
     "@flowlens/common": "workspace:*",
-    "@flowlens/test-utils": "workspace:*",
-    "tsc-alias": "^1.9.7"
+    "@flowlens/test-utils": "workspace:*"
+  },
+  "imports": {
+    "#domain/*": {
+      "development": "./src/domain/*.ts",
+      "default": "./dist/domain/*.js"
+    },
+    "#common/*": {
+      "development": "./src/common/*.ts",
+      "default": "./dist/common/*.js"
+    }
   }
 }

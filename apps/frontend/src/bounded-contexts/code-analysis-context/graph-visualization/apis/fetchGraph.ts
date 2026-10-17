@@ -1,7 +1,7 @@
 import { useQuery, type UseQueryResult } from 'react-query'
 import type { GraphSession } from '@flowlens/analyzer-core/domain/graph-session'
-import { getConfig, useConfig } from '@common/config'
-import { fromFetchError, type QueryError } from '@common/utils/queryError'
+import { getConfig, useConfig } from '#common/config/index.ts'
+import { fromFetchError, type QueryError } from '#common/utils/queryError.ts'
 
 export interface FetchGraphOptions {
   baseUrl?: string

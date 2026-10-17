@@ -1,12 +1,12 @@
-import { type HttpStatusCode, type QueryError } from '@common/utils/queryError';
+import { type HttpStatusCode, type QueryError } from '#common/utils/queryError.ts';
 import {
   type I18nKey,
   useTranslation,
-} from '@common/hooks/useTranslation';
+} from '#common/hooks/useTranslation.ts';
 import {
   COMMON_NAMESPACE,
   type I18nNamespace,
-} from '@common/i18n';
+} from '#common/i18n.ts';
 
 export type Translations<
   TError,

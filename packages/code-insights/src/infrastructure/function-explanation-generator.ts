@@ -1,10 +1,10 @@
 import type { FunctionDeclarationNode } from '@flowlens/analyzer-core/domain/node';
 import { generateText, Output, type LanguageModel } from 'ai';
-import { toAiApiError, type AiApiError } from '@common/ai-api-adapter.js';
+import { toAiApiError, type AiApiError } from '#common/ai-api-adapter';
 import { err, ok, type Result } from 'neverthrow';
-import { functionExplanationSchema } from '@domain/function-explanation-contract.js';
+import { functionExplanationSchema } from '#domain/function-explanation-contract';
 
-import type { FunctionExplanation } from '@domain/function-explanation.js';
+import type { FunctionExplanation } from '#domain/function-explanation';
 import { buildFunctionExplanationPrompt } from './prompts/function-explanation.js';
 
 export function createFunctionExplanationGenerator({ model }: {

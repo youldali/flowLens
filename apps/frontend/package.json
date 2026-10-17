@@ -49,7 +49,11 @@
     "typescript": "~6.0.2",
     "typescript-eslint": "^8.59.2",
     "vite": "^8.0.12",
-    "vite-tsconfig-paths": "^6.1.1",
     "vitest": "^4.1.11"
+  },
+  "imports": {
+    "#store/*": "./src/store/*",
+    "#code-analysis-context/*": "./src/bounded-contexts/code-analysis-context/*",
+    "#common/*": "./src/common/*"
   }
 }

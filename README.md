@@ -38,3 +38,35 @@ flowchart TD
     H --> I[Query services containing the port source]
     I --> J[Attach implementation navigation metadata]
 ```
+
+## Module resolution
+
+Workspace packages resolve `@flowlens/*` imports through their public package
+exports. Run `pnpm build` from the workspace root before starting an application
+on a fresh checkout; this builds dependencies in workspace order. Start the CLI
+from the workspace root (`pnpm --filter server start <entry-file>` or
+`pnpm dev <entry-file>`) so its existing frontend-asset lookup finds the bundle.
+Node packages
+use NodeNext, while the Vite frontend retains bundler resolution and the VS Code
+extension retains its CommonJS bundle.
+
+Private imports are declared in each owning package's `package.json`:
+
+- `code-insights`: `#domain/*` and `#common/*` resolve to `dist/**/*.js` by default.
+  TypeScript maps these output paths back to source using `rootDir` and `outDir`.
+  For source execution, run from that package with
+  `node --conditions=development --loader ts-node/esm <source-entry.ts>`.
+  The loader handles existing relative `.js` imports in TypeScript source.
+- Frontend: `#store/*`, `#code-analysis-context/*`, and `#common/*` resolve to
+  source files through Vite and TypeScript. Include the source extension (`.ts`
+  or `.tsx`) and explicit `index.ts` for directory entry points, including in
+  Vitest mocks. No alias resolver plugin is required.
+
+Use package exports for imports across workspace package boundaries. Do not use
+another package's private `#` imports. Build and ship each Node package's
+`package.json` alongside its `dist` directory so Node and declaration consumers
+can resolve its private imports.
+
+The analyzer fixture at `packages/analyzer-core/src/fixtures/workspace` deliberately
+retains `@fixture/core/*` TypeScript paths to test analysis of projects that use
+that configuration.

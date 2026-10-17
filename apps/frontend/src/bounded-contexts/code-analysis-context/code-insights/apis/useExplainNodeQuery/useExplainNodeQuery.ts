@@ -1,8 +1,8 @@
 import type { GraphId } from '@flowlens/analyzer-core/domain/graph-session'
 import { useQuery, type UseQueryResult } from 'react-query'
 import type { NodeId } from '@flowlens/analyzer-core/domain/node'
-import { graphFacade } from '@code-analysis-context/graph-visualization/adapters/graphFacade'
-import { useVsCodeApi } from '@common/hooks/useVsCodeApi'
+import { graphFacade } from '#code-analysis-context/graph-visualization/adapters/graphFacade.ts'
+import { useVsCodeApi } from '#common/hooks/useVsCodeApi.ts'
 import type { FunctionExplanation } from '@flowlens/code-insights/domain/function-explanation-contract'
 import { requestNodeExplanationViaVsCode, type ExplanationTransportError } from './requestNodeExplanation'
 

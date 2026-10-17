@@ -1,4 +1,4 @@
-import { useTranslation } from '@common/hooks/useTranslation'
+import { useTranslation } from '#common/hooks/useTranslation.ts'
 import { GraphDirectionSelector } from './GraphDirectionSelector'
 import { GraphTransformerSelector } from './GraphTransformerSelector'
 import { RelationshipLegend } from './RelationshipLegend'

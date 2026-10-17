@@ -3,7 +3,7 @@ import assert from 'node:assert/strict'
 import { act, cleanup, renderHook } from '@testing-library/react'
 import { afterEach, describe, it } from 'vitest'
 import type { PropsWithChildren } from 'react'
-import { AppShell } from '@common/test-utils/appShell'
+import { AppShell } from '#common/test-utils/appShell.tsx'
 import { createVsCodeEvent } from '@flowlens/registries/vscode-events'
 import { useGraph } from './useGraph'
 

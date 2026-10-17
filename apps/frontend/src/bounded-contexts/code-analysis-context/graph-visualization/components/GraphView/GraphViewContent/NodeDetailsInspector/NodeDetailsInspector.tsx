@@ -1,14 +1,14 @@
 import { useMemo } from 'react'
 import classNames from 'classnames'
 import { isCallableTypeMemberDeclarationNode, type Node } from '@flowlens/analyzer-core/domain/node'
-import { useTranslation } from '@common/hooks/useTranslation'
-import { graphFacade } from '@code-analysis-context/graph-visualization/adapters/graphFacade'
+import { useTranslation } from '#common/hooks/useTranslation.ts'
+import { graphFacade } from '#code-analysis-context/graph-visualization/adapters/graphFacade.ts'
 import {
   createGraphNodeConnectionSummaries,
   getSourceExcerpt,
   getSourceTarget,
   hasConnections,
-} from '@code-analysis-context/graph-visualization/domain/nodeDetails'
+} from '#code-analysis-context/graph-visualization/domain/nodeDetails.ts'
 import { shouldDisplayNodeLocation } from '../nodePresentation'
 import { useNodeTranslations } from '../useNodeTranslations'
 import { ConnectionList } from './ConnectionList'

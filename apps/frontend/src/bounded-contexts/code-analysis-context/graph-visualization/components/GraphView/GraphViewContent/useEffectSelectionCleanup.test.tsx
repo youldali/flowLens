@@ -4,8 +4,8 @@ import assert from 'node:assert/strict'
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, describe, it } from 'vitest'
 import type { Node } from 'reactflow'
-import { AppShell } from '@common/test-utils/appShell'
-import { graphFacade } from '@code-analysis-context/graph-visualization/adapters/graphFacade'
+import { AppShell } from '#common/test-utils/appShell.tsx'
+import { graphFacade } from '#code-analysis-context/graph-visualization/adapters/graphFacade.ts'
 
 import { useEffectSelectionCleanup } from './useEffectSelectionCleanup'
 

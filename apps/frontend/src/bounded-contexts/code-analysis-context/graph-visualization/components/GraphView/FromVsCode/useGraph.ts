@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useVsCodeApi } from '@common/hooks/useVsCodeApi'
+import { useVsCodeApi } from '#common/hooks/useVsCodeApi.ts'
 import type { GraphSession } from '@flowlens/analyzer-core/domain/graph-session'
 import { createVsCodeEvent, parseVsCodeEvent } from '@flowlens/registries/vscode-events'
 

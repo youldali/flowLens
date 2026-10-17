@@ -8,12 +8,12 @@ import type { NodeId } from '@flowlens/analyzer-core/domain/node'
 import {
   adaptToReactFlow,
   type LayoutDirection,
-} from '@code-analysis-context/graph-visualization/adapters/ReactFlowAdapter'
+} from '#code-analysis-context/graph-visualization/adapters/ReactFlowAdapter/index.ts'
 import {
   DEFAULT_GRAPH_TRANSFORMER_ID,
   transformGraph,
   type GraphTransformerId,
-} from '@code-analysis-context/graph-visualization/domain/transformer'
+} from '#code-analysis-context/graph-visualization/domain/transformer.ts'
 
 export interface GraphState {
   selectedTransformer: GraphTransformerId

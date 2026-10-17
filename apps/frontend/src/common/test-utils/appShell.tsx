@@ -1,8 +1,8 @@
 import { useState, type PropsWithChildren } from 'react'
 import { QueryClient, QueryClientProvider } from 'react-query'
 import { Provider } from 'react-redux'
-import { ConfigProvider, type Config, type VsCodeApi } from '@common/config'
-import { createAppStore } from '@store'
+import { ConfigProvider, type Config, type VsCodeApi } from '#common/config/index.ts'
+import { createAppStore } from '#store/index.ts'
 
 type ConfigOverrides = Partial<Pick<Config, 'apiBaseUrl' | 'assetBaseUrl' | 'runtimeHost'>> & {
   vscodeApi?: VsCodeApi

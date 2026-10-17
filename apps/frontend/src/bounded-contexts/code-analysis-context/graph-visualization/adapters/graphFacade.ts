@@ -6,14 +6,14 @@ import {
 } from 'reactflow'
 import type { Edge, EdgeId } from '@flowlens/analyzer-core/domain/edge'
 import type { NodeId } from '@flowlens/analyzer-core/domain/node'
-import type { LayoutDirection } from '@code-analysis-context/graph-visualization/adapters/ReactFlowAdapter'
-import { useGraphContext } from '@code-analysis-context/graph-visualization/context'
-import type { GraphTransformerId } from '@code-analysis-context/graph-visualization/domain/transformer'
+import type { LayoutDirection } from '#code-analysis-context/graph-visualization/adapters/ReactFlowAdapter/index.ts'
+import { useGraphContext } from '#code-analysis-context/graph-visualization/context/index.ts'
+import type { GraphTransformerId } from '#code-analysis-context/graph-visualization/domain/transformer.ts'
 import {
   actions,
   selectors,
-} from '@code-analysis-context/graph-visualization/slice'
-import { useAppDispatch, useAppSelector } from '@store/hooks'
+} from '#code-analysis-context/graph-visualization/slice/index.ts'
+import { useAppDispatch, useAppSelector } from '#store/hooks.ts'
 
 const DEFAULT_NODE_WIDTH = 224
 const DEFAULT_NODE_HEIGHT = 88

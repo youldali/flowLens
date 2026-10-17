@@ -2,9 +2,9 @@ import type { ChangeEvent } from 'react'
 import {
   type I18nKey_CODE_ANALYSIS_CONTEXT,
   useTranslation,
-} from '@common/hooks/useTranslation'
-import { graphFacade } from '@code-analysis-context/graph-visualization/adapters/graphFacade'
-import type { LayoutDirection } from '@code-analysis-context/graph-visualization/adapters/ReactFlowAdapter'
+} from '#common/hooks/useTranslation.ts'
+import { graphFacade } from '#code-analysis-context/graph-visualization/adapters/graphFacade.ts'
+import type { LayoutDirection } from '#code-analysis-context/graph-visualization/adapters/ReactFlowAdapter/index.ts'
 import styles from './GraphDirectionSelector.module.css'
 
 const LAYOUT_DIRECTIONS = ['LR', 'TB'] as const satisfies readonly LayoutDirection[]

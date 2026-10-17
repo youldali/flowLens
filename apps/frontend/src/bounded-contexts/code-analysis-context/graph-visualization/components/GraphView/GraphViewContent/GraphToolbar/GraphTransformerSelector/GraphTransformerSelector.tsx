@@ -2,12 +2,12 @@ import { useId } from 'react'
 import {
   type I18nKey_CODE_ANALYSIS_CONTEXT,
   useTranslation,
-} from '@common/hooks/useTranslation'
+} from '#common/hooks/useTranslation.ts'
 import {
   GRAPH_TRANSFORMER_IDS,
   type GraphTransformerId,
-} from '@code-analysis-context/graph-visualization/domain/transformer'
-import { graphFacade } from '@code-analysis-context/graph-visualization/adapters/graphFacade'
+} from '#code-analysis-context/graph-visualization/domain/transformer.ts'
+import { graphFacade } from '#code-analysis-context/graph-visualization/adapters/graphFacade.ts'
 import styles from './GraphTransformerSelector.module.css'
 
 const TRANSFORMER_LABEL_KEYS = {

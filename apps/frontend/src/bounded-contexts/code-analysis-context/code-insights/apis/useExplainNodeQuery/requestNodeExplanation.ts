@@ -1,5 +1,5 @@
 import type { GraphId } from '@flowlens/analyzer-core/domain/graph-session'
-import type { VsCodeApi } from '@common/config'
+import type { VsCodeApi } from '#common/config/index.ts'
 import type { NodeId } from '@flowlens/analyzer-core/domain/node'
 import type { FunctionExplanation } from '@flowlens/code-insights/domain/function-explanation-contract'
 import {
