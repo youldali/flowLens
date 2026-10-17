@@ -52,27 +52,6 @@ describe('FlowLensGraphWebview', () => {
     assert.deepEqual(panel.messages.at(-1), createVsCodeEvent('explain.node.result', { ...request, explanation }));
   });
 
-  it('returns lookup and explanation errors through the message handler', async () => {
-    const { panel, session } = await setup();
-    const request = { graphId: session.graphId, nodeId: node.id, requestId: 'request' };
-    const cases = [
-      [{ ...request, graphId: 'old' }, 'stale-graph'],
-      [{ ...request, nodeId: 'missing' }, 'node-not-found'],
-      [{ ...request, nodeId: file.id }, 'node-not-explainable'],
-      [request, 'missing-api-token'],
-    ] as const;
-
-    for (const [payload, reason] of cases) {
-      await panel.receive(createVsCodeEvent('explain.node', payload));
-      assert.deepEqual(panel.messages.at(-1), createVsCodeEvent('explain.node.error', { ...payload, reason }));
-    }
-
-    const failing = await setup(async () => { throw new Error('secret'); });
-    const payload = { ...request, graphId: failing.session.graphId };
-    await failing.panel.receive(createVsCodeEvent('explain.node', payload));
-    assert.deepEqual(failing.panel.messages.at(-1), createVsCodeEvent('explain.node.error', { ...payload, reason: 'generation-failed' }));
-  });
-
   it('ignores invalid requests and suppresses replies after closure and reopening', async () => {
     const deferred = Promise.withResolvers<typeof explanation>();
     const { host, panel, session } = await setup(() => deferred.promise);

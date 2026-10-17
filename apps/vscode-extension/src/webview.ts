@@ -2,30 +2,20 @@ import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import * as vscode from "vscode";
 
-import { findNodeInGraphById, type FlowGraph } from "@flowlens/analyzer-core/domain/flow-graph";
-import { isFunctionDeclarationNode, type Node, type FunctionDeclarationNode } from '@flowlens/analyzer-core/domain/node';
-import type { FunctionExplanation } from '@flowlens/code-insights/domain/function-explanation-contract';
-import { err, ok, type Result } from 'neverthrow';
+import type { FlowGraph } from "@flowlens/analyzer-core/domain/flow-graph";
 import {
   createVsCodeEvent,
   isOpenSourceEvent,
-  isExplainNodeEvent,
   isViewReadyEvent,
-  type ExplainNodeEvent,
 } from "@flowlens/registries/vscode-events";
 
-import type { GraphId, GraphSession } from '@flowlens/analyzer-core/domain/graph-session';
-import { createGraphSession } from './graph-session.js';
+import { GraphController, type GraphControllerOptions } from './graph-controller.js';
 
-type ExplainFunction = (node: FunctionDeclarationNode) => Promise<FunctionExplanation>;
-type FlowLensGraphWebviewOptions = { explainFunction?: ExplainFunction };
-type NodeRequest = { graphId: GraphId; nodeId: string };
-type NodeResolutionError = 'graph-unavailable' | 'stale-graph' | 'node-not-found';
-type ExplanationError = 'node-not-explainable' | 'missing-api-token' | 'generation-failed';
+type FlowLensGraphWebviewOptions = GraphControllerOptions;
 
 export class FlowLensGraphWebview {
   private panel: vscode.WebviewPanel | undefined;
-  private currentGraph: GraphSession | undefined;
+  private graphController: GraphController | undefined;
   private isReady = false;
   private readonly frontendDistUri: vscode.Uri;
 
@@ -34,7 +24,7 @@ export class FlowLensGraphWebview {
   }
 
   async showGraph(graph: FlowGraph): Promise<void> {
-    this.currentGraph = createGraphSession(graph);
+    this.graphController = new GraphController(graph, this.options);
 
     if (!this.panel) {
       await this.createPanel();
@@ -71,21 +61,6 @@ export class FlowLensGraphWebview {
 
     panel.webview.onDidReceiveMessage(async (message: unknown) => {
       if (this.panel !== panel) return;
-      if (isExplainNodeEvent(message)) {
-        const nodeResult = this.resolveNode(message.payload);
-
-        if (nodeResult.isErr()) {
-          await panel.webview.postMessage(createVsCodeEvent('explain.node.error', {
-            ...message.payload,
-            reason: nodeResult.error,
-          }));
-          return;
-        }
-
-        await this.explainNode(nodeResult.value, message, panel);
-        return;
-      }
-
       if (isOpenSourceEvent(message)) {
         void this.openSource(message.payload.filePath, message.payload.offset);
         return;
@@ -94,7 +69,14 @@ export class FlowLensGraphWebview {
       if (isViewReadyEvent(message)) {
         this.isReady = true;
         void this.postCurrentGraph();
+        return;
       }
+
+      const response = await this.graphController?.handleEvent(message);
+
+      // An old panel's request can finish after it closes and a new panel opens.
+      if (this.panel !== panel || !response) return;
+      await panel.webview.postMessage(response);
     });
 
     try {
@@ -105,45 +87,12 @@ export class FlowLensGraphWebview {
     }
   }
 
-  private resolveNode({ graphId, nodeId }: NodeRequest): Result<Node, NodeResolutionError> {
-    if (!this.currentGraph) return err('graph-unavailable');
-    if (this.currentGraph.graphId !== graphId) return err('stale-graph');
-    const node = findNodeInGraphById(this.currentGraph.graph, nodeId);
-
-    return node ? ok(node) : err('node-not-found');
-  }
-
-  private async explainNode(node: Node, request: ExplainNodeEvent, panel: vscode.WebviewPanel): Promise<void> {
-    let result: Result<FunctionExplanation, ExplanationError>;
-
-    if (!isFunctionDeclarationNode(node)) {
-      result = err('node-not-explainable');
-    } else if (!this.options.explainFunction) {
-      result = err('missing-api-token');
-    } else {
-      try {
-        result = ok(await this.options.explainFunction(node));
-      } catch {
-        result = err('generation-failed');
-      }
-    }
-
-    const response = result.match(
-      explanation => createVsCodeEvent('explain.node.result', { ...request.payload, explanation }),
-      reason => createVsCodeEvent('explain.node.error', { ...request.payload, reason }),
-    );
-
-    // An old panel's request can finish after it closes and a new panel opens.
-    if (this.panel !== panel) return;
-    await panel.webview.postMessage(response);
-  }
-
   private async postCurrentGraph(): Promise<void> {
-    if (!this.panel || !this.currentGraph) {
+    if (!this.panel || !this.graphController) {
       return;
     }
 
-    await this.panel.webview.postMessage(createVsCodeEvent("flowgraph", this.currentGraph));
+    await this.panel.webview.postMessage(createVsCodeEvent("flowgraph", this.graphController.session));
   }
 
   private async openSource(filePath: string, offset: number): Promise<void> {
