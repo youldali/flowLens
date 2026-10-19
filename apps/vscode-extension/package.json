@@ -42,6 +42,18 @@
     "onCommand:flowlens.generateGraph"
   ],
   "contributes": {
+    "configuration": {
+      "title": "FlowLens",
+      "properties": {
+        "flowlens.ai.provider": {
+          "type": "string",
+          "enum": ["openai", "anthropic"],
+          "default": "openai",
+          "scope": "application",
+          "description": "AI provider used for AI-powered features."
+        }
+      }
+    },
     "commands": [
       {
         "command": "flowlens.generateGraph",

@@ -26,3 +26,11 @@ export const window = {
 };
 export const Uri = { file: (fsPath: string) => ({ fsPath }) };
 export const ViewColumn = { Beside: 2 };
+
+export const ConfigurationTarget = { Global: 1, Workspace: 2, WorkspaceFolder: 3 };
+export const workspace = {
+  getConfiguration: (_section: string) => ({
+    get: (_key: string, defaultValue: unknown): unknown => defaultValue,
+    update: async (_key: string, _value: unknown, _target: number): Promise<void> => {},
+  }),
+};

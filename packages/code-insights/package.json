@@ -13,6 +13,10 @@
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
     },
+    "./domain/ai-provider": {
+      "types": "./dist/domain/ai-provider.d.ts",
+      "default": "./dist/domain/ai-provider.js"
+    },
     "./domain/function-explanation-contract": {
       "types": "./dist/domain/function-explanation-contract.d.ts",
       "default": "./dist/domain/function-explanation-contract.js"
