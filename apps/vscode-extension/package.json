@@ -47,7 +47,10 @@
       "properties": {
         "flowlens.ai.provider": {
           "type": "string",
-          "enum": ["openai", "anthropic"],
+          "enum": [
+            "openai",
+            "anthropic"
+          ],
           "default": "openai",
           "scope": "application",
           "description": "AI provider used for AI-powered features."
@@ -81,14 +84,14 @@
   },
   "devDependencies": {
     "@flowlens/analyzer-core": "workspace:*",
+    "@flowlens/code-insights": "workspace:*",
     "@flowlens/common": "workspace:*",
     "@flowlens/registries": "workspace:*",
     "@types/vscode": "1.104.0",
     "@vscode/vsce": "^3.6.2",
     "esbuild": "^0.25.12",
+    "neverthrow": "^8.2.0",
     "tsx": "^4.23.12",
-    "vscode": "^1.1.37",
-    "@flowlens/code-insights": "workspace:*",
-    "neverthrow": "^8.2.0"
+    "vscode": "^1.1.37"
   }
 }

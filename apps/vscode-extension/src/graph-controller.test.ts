@@ -3,6 +3,7 @@ import { describe, it } from 'node:test';
 import { createFunctionDeclarationNode, createFileNode } from '@flowlens/analyzer-core/fixtures/node';
 import { createVsCodeEvent } from '@flowlens/registries/vscode-events';
 import { GraphController } from './graph-controller.js';
+import { err, ok } from 'neverthrow';
 
 const node = createFunctionDeclarationNode();
 const file = createFileNode();
@@ -24,7 +25,7 @@ describe('GraphController', () => {
     const controller = new GraphController(graph, {
       explainFunction: async received => {
         assert.equal(received, node);
-        return explanation;
+        return ok(explanation);
       },
     });
     const request = { graphId: controller.session.graphId, nodeId: node.id, requestId: 'request' };
@@ -50,11 +51,21 @@ describe('GraphController', () => {
       assert.deepEqual(response, createVsCodeEvent('explain.node.error', { ...payload, reason }));
     }
 
-    const failing = new GraphController(graph, { explainFunction: async () => { throw new Error('secret'); } });
-    const payload = { ...request, graphId: failing.session.graphId };
-    const response = await failing.handleEvent(createVsCodeEvent('explain.node', payload));
+  });
 
-    assert.deepEqual(response, createVsCodeEvent('explain.node.error', { ...payload, reason: 'generation-failed' }));
+  it('preserves provider error reasons without exposing error details', async () => {
+    for (const reason of ['missing-api-token', 'api-error', 'invalid-output', 'generation-failed'] as const) {
+      const controller = new GraphController(graph, {
+        explainFunction: async () => err({ reason, cause: new Error('secret'), statusCode: 401 }),
+      });
+      const request = { graphId: controller.session.graphId, nodeId: node.id, requestId: 'request' };
+      const response = await controller.handleEvent(createVsCodeEvent('explain.node', request));
+
+      assert.deepEqual(response, createVsCodeEvent('explain.node.error', {
+        ...request,
+        reason,
+      }));
+    }
   });
 
   it('ignores malformed and unrelated events', async () => {

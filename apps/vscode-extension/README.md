@@ -61,8 +61,17 @@ are rejected; accepted requests use the captured source snapshot. Replies are
 sent only to the originating panel while it remains open.
 
 `FlowLensGraphWebview` accepts an optional explanation function as its second
-constructor argument. Production provider configuration is not wired yet, so
-otherwise valid requests currently return `missing-api-token`.
+constructor argument. Extension activation reads `flowlens.ai.provider` using
+`getAIProvider()` and calls `createFunctionExplainer({ provider, apiKey })` from
+`code-insights`, which owns provider SDKs and model construction. OpenAI uses
+`gpt-4.1-mini`; Anthropic uses `claude-sonnet-5-5`. These fixed model choices are
+provisional. Reload the extension after changing providers.
+
+Both providers currently receive a placeholder API key. Successful live generation
+requires the future credential setup; authentication failures are reported as
+`api-error`. Generator error reasons pass through unchanged, including
+`invalid-output`, `missing-api-token`, and `generation-failed`. Provider error
+details and credentials are not included in webview messages.
 
 The frontend `useExplainNodeQuery(graphId)` hook provides the transport for later UI
 integration. Graph changes and unmounting reject pending requests, and unmatched

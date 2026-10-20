@@ -23,6 +23,18 @@ describe('createVsCodeEvent', () => {
 });
 
 describe('parseVsCodeEvent', () => {
+  it('accepts all generator error reasons unchanged', () => {
+    const ids = { graphId: 'graph', nodeId: 'node', requestId: 'request' };
+
+    for (const reason of ['api-error', 'invalid-output', 'missing-api-token', 'generation-failed'] as const) {
+      const message = createVsCodeEvent('explain.node.error', { ...ids, reason });
+      const result = parseVsCodeEvent(JSON.parse(JSON.stringify(message)), message.type);
+
+      assertOk(result);
+      assert.deepEqual(result.value, message);
+    }
+  });
+
   it('returns the parsed event for a known type and valid payload', () => {
     const result = parseVsCodeEvent(flowGraphEvent, 'flowgraph');
 

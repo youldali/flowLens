@@ -19,7 +19,7 @@ export const eventRegistry = {
   'explain.node.error': {
     type: 'explain.node.error',
     payload: explanationRequestSchema.extend({
-      reason: z.enum(['graph-unavailable', 'stale-graph', 'node-not-found', 'node-not-explainable', 'missing-api-token', 'generation-failed']),
+      reason: z.enum(['graph-unavailable', 'stale-graph', 'node-not-found', 'node-not-explainable', 'missing-api-token', 'api-error', 'invalid-output', 'generation-failed']),
     }),
   },
   flowgraph: {

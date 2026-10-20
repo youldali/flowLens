@@ -5,15 +5,14 @@ Shared code-insight capabilities for the CLI server and VS Code extension.
 returns provider-independent `system` and `prompt` strings for explaining it.
 The JSON input preserves the display name, source text, and optional JSDoc.
 The prompt requests purpose, behavior, side effects, failure cases, and uncertainties.
-`createFunctionExplanationGenerator({ model })` accepts a configured AI SDK model
-object and returns `(node: FunctionDeclarationNode) => Promise<Result<FunctionExplanation, AiApiError>>`.
-The caller owns provider selection and credentials; string model IDs are not accepted.
+`createFunctionExplainer({ provider, apiKey })` accepts a provider and API key and returns `(node: FunctionDeclarationNode) => Promise<Result<FunctionExplanation, AiApiError>>`.
+The caller owns provider selection and credentials. Model construction and generation are private implementation details. OpenAI uses `gpt-4.1-mini`; Anthropic uses `claude-sonnet-5-5`.
 
 ```ts
-import { createFunctionExplanationGenerator } from '@flowlens/code-insights';
+import { createFunctionExplainer } from '@flowlens/code-insights';
 
-// model is a configured provider model; node is a validated function node.
-const explainFunction = createFunctionExplanationGenerator({ model });
+// apiKey is supplied by the host; node is a validated function node.
+const explainFunction = createFunctionExplainer({ provider: 'openai', apiKey });
 const result = await explainFunction(node);
 if (result.isErr()) {
   console.error(result.error.reason, result.error.statusCode, result.error.cause);

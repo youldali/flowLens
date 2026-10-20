@@ -5,11 +5,16 @@ import { GraphAdapter } from "@flowlens/analyzer-core/adapter/graph-adapter";
 import { findNearestTsconfig } from "@flowlens/common/fs";
 
 import { FlowLensGraphWebview } from "./webview.js";
+import { createFunctionExplainer } from '@flowlens/code-insights';
+import { getAIProvider } from './configuration.js';
 
 const supportedLanguageIds = new Set(["typescript", "typescriptreact"]);
 
 export function activate(context: vscode.ExtensionContext): void {
-  const graphWebview = new FlowLensGraphWebview(context.extensionUri);
+  // Replace with configured credentials when credential storage is implemented.
+  const placeholderApiKey = 'flowlens-placeholder-api-key';
+  const explainFunction = createFunctionExplainer({ provider: getAIProvider(), apiKey: placeholderApiKey });
+  const graphWebview = new FlowLensGraphWebview(context.extensionUri, { explainFunction });
   const disposable = vscode.commands.registerCommand("flowlens.generateGraph", async () => {
     const editor = vscode.window.activeTextEditor;
 

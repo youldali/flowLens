@@ -1,90 +1,74 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import { createFunctionDeclarationNode } from '@flowlens/analyzer-core/fixtures/node';
-import { NoObjectGeneratedError } from 'ai';
 import { assertErr, assertOk } from '@flowlens/common/testing';
-import { MockLanguageModelV4 } from 'ai/test';
-
+import { createFunctionExplainer } from './function-explanation-generator.js';
 import { create as createExplanation } from '../fixtures/function-explanation.js';
-import { createFunctionExplanationGenerator } from './function-explanation-generator.js';
 import { buildFunctionExplanationPrompt } from './prompts/function-explanation.js';
 
-describe('createFunctionExplanationGenerator', () => {
-  it('returns the validated explanation and sends the existing prompt to the model', async () => {
-    const explanation = createExplanation();
-    const model = createModel(JSON.stringify(explanation));
-    const node = createFunctionDeclarationNode();
-    const prompt = buildFunctionExplanationPrompt(node);
-    const generate = createFunctionExplanationGenerator({ model });
-
-    const result = await generate(node);
-
-    assertOk(result);
-    assert.deepEqual(result.value, explanation);
-    assert.equal(model.doGenerateCalls.length, 1);
-    assert.deepEqual(model.doGenerateCalls[0]?.prompt.map(({ role, content }) => ({ role, content })), [
-      { role: 'system', content: prompt.system },
-      { role: 'user', content: [{ type: 'text', text: prompt.prompt }] },
-    ]);
-  });
-
-  it('accepts empty arrays for every observation field', async () => {
-    const explanation = createExplanation({ behavior: [], uncertainties: [] });
-    const generate = createFunctionExplanationGenerator({ model: createModel(JSON.stringify(explanation)) });
-
-    const result = await generate(createFunctionDeclarationNode());
-
-    assertOk(result);
-    assert.deepEqual(result.value, explanation);
-  });
-
-  it('rejects malformed JSON, missing fields, wrong types, and additional fields', async () => {
+describe('createFunctionExplainer', () => {
+  it('sends the source prompt and validates generated explanations', async context => {
     const explanation = createExplanation();
     const { purpose: _purpose, ...missingPurpose } = explanation;
-    const invalidResponses = [
-      'not JSON',
-      JSON.stringify(missingPurpose),
-      JSON.stringify({ ...explanation, behavior: [42] }),
-      JSON.stringify({ ...explanation, extra: 'unexpected' }),
-    ];
+    const node = createFunctionDeclarationNode();
+    const prompt = buildFunctionExplanationPrompt(node);
+    let text = '';
+    context.mock.method(globalThis, 'fetch', async (_url: string, init: RequestInit) => {
+      const body = JSON.parse(String(init.body));
+      assert.equal(body.system[0].text, prompt.system);
+      assert.equal(body.messages[0].content[0].text, prompt.prompt);
 
-    for (const response of invalidResponses) {
-      const generate = createFunctionExplanationGenerator({ model: createModel(response) });
+      return new Response(JSON.stringify({
+        id: 'message', type: 'message', role: 'assistant', model: 'claude-sonnet-5-5',
+        content: [{ type: 'text', text }], stop_reason: 'end_turn', stop_sequence: null,
+        usage: { input_tokens: 10, output_tokens: 20 },
+      }), { headers: { 'content-type': 'application/json' } });
+    });
+    const explain = createFunctionExplainer({ provider: 'anthropic', apiKey: 'test-key' });
 
-      const result = await generate(createFunctionDeclarationNode());
+    for (const value of [explanation, createExplanation({ behavior: [], uncertainties: [] })]) {
+      text = JSON.stringify(value);
+      const result = await explain(node);
+
+      assertOk(result);
+      assert.deepEqual(result.value, value);
+    }
+
+    for (const invalid of ['not JSON', JSON.stringify(missingPurpose), JSON.stringify({ ...explanation, behavior: [42] }), JSON.stringify({ ...explanation, extra: true })]) {
+      text = invalid;
+      const result = await explain(node);
 
       assertErr(result);
       assert.equal(result.error.reason, 'invalid-output');
-      assert.equal(result.error.statusCode, undefined);
-      assert.ok(NoObjectGeneratedError.isInstance(result.error.cause));
+      assert.ok(result.error.cause);
     }
   });
 
-  it('preserves the cause when the provider fails', async () => {
-    const cause = new Error('Provider unavailable');
-    const model = new MockLanguageModelV4({ doGenerate: async () => { throw cause; } });
-    const generate = createFunctionExplanationGenerator({ model });
+  for (const [provider, modelId, hostname, header, credential] of [
+    ['openai', 'gpt-4.1-mini', 'api.openai.com', 'authorization', 'Bearer flowlens-placeholder-api-key'],
+    ['anthropic', 'claude-sonnet-5-5', 'api.anthropic.com', 'x-api-key', 'flowlens-placeholder-api-key'],
+  ] as const) {
+    it(`configures ${provider} with its fixed model and placeholder key`, async context => {
+      const requests: { url: string; headers: Headers; body: string }[] = [];
+      context.mock.method(globalThis, 'fetch', async (url: string, init: RequestInit) => {
+        requests.push({ url: String(url), headers: new Headers(init.headers), body: String(init.body) });
 
-    const node = createFunctionDeclarationNode();
-    const result = await generate(node);
+        return new Response(JSON.stringify({ error: { type: 'authentication_error', message: 'Invalid API key' } }), {
+          status: 401,
+          headers: { 'content-type': 'application/json' },
+        });
+      });
+      const explain = createFunctionExplainer({ provider, apiKey: 'flowlens-placeholder-api-key' });
+      const result = await explain(createFunctionDeclarationNode());
 
-    assertErr(result);
-    assert.equal(result.error.cause, cause);
-    assert.equal(result.error.reason, 'generation-failed');
-    assert.equal(result.error.statusCode, undefined);
-  });
+      assertErr(result);
+      assert.equal(result.error.reason, 'api-error');
+      assert.equal(requests.length, 1);
+      const request = requests[0]!;
+
+      assert.equal(new URL(request.url).hostname, hostname);
+      assert.equal(request.headers.get(header), credential);
+      assert.equal(JSON.parse(request.body).model, modelId);
+    });
+  }
 });
-
-function createModel(text: string): MockLanguageModelV4 {
-  return new MockLanguageModelV4({
-    doGenerate: async () => ({
-      content: [{ type: 'text', text }],
-      finishReason: { unified: 'stop', raw: undefined },
-      usage: {
-        inputTokens: { total: 10, noCache: 10, cacheRead: undefined, cacheWrite: undefined },
-        outputTokens: { total: 20, text: 20, reasoning: undefined },
-      },
-      warnings: [],
-    }),
-  });
-}

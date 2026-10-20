@@ -26,7 +26,9 @@
     "@flowlens/analyzer-core": "workspace:*",
     "ai": "^7.0.138",
     "neverthrow": "^8.2.0",
-    "zod": "^4.4.3"
+    "zod": "^4.4.3",
+    "@ai-sdk/openai": "^4.0.96",
+    "@ai-sdk/anthropic": "^4.0.82"
   },
   "devDependencies": {
     "@flowlens/common": "workspace:*",

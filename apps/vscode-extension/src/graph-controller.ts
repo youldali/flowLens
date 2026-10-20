@@ -2,6 +2,7 @@ import { findNodeInGraphById, type FlowGraph } from '@flowlens/analyzer-core/dom
 import type { GraphId, GraphSession } from '@flowlens/analyzer-core/domain/graph-session';
 import { isFunctionDeclarationNode, type Node, type FunctionDeclarationNode } from '@flowlens/analyzer-core/domain/node';
 import type { FunctionExplanation } from '@flowlens/code-insights/domain/function-explanation-contract';
+import type { AiApiError } from '@flowlens/code-insights';
 import {
   createVsCodeEvent,
   isExplainNodeEvent,
@@ -12,13 +13,13 @@ import {
 import { err, ok, type Result } from 'neverthrow';
 import { createGraphSession } from './graph-session.js';
 
-type ExplainFunction = (node: FunctionDeclarationNode) => Promise<FunctionExplanation>;
+type ExplainFunction = (node: FunctionDeclarationNode) => Promise<Result<FunctionExplanation, AiApiError>>;
 export type GraphControllerOptions = { explainFunction?: ExplainFunction };
 export type GraphEvent = ExplainNodeEvent;
 export type GraphEventResult = ExplainNodeResultEvent | ExplainNodeErrorEvent;
 type NodeRequest = { graphId: GraphId; nodeId: string };
 type NodeResolutionError = 'stale-graph' | 'node-not-found';
-type ExplanationError = 'node-not-explainable' | 'missing-api-token' | 'generation-failed';
+type ExplanationError = { reason: 'node-not-explainable' | AiApiError['reason'] };
 
 export class GraphController {
   readonly session: GraphSession;
@@ -45,22 +46,25 @@ export class GraphController {
 
   private async explainNode(node: Node, request: ExplainNodeEvent): Promise<GraphEventResult> {
     let result: Result<FunctionExplanation, ExplanationError>;
-
+    //!! use ResultFlow
     if (!isFunctionDeclarationNode(node)) {
-      result = err('node-not-explainable');
+      result = err({ reason: 'node-not-explainable' });
     } else if (!this.options.explainFunction) {
-      result = err('missing-api-token');
+      result = err({ reason: 'missing-api-token' });
     } else {
-      try {
-        result = ok(await this.options.explainFunction(node));
-      } catch {
-        result = err('generation-failed');
-      }
+      result = await this.options.explainFunction(node);
     }
 
     return result.match(
       explanation => createVsCodeEvent('explain.node.result', { ...request.payload, explanation }),
-      reason => createVsCodeEvent('explain.node.error', { ...request.payload, reason }),
+      error => {
+        console.error('FlowLens: Could not explain node.', {
+          ...request.payload,
+          reason: error.reason,
+        });
+
+        return createVsCodeEvent('explain.node.error', { ...request.payload, reason: error.reason });
+      },
     );
   }
 }

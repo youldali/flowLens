@@ -7,6 +7,7 @@ import { join } from 'node:path';
 import { createFunctionDeclarationNode, createFileNode } from '@flowlens/analyzer-core/fixtures/node';
 import { createVsCodeEvent, isFlowGraphEvent } from '@flowlens/registries/vscode-events';
 import { panels, Uri } from './mocks/vscode.js';
+import { ok } from 'neverthrow';
 
 const hooks = registerHooks({
   resolve(specifier, context, nextResolve) {
@@ -42,7 +43,7 @@ describe('FlowLensGraphWebview', () => {
     const deferred = Promise.withResolvers<typeof explanation>();
     const { host, panel, session } = await setup(async received => {
       assert.equal(received, node);
-      return deferred.promise;
+      return ok(await deferred.promise);
     });
     const request = { graphId: session.graphId, nodeId: node.id, requestId: 'request' };
     const delivery = panel.receive(createVsCodeEvent('explain.node', request));
@@ -54,7 +55,7 @@ describe('FlowLensGraphWebview', () => {
 
   it('ignores invalid requests and suppresses replies after closure and reopening', async () => {
     const deferred = Promise.withResolvers<typeof explanation>();
-    const { host, panel, session } = await setup(() => deferred.promise);
+    const { host, panel, session } = await setup(async () => ok(await deferred.promise));
     const count = panel.messages.length;
     await panel.receive({ type: 'explain.node', payload: {} });
     assert.equal(panel.messages.length, count);
