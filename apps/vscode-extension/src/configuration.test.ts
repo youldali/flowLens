@@ -9,9 +9,31 @@ const hooks = registerHooks({
     return nextResolve(specifier === 'vscode' ? new URL('./mocks/vscode.ts', import.meta.url).href : specifier, context);
   },
 });
-const { getAIProvider, updateAIProvider } = await import('./configuration.js');
+const { getAIProvider, updateAIProvider, getAiKeyStorage, getAiApiKey } = await import('./configuration.js');
 hooks.deregister();
 afterEach(() => mock.restoreAll());
+
+describe('getAiKeyStorage', () => {
+  it('uses the extension context secret storage', async () => {
+    const get = mock.fn(async (_key: string) => 'stored-key');
+    const secrets = { get, store: async () => {}, delete: async () => {}, onDidChange: () => ({ dispose() {} }) };
+    const storage = getAiKeyStorage({ secrets });
+
+    assert.equal(await storage.get('anthropic'), 'stored-key');
+    assert.deepEqual(get.mock.calls[0]?.arguments, ['flowlens.ai.anthropic.apiKey']);
+  });
+});
+
+describe('getAiApiKey', () => {
+  it('retrieves the specified provider key and propagates missing keys and failures', async () => {
+    const get = mock.fn(async (provider: string) => provider === 'openai' ? 'stored-key' : undefined);
+
+    assert.equal(await getAiApiKey({ get }, 'openai'), 'stored-key');
+    assert.equal(await getAiApiKey({ get }, 'anthropic'), undefined);
+    const error = new Error('Storage unavailable');
+    await assert.rejects(getAiApiKey({ get: async () => { throw error; } }, 'openai'), received => received === error);
+  });
+});
 
 describe('getAIProvider', () => {
   it('reads the default from the FlowLens configuration when no value exists', () => {

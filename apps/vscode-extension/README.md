@@ -60,18 +60,24 @@ function implementations from the retained graph and replies with
 are rejected; accepted requests use the captured source snapshot. Replies are
 sent only to the originating panel while it remains open.
 
-`FlowLensGraphWebview` accepts an optional explanation function as its second
-constructor argument. Extension activation reads `flowlens.ai.provider` using
-`getAIProvider()` and calls `createFunctionExplainer({ provider, apiKey })` from
-`code-insights`, which owns provider SDKs and model construction. OpenAI uses
-`gpt-4.1-mini`; Anthropic uses `claude-sonnet-5-5`. These fixed model choices are
-provisional. Reload the extension after changing providers.
+`FlowLensGraphWebview` accepts an explanation function from extension setup.
+Before each request the extension reads `flowlens.ai.provider` and retrieves its
+key from VS Code SecretStorage, then calls the shared `createFunctionExplainer`.
+OpenAI uses `gpt-4.1-mini`; Anthropic uses `claude-sonnet-5-5`.
 
-Both providers currently receive a placeholder API key. Successful live generation
-requires the future credential setup; authentication failures are reported as
-`api-error`. Generator error reasons pass through unchanged, including
-`invalid-output`, `missing-api-token`, and `generation-failed`. Provider error
-details and credentials are not included in webview messages.
+Use **FlowLens: Set AI API Key** from the Command Palette to save or replace the
+selected provider's key. Input is masked and stored securely by VS Code, separately
+for OpenAI and Anthropic, across reloads and restarts. Use **FlowLens: Remove AI API
+Key** to delete that provider's key after confirmation. Select the provider using
+`flowlens.ai.provider`; never put API keys in settings.
+
+Provider and key changes apply to subsequent requests without reloading; requests
+already started retain their captured credentials. Missing keys produce
+`missing-api-token`. Credentials never enter the React webview or IPC messages.
+Generator error reasons pass through unchanged; raw provider details are not logged.
+
+To manually verify persistence, save a key, reload the extension or restart VS Code,
+and invoke Remove AI API Key: the confirmation should still appear. Cancel to retain it.
 
 The frontend `useExplainNodeQuery(graphId)` hook provides the transport for later UI
 integration. Graph changes and unmounting reject pending requests, and unmatched

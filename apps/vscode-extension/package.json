@@ -39,7 +39,9 @@
   "activationEvents": [
     "onLanguage:typescript",
     "onLanguage:typescriptreact",
-    "onCommand:flowlens.generateGraph"
+    "onCommand:flowlens.generateGraph",
+    "onCommand:flowlens.setAiApiKey",
+    "onCommand:flowlens.removeAiApiKey"
   ],
   "contributes": {
     "configuration": {
@@ -61,6 +63,14 @@
       {
         "command": "flowlens.generateGraph",
         "title": "FlowLens: Generate Graph"
+      },
+      {
+        "command": "flowlens.setAiApiKey",
+        "title": "FlowLens: Set AI API Key"
+      },
+      {
+        "command": "flowlens.removeAiApiKey",
+        "title": "FlowLens: Remove AI API Key"
       }
     ],
     "menus": {

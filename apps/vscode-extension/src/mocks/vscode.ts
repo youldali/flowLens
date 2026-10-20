@@ -17,7 +17,14 @@ export class MockPanel {
 }
 
 export const panels: MockPanel[] = [];
+export const commands = {
+  registerCommand: (_id: string, _handler: (...args: unknown[]) => unknown) => ({ dispose() {} }),
+};
 export const window = {
+  showInputBox: async (_options: import('vscode').InputBoxOptions): Promise<string | undefined> => undefined,
+  showInformationMessage: async (_message: string): Promise<string | undefined> => undefined,
+  showErrorMessage: async (_message: string): Promise<string | undefined> => undefined,
+  showWarningMessage: async (_message: string, _options: import('vscode').MessageOptions, ..._items: string[]): Promise<string | undefined> => undefined,
   createWebviewPanel: () => {
     const panel = new MockPanel();
     panels.push(panel);
