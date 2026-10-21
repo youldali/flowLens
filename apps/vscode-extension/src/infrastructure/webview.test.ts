@@ -6,12 +6,12 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createFunctionDeclarationNode, createFileNode } from '@flowlens/analyzer-core/fixtures/node';
 import { createVsCodeEvent, isFlowGraphEvent } from '@flowlens/registries/vscode-events';
-import { panels, Uri } from './mocks/vscode.js';
+import { panels, Uri } from '@mocks/vscode.js';
 import { ok } from 'neverthrow';
 
 const hooks = registerHooks({
   resolve(specifier, context, nextResolve) {
-    return nextResolve(specifier === 'vscode' ? new URL('./mocks/vscode.ts', import.meta.url).href : specifier, context);
+    return nextResolve(specifier === 'vscode' ? new URL('../mocks/vscode.ts', import.meta.url).href : specifier, context);
   },
 });
 const { FlowLensGraphWebview } = await import('./webview.js');

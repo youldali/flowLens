@@ -9,7 +9,7 @@ import {
   isViewReadyEvent,
 } from "@flowlens/registries/vscode-events";
 
-import { GraphController, type GraphControllerOptions } from './graph-controller.js';
+import { GraphController, type GraphControllerOptions } from '@services/graph-controller.js';
 
 type FlowLensGraphWebviewOptions = GraphControllerOptions;
 

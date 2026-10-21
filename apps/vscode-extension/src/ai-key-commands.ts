@@ -1,15 +1,15 @@
 import * as vscode from 'vscode';
-import { getAIProvider, getAiApiKey } from './configuration.js';
-import type { AIKeyStorage } from './ai-key-storage.js';
+import { getAIProvider } from '@infrastructure/configuration.js';
+import type { AiKeyService } from '@services/ai-key-service.js';
 
-export function registerAIKeyCommands(storage: AIKeyStorage): vscode.Disposable[] {
+export function registerAIKeyCommands(aiKeyService: AiKeyService): vscode.Disposable[] {
   return [
-    vscode.commands.registerCommand('flowlens.setAiApiKey', () => setAIKey(storage)),
-    vscode.commands.registerCommand('flowlens.removeAiApiKey', () => removeAIKey(storage)),
+    vscode.commands.registerCommand('flowlens.setAiApiKey', () => setAIKey(aiKeyService)),
+    vscode.commands.registerCommand('flowlens.removeAiApiKey', () => removeAIKey(aiKeyService)),
   ];
 }
 
-async function setAIKey(storage: AIKeyStorage): Promise<void> {
+async function setAIKey(aiKeyService: AiKeyService): Promise<void> {
   try {
     const provider = getAIProvider();
     const input = await vscode.window.showInputBox({
@@ -28,17 +28,17 @@ async function setAIKey(storage: AIKeyStorage): Promise<void> {
       return;
     }
 
-    await storage.set(provider, key);
+    await aiKeyService.setAiApiKey(provider, key);
     await vscode.window.showInformationMessage(`FlowLens: API key saved for ${provider}.`);
   } catch {
     await vscode.window.showErrorMessage('FlowLens: Could not save the AI API key.');
   }
 }
 
-async function removeAIKey(storage: AIKeyStorage): Promise<void> {
+async function removeAIKey(aiKeyService: AiKeyService): Promise<void> {
   try {
     const provider = getAIProvider();
-    const key = await getAiApiKey(storage, provider);
+    const key = await aiKeyService.getAiApiKey(provider);
 
     if (key === undefined) {
       await vscode.window.showInformationMessage(`FlowLens: No API key is stored for ${provider}.`);
@@ -50,7 +50,7 @@ async function removeAIKey(storage: AIKeyStorage): Promise<void> {
     );
 
     if (confirmation !== 'Remove') return;
-    await storage.delete(provider);
+    await aiKeyService.removeAiApiKey(provider);
     await vscode.window.showInformationMessage(`FlowLens: API key removed for ${provider}.`);
   } catch {
     await vscode.window.showErrorMessage('FlowLens: Could not remove the AI API key.');

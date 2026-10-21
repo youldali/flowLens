@@ -2,8 +2,9 @@ import assert from 'node:assert/strict';
 import { registerHooks } from 'node:module';
 import { readFile } from 'node:fs/promises';
 import { describe, it } from 'node:test';
-import { commands, window, workspace } from './mocks/vscode.js';
-import type { AIKeyStorage } from './ai-key-storage.js';
+import { commands, window, workspace } from '@mocks/vscode.js';
+import type { AIKeyStorage } from '@infrastructure/ai-key-storage.js';
+import { AiKeyService } from '@services/ai-key-service.js';
 
 const hooks = registerHooks({
   resolve(specifier, context, nextResolve) {
@@ -47,7 +48,7 @@ describe('registerAIKeyCommands', () => {
       assert.equal(options.modal, true);
       return confirmation;
     });
-    assert.equal(registerAIKeyCommands(storage).length, 2);
+    assert.equal(registerAIKeyCommands(new AiKeyService(storage)).length, 2);
     const set = handlers.get('flowlens.setAiApiKey')!;
     const remove = handlers.get('flowlens.removeAiApiKey')!;
     const manifest = JSON.parse(await readFile(new URL('../package.json', import.meta.url), 'utf8'));

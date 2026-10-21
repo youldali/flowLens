@@ -4,17 +4,20 @@ import * as vscode from "vscode";
 import { GraphAdapter } from "@flowlens/analyzer-core/adapter/graph-adapter";
 import { findNearestTsconfig } from "@flowlens/common/fs";
 
-import { FlowLensGraphWebview } from "./webview.js";
-import { getAIProvider, getAiApiKey, getAiKeyStorage } from './configuration.js';
+import { FlowLensGraphWebview } from "@infrastructure/webview.js";
+import { getAIProvider } from '@infrastructure/configuration.js';
 import { registerAIKeyCommands } from './ai-key-commands.js';
-import { createExplainFunction } from './explain-function.js';
+import { createExplainFunction } from '@infrastructure/explain-function.js';
+import { createAIKeyStorage } from '@infrastructure/ai-key-storage.js';
+import { AiKeyService } from '@services/ai-key-service.js';
 
 const supportedLanguageIds = new Set(["typescript", "typescriptreact"]);
 
 export function activate(context: vscode.ExtensionContext): void {
-  const keyStorage = getAiKeyStorage(context);
-  const explainFunction = createExplainFunction(provider => getAiApiKey(keyStorage, provider), getAIProvider);
-  context.subscriptions.push(...registerAIKeyCommands(keyStorage));
+  const keyStorage = createAIKeyStorage(context.secrets);
+  const aiKeyService = new AiKeyService(keyStorage);
+  const explainFunction = createExplainFunction(provider => aiKeyService.getAiApiKey(provider), getAIProvider);
+  context.subscriptions.push(...registerAIKeyCommands(aiKeyService));
   const graphWebview = new FlowLensGraphWebview(context.extensionUri, { explainFunction });
   const disposable = vscode.commands.registerCommand("flowlens.generateGraph", async () => {
     const editor = vscode.window.activeTextEditor;

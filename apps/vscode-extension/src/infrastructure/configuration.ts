@@ -1,15 +1,5 @@
 import * as vscode from 'vscode';
 import { aiProviderSchema, type AIProvider } from '@flowlens/code-insights/domain/ai-provider';
-import { createAIKeyStorage, type AIKeyStorage } from './ai-key-storage.js';
-
-export function getAiKeyStorage(context: Pick<vscode.ExtensionContext, 'secrets'>): AIKeyStorage {
-  return createAIKeyStorage(context.secrets);
-}
-
-export async function getAiApiKey(storage: Pick<AIKeyStorage, 'get'>, provider: AIProvider): Promise<string | undefined> {
-  return storage.get(provider);
-}
-
 export function getAIProvider(): AIProvider {
   const provider = vscode.workspace.getConfiguration('flowlens').get<unknown>('ai.provider', 'openai');
   const result = aiProviderSchema.safeParse(provider);

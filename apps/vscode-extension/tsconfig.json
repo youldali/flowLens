@@ -8,7 +8,18 @@
       "node",
       "vscode"
     ],
-    "tsBuildInfoFile": "dist/tsconfig.tsbuildinfo"
+    "tsBuildInfoFile": "dist/tsconfig.tsbuildinfo",
+    "paths": {
+      "@infrastructure/*": [
+        "./src/infrastructure/*"
+      ],
+      "@services/*": [
+        "./src/services/*"
+      ],
+      "@mocks/*": [
+        "./src/mocks/*"
+      ]
+    }
   },
   "include": [
     "src/**/*.ts"
