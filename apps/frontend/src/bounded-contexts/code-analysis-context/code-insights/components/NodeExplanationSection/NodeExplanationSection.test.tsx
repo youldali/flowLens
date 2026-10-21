@@ -80,6 +80,7 @@ describe('NodeExplanationSection', () => {
     await waitFor(() => assert.equal((screen.getByRole('button', { name: 'Explaining…' }) as HTMLButtonElement).disabled, true))
     fireEvent.click(screen.getByRole('button', { name: 'Explaining…' }))
     assert.equal(sent.length, 1)
+    await waitFor(() => assert.equal(screen.getAllByRole('status').length, 1))
     succeed(sent[0]!)
     await screen.findByText(explanation.purpose)
     for (const item of [explanation.behavior, explanation.sideEffects, explanation.failureCases, explanation.uncertainties].flat()) {
@@ -93,8 +94,12 @@ describe('NodeExplanationSection', () => {
     assert.equal(sent.length, 1)
     fireEvent.click(screen.getByRole('button', { name: 'Explain again' }))
     screen.getByText(explanation.purpose)
+    await waitFor(() => assert.equal(screen.getAllByRole('status').length, 1))
     fail(sent[1]!, 'api-error')
     await screen.findByRole('alert')
+    screen.getByText(explanation.purpose)
+    fireEvent.click(screen.getByRole('button', { name: 'Dismiss error' }))
+    assert.equal(screen.queryByRole('alert'), null)
     screen.getByText(explanation.purpose)
   })
 
