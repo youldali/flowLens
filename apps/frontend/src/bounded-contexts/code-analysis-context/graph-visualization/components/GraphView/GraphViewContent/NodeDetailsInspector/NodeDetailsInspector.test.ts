@@ -156,6 +156,23 @@ function renderInspector(
 }
 
 describe('NodeDetailsInspector', () => {
+  for (const kind of ['functionDeclaration', 'methodDeclaration'] as const) {
+    it(`offers explanations for ${kind}`, () => {
+      const node = createFunctionDeclarationNode({ id: 'explainable', kind })
+      renderInspector({ nodes: [node], edges: [] }, node.id, undefined, true)
+
+      const button = screen.getByRole('button', { name: 'explanation.explain' }) as HTMLButtonElement
+      assert.equal(button.disabled, true)
+    })
+  }
+
+  it('does not offer explanations for call expressions', () => {
+    const node = createCallExpressionNode({ id: 'call' })
+    renderInspector({ nodes: [node], edges: [] }, node.id, undefined, true)
+
+    assert.equal(screen.queryByRole('button', { name: 'explanation.explain' }), null)
+  })
+
   it('uses display names for titles, accessibility, and connections', () => {
     const labeledGraph = { ...graph, nodes: graph.nodes.map((node) => ({
       ...node,

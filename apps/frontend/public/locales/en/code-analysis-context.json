@@ -72,5 +72,31 @@
             "serverError": "The code analysis graph could not be loaded.",
             "notFound": "No code analysis graph was found for this project."
         }
+    },
+    "explanation": {
+        "title": "Explanation",
+        "explain": "Explain",
+        "explainAgain": "Explain again",
+        "explaining": "Explaining…",
+        "vscodeRequired": "Explanations are available in VS Code.",
+        "dismiss": "Dismiss error",
+        "purpose": "Purpose",
+        "behavior": "Behavior",
+        "sideEffects": "Side effects",
+        "failureCases": "Failure cases",
+        "uncertainties": "Uncertainties",
+        "errors": {
+            "missing-api-token": "No AI API key is configured. Run “FlowLens: Set AI API Key” in the VS Code command palette.",
+            "graph-unavailable": "The graph is unavailable. Regenerate the graph and try again.",
+            "stale-graph": "The graph is out of date. Regenerate the graph and try again.",
+            "node-not-found": "The selected node could not be found. Regenerate the graph and try again.",
+            "node-not-explainable": "The selected node cannot be explained.",
+            "api-error": "The AI provider request failed. Check your provider configuration or try again.",
+            "invalid-output": "The AI provider returned an invalid explanation. Try again.",
+            "generation-failed": "The explanation could not be generated. Try again.",
+            "delivery-failed": "Could not contact the VS Code extension. Try again.",
+            "cancelled": "The explanation request was cancelled.",
+            "unknown": "The explanation could not be loaded. Try again."
+        }
     }
 }

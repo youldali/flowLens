@@ -1,6 +1,7 @@
 import { useMemo } from 'react'
 import classNames from 'classnames'
-import { isCallableTypeMemberDeclarationNode, type Node } from '@flowlens/analyzer-core/domain/node'
+import { isCallableTypeMemberDeclarationNode, isFunctionDeclarationNode, type Node } from '@flowlens/analyzer-core/domain/node'
+import { NodeExplanationSection } from '#code-analysis-context/code-insights/components/NodeExplanationSection/index.ts'
 import { useTranslation } from '#common/hooks/useTranslation.ts'
 import { graphFacade } from '#code-analysis-context/graph-visualization/adapters/graphFacade.ts'
 import {
@@ -98,6 +99,8 @@ export function NodeDetailsInspector({
           <code className={styles.source}>{sourceExcerpt}</code>
         </details>
       )}
+
+      {isFunctionDeclarationNode(node) && <NodeExplanationSection nodeId={node.id} />}
 
       {isCallableTypeMemberDeclarationNode(node) && (
         <ImplementationSection node={node} />
