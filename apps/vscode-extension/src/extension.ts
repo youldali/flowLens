@@ -6,7 +6,7 @@ import { findNearestTsconfig } from "@flowlens/common/fs";
 
 import { FlowLensGraphWebview } from "@infrastructure/webview.js";
 import { getAIProvider } from '@infrastructure/configuration.js';
-import { registerAIKeyCommands } from './ai-key-commands.js';
+import { registerAIKeyCommands } from '@infrastructure/ai-key-commands.js';
 import { createExplainFunction } from '@infrastructure/explain-function.js';
 import { createAIKeyStorage } from '@infrastructure/ai-key-storage.js';
 import { AiKeyService } from '@services/ai-key-service.js';

@@ -8,7 +8,7 @@ import { AiKeyService } from '@services/ai-key-service.js';
 
 const hooks = registerHooks({
   resolve(specifier, context, nextResolve) {
-    return nextResolve(specifier === 'vscode' ? new URL('./mocks/vscode.ts', import.meta.url).href : specifier, context);
+    return nextResolve(specifier === 'vscode' ? new URL('../mocks/vscode.ts', import.meta.url).href : specifier, context);
   },
 });
 const { registerAIKeyCommands } = await import('./ai-key-commands.js');
@@ -51,7 +51,7 @@ describe('registerAIKeyCommands', () => {
     assert.equal(registerAIKeyCommands(new AiKeyService(storage)).length, 2);
     const set = handlers.get('flowlens.setAiApiKey')!;
     const remove = handlers.get('flowlens.removeAiApiKey')!;
-    const manifest = JSON.parse(await readFile(new URL('../package.json', import.meta.url), 'utf8'));
+    const manifest = JSON.parse(await readFile(new URL('../../package.json', import.meta.url), 'utf8'));
 
     for (const id of handlers.keys()) {
       assert.ok(manifest.contributes.commands.some((command: { command: string }) => command.command === id));
