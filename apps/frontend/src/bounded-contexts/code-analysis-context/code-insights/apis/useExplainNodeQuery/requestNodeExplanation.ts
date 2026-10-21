@@ -1,3 +1,4 @@
+import { VsCodeQueryErrorClass } from '#common/utils/QueryError/index.ts'
 import type { GraphId } from '@flowlens/analyzer-core/domain/graph-session'
 import type { VsCodeApi } from '#common/config/index.ts'
 import type { NodeId } from '@flowlens/analyzer-core/domain/node'
@@ -7,18 +8,8 @@ import {
   type ExplainNodeErrorEvent,
 } from '@flowlens/registries/vscode-events'
 
-export type ExplanationTransportErrorReason = ExplainNodeErrorEvent['payload']['reason']
+export type ExplanationErrorReason = ExplainNodeErrorEvent['payload']['reason']
   | 'delivery-failed' | 'cancelled'
-
-export class ExplanationTransportError extends Error {
-  readonly reason: ExplanationTransportErrorReason
-
-  constructor(reason: ExplanationTransportErrorReason, options?: ErrorOptions) {
-    super(`Function explanation request failed: ${reason}`, options)
-    this.name = 'ExplanationTransportError'
-    this.reason = reason
-  }
-}
 
 export function requestNodeExplanationViaVsCode(
   vscodeApi: VsCodeApi,
@@ -34,7 +25,7 @@ export function requestNodeExplanationViaVsCode(
     }
     const onAbort = () => {
       cleanup()
-      reject(new ExplanationTransportError('cancelled'))
+      reject(new VsCodeQueryErrorClass({ reason: 'cancelled', operation: 'explain.node', requestId }))
     }
     const onMessage = (event: MessageEvent<unknown>) => {
       const message = event.data
@@ -45,7 +36,7 @@ export function requestNodeExplanationViaVsCode(
       cleanup()
       return isExplainNodeResultEvent(message)
         ? resolve(message.payload.explanation)
-        : reject(new ExplanationTransportError(message.payload.reason))
+        : reject(new VsCodeQueryErrorClass({ reason: message.payload.reason, operation: 'explain.node', requestId }))
     }
 
     if (signal?.aborted) {
@@ -60,7 +51,7 @@ export function requestNodeExplanationViaVsCode(
       vscodeApi.postMessage(createVsCodeEvent('explain.node', { graphId, nodeId, requestId }))
     } catch (cause) {
       cleanup()
-      reject(new ExplanationTransportError('delivery-failed', { cause }))
+      reject(new VsCodeQueryErrorClass({ reason: 'delivery-failed', operation: 'explain.node', requestId, cause }))
     }
   })
 }

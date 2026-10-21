@@ -33,10 +33,10 @@ describe('requestNodeExplanationViaVsCode', () => {
     const remove = vi.spyOn(window, 'removeEventListener')
     const cause = new Error('Unavailable')
 
-    await assert.rejects(requestNodeExplanationViaVsCode({ postMessage: () => { throw cause } }, 'graph', 'one'), { reason: 'delivery-failed', cause })
+    await assert.rejects(requestNodeExplanationViaVsCode({ postMessage: () => { throw cause } }, 'graph', 'one'), { reason: 'delivery-failed', cause, originalError: cause, transport: 'vscode', operation: 'explain.node' })
     await assert.rejects(requestNodeExplanationViaVsCode({ postMessage: (message: unknown) => {
       send(createVsCodeEvent('explain.node.error', { ...(message as ExplainNodeEvent).payload, reason: 'stale-graph' }))
-    } }, 'graph', 'one'), { reason: 'stale-graph' })
+    } }, 'graph', 'one'), { reason: 'stale-graph', transport: 'vscode', operation: 'explain.node' })
     assert.equal(remove.mock.calls.length, 2)
   })
 

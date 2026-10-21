@@ -4,7 +4,7 @@ import { useConfig } from '#common/config/index.ts'
 import { useTranslation } from '#common/hooks/useTranslation.ts'
 import { graphFacade } from '#code-analysis-context/graph-visualization/adapters/graphFacade.ts'
 import { useExplainNodeQuery } from '../../apis/useExplainNodeQuery'
-import { ExplanationTransportError } from '../../apis/useExplainNodeQuery/requestNodeExplanation'
+import { useQueryError } from '#common/hooks/useQueryError.ts'
 import styles from './NodeExplanationSection.module.css'
 
 interface NodeExplanationSectionProps {
@@ -36,8 +36,13 @@ function ConnectedExplanation({ nodeId }: NodeExplanationSectionProps) {
   const [dismissedError, setDismissedError] = useState<unknown>(null)
   const { t } = useTranslation('code-analysis-context')
   const error = query.error
+  const errorMessage = useQueryError({
+    error,
+    namespace: 'code-analysis-context',
+    vscodeTranslations: { reason: reason => `explanation.errors.${reason}` as const },
+  })
   const showError = error && error !== dismissedError && !query.isFetching
-    && !(error instanceof ExplanationTransportError && error.reason === 'cancelled')
+    && error.reason !== 'cancelled'
   const explanation = query.data
 
   return (
@@ -52,7 +57,7 @@ function ConnectedExplanation({ nodeId }: NodeExplanationSectionProps) {
       {query.isFetching && <span role="status">{t('explanation.explaining')}</span>}
       {showError && (
         <div role="alert" className={styles.alert}>
-          <p>{t(getErrorTranslationKey(error))}</p>
+          <p>{errorMessage}</p>
           <button type="button" onClick={() => setDismissedError(error)}>
             {t('explanation.dismiss')}
           </button>
@@ -74,10 +79,4 @@ function ConnectedExplanation({ nodeId }: NodeExplanationSectionProps) {
       )}
     </>
   )
-}
-
-function getErrorTranslationKey(error: unknown) {
-  return error instanceof ExplanationTransportError
-    ? `explanation.errors.${error.reason}` as const
-    : 'explanation.errors.unknown' as const
 }

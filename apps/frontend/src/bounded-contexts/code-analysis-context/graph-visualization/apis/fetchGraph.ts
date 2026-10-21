@@ -1,7 +1,7 @@
 import { useQuery, type UseQueryResult } from 'react-query'
 import type { GraphSession } from '@flowlens/analyzer-core/domain/graph-session'
 import { getConfig, useConfig } from '#common/config/index.ts'
-import { fromFetchError, type QueryError } from '#common/utils/queryError.ts'
+import { fromFetchError, type HttpQueryError } from '#common/utils/QueryError/index.ts'
 
 export interface FetchGraphOptions {
   baseUrl?: string
@@ -34,10 +34,10 @@ export async function fetchGraph(
   }
 }
 
-export function useFetchGraph(): UseQueryResult<GraphSession, QueryError<unknown>> {
+export function useFetchGraph(): UseQueryResult<GraphSession, HttpQueryError<unknown>> {
   const { apiBaseUrl } = useConfig()
 
-  return useQuery<GraphSession, QueryError<unknown>>(
+  return useQuery<GraphSession, HttpQueryError<unknown>>(
     ['graph', { apiBaseUrl }],
     () => fetchGraph(fetch, { baseUrl: apiBaseUrl }),
   )

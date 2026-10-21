@@ -1,34 +1,34 @@
-;export type HttpStatusCode = number;
+import { isQueryError, type QueryError } from './queryError';
+
+export type HttpStatusCode = number;
 type HttpStatusText = string;
 type Method = 'GET' | 'DELETE' | 'HEAD' | 'OPTIONS' | 'POST' | 'PUT' | 'PATCH';
 type Url = string;
 
-interface BaseQueryError extends Error {
-  isQueryError: true;
-  originalError?: Error | undefined;
-  toJSON(): object;
+interface BaseHttpQueryError extends QueryError {
+  readonly transport: 'http';
   url: Url;
   method: Method;
 }
 
-export interface QueryNetworkError extends BaseQueryError {
+export interface QueryNetworkError extends BaseHttpQueryError {
   type: 'NetworkError';
 }
 
-export interface QueryRequestError<T> extends BaseQueryError {
+export interface QueryRequestError<T> extends BaseHttpQueryError {
   type: 'RequestError';
   status: HttpStatusCode;
   statusText: HttpStatusText;
   data: T;
 }
 
-interface QueryServerError extends BaseQueryError {
+interface QueryServerError extends BaseHttpQueryError {
   type: 'ServerError';
   status: HttpStatusCode;
   statusText: HttpStatusText;
 }
 
-export type QueryError<T> =
+export type HttpQueryError<T> =
   | QueryNetworkError
   | QueryRequestError<T>
   | QueryServerError;
@@ -49,17 +49,15 @@ const hasCaptureStackTrace = (
 };
 
 export const isRequestError = <T>(
-  queryError: QueryError<T>,
+  queryError: HttpQueryError<T>,
 ): queryError is QueryRequestError<T> => queryError.type === 'RequestError';
-export const isQueryError = <T>(error: Error): error is QueryError<T> =>
-  error instanceof QueryNetworkErrorClass ||
-  error instanceof QueryRequestErrorClass ||
-  error instanceof QueryServerErrorClass;
+export const isHttpQueryError = <T = unknown>(error: unknown): error is HttpQueryError<T> =>
+  isQueryError(error) && error.transport === 'http';
 
 export const fromFetchError = async <T>(
   request: Request,
   response: Response | Error,
-): Promise<QueryError<T>> => {
+): Promise<HttpQueryError<T>> => {
   if (
     response instanceof QueryNetworkErrorClass ||
     response instanceof QueryRequestErrorClass ||
@@ -137,6 +135,7 @@ const getQueryErrorTypeFromStatus = (
 };
 
 export class QueryNetworkErrorClass extends Error implements QueryNetworkError {
+  readonly transport = 'http' as const;
   isQueryError = true as const;
   type = 'NetworkError' as const;
   originalError?: Error | undefined;
@@ -166,6 +165,7 @@ export class QueryNetworkErrorClass extends Error implements QueryNetworkError {
 
   public toJSON() {
     return {
+      transport: this.transport,
       name: this.name,
       message: this.message,
       type: this.type,
@@ -177,6 +177,7 @@ export class QueryNetworkErrorClass extends Error implements QueryNetworkError {
 
 class QueryRequestErrorClass<T> extends Error implements QueryRequestError<T> {
   originalError?: Error | undefined;
+  readonly transport = 'http' as const;
   isQueryError = true as const;
   type = 'RequestError' as const;
   status: HttpStatusCode;
@@ -220,6 +221,7 @@ class QueryRequestErrorClass<T> extends Error implements QueryRequestError<T> {
 
   public toJSON() {
     return {
+      transport: this.transport,
       name: this.name,
       message: this.message,
       type: this.type,
@@ -234,6 +236,7 @@ class QueryRequestErrorClass<T> extends Error implements QueryRequestError<T> {
 
 class QueryServerErrorClass extends Error implements QueryServerError {
   originalError?: Error | undefined;
+  readonly transport = 'http' as const;
   isQueryError = true as const;
   type = 'ServerError' as const;
   status: HttpStatusCode;
@@ -273,6 +276,7 @@ class QueryServerErrorClass extends Error implements QueryServerError {
 
   public toJSON() {
     return {
+      transport: this.transport,
       name: this.name,
       message: this.message,
       type: this.type,
