@@ -70,8 +70,8 @@ describe('registerAIKeyCommands', () => {
     }
 
     const cancelled = await set();
-    assertOk(cancelled);
-    assert.equal(cancelled.value, 'cancelled');
+    assertErr(cancelled);
+    assert.deepEqual(cancelled.error, { reason: 'cancelled', cause: undefined });
     assert.equal(notices.length, 0);
     input = '  ';
     const invalid = await set();
@@ -161,15 +161,15 @@ describe('configureAIProvider', () => {
     }));
     const configure = handlers.get('flowlens.setAiApiKey')!;
     const cancelledPicker = await configure();
-    assertOk(cancelledPicker);
-    assert.equal(cancelledPicker.value, 'cancelled');
+    assertErr(cancelledPicker);
+    assert.deepEqual(cancelledPicker.error, { reason: 'cancelled', cause: undefined });
     assert.equal(inputCalls, 0);
     assert.equal(lastPicker?.disposed, true);
     selection = 'Anthropic';
     input = undefined;
     const cancelledKey = await configure();
-    assertOk(cancelledKey);
-    assert.equal(cancelledKey.value, 'cancelled');
+    assertErr(cancelledKey);
+    assert.deepEqual(cancelledKey.error, { reason: 'cancelled', cause: undefined });
     assert.equal(values.size, 0);
     assert.deepEqual(updates, []);
 
@@ -208,7 +208,7 @@ describe('executeSetAiApiKeyCommand', () => {
       return response;
     });
 
-    for (const result of [ok('saved' as const), ok('cancelled' as const), failure]) {
+    for (const result of [ok('saved' as const), err({ reason: 'cancelled' as const, cause: undefined }), failure]) {
       response = result;
       assert.equal(await executeSetAiApiKeyCommand(), result);
     }

@@ -31,19 +31,23 @@ describe('FlowLensGraphWebview', () => {
   it('routes recovery requests through existing commands and returns only configuration outcomes', async context => {
     const { panel } = await setup();
     const calls: string[] = [];
+    const logError = context.mock.method(console, 'error', () => {});
     let outcome = 'saved';
     context.mock.method(commands, 'executeCommand', async (id: string) => {
       calls.push(id);
       if (outcome === 'throws') throw new Error('secret-key');
+      if (outcome === 'cancelled') return err({ reason: 'cancelled', cause: undefined });
       return outcome === 'failed' ? err({ reason: 'configuration-failed', cause: new Error('secret-key') }) : ok(outcome);
     });
 
     for (const expected of ['saved', 'cancelled', 'failed'] as const) {
       outcome = expected;
+      const previousErrors = logError.mock.callCount();
       await panel.receive(createVsCodeEvent('ai.configure', { requestId: expected }));
       assert.deepEqual(panel.messages.at(-1), createVsCodeEvent('ai.configure.result', {
         requestId: expected, outcome: expected,
       }));
+      assert.equal(logError.mock.callCount(), previousErrors + (expected === 'failed' ? 1 : 0));
     }
 
     outcome = 'throws';

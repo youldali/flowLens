@@ -5,10 +5,10 @@ import { getAIProvider, updateAIProvider } from '@infrastructure/configuration.j
 import type { AiKeyService } from '@services/ai-key-service.js';
 
 export type SetAiApiKeyError = {
-  reason: 'missing-command-result' | 'command-execution-failed' | 'invalid-api-key' | 'configuration-failed';
+  reason: 'cancelled' | 'missing-command-result' | 'command-execution-failed' | 'invalid-api-key' | 'configuration-failed';
   cause: unknown;
 };
-export type SetAiApiKeyResult = Result<'saved' | 'cancelled', SetAiApiKeyError>;
+export type SetAiApiKeyResult = Result<'saved', SetAiApiKeyError>;
 
 export async function executeSetAiApiKeyCommand(): Promise<SetAiApiKeyResult> {
   try {
@@ -31,15 +31,14 @@ async function configureAIProvider(aiKeyService: AiKeyService): Promise<SetAiApi
   try {
     const provider = await selectAIProvider(getAIProvider());
 
-    if (provider === undefined) return ok('cancelled');
-    const key = await promptAIKey(provider);
+    if (provider.isErr()) return err(provider.error);
+    const key = await promptAIKey(provider.value);
 
     if (key.isErr()) return err(key.error);
-    if (key.value === undefined) return ok('cancelled');
 
-    await aiKeyService.setAiApiKey(provider, key.value);
-    await updateAIProvider(provider);
-    await vscode.window.showInformationMessage(`FlowLens: AI provider configured for ${provider}.`);
+    await aiKeyService.setAiApiKey(provider.value, key.value);
+    await updateAIProvider(provider.value);
+    await vscode.window.showInformationMessage(`FlowLens: AI provider configured for ${provider.value}.`);
     return ok('saved');
   } catch (cause) {
     await vscode.window.showErrorMessage('FlowLens: Could not configure the AI provider.');
@@ -47,7 +46,7 @@ async function configureAIProvider(aiKeyService: AiKeyService): Promise<SetAiApi
   }
 }
 
-async function selectAIProvider(currentProvider: AIProvider): Promise<AIProvider | undefined> {
+async function selectAIProvider(currentProvider: AIProvider): Promise<Result<AIProvider, SetAiApiKeyError>> {
   const picker = vscode.window.createQuickPick<vscode.QuickPickItem & { provider: AIProvider }>();
   picker.title = 'FlowLens: Configure AI Provider';
   picker.placeholder = 'Choose an AI provider';
@@ -61,14 +60,14 @@ async function selectAIProvider(currentProvider: AIProvider): Promise<AIProvider
   const subscriptions: vscode.Disposable[] = [];
 
   try {
-    return await new Promise<AIProvider | undefined>(resolve => {
+    return await new Promise<Result<AIProvider, SetAiApiKeyError>>(resolve => {
       subscriptions.push(
         picker.onDidAccept(() => {
           const selected = picker.selectedItems[0];
 
-          if (selected) resolve(selected.provider);
+          if (selected) resolve(ok(selected.provider));
         }),
-        picker.onDidHide(() => resolve(undefined)),
+        picker.onDidHide(() => resolve(err({ reason: 'cancelled', cause: undefined }))),
       );
       picker.show();
     });
@@ -78,7 +77,7 @@ async function selectAIProvider(currentProvider: AIProvider): Promise<AIProvider
   }
 }
 
-async function promptAIKey(provider: AIProvider): Promise<Result<string | undefined, SetAiApiKeyError>> {
+async function promptAIKey(provider: AIProvider): Promise<Result<string, SetAiApiKeyError>> {
   const input = await vscode.window.showInputBox({
     title: `FlowLens: Set ${provider} API Key`,
     prompt: `Enter the API key for ${provider}. This replaces any existing key.`,
@@ -87,7 +86,7 @@ async function promptAIKey(provider: AIProvider): Promise<Result<string | undefi
     validateInput: value => value.trim() ? undefined : 'Enter a non-empty API key.',
   });
 
-  if (input === undefined) return ok(undefined);
+  if (input === undefined) return err({ reason: 'cancelled', cause: undefined });
   const key = input.trim();
 
   if (!key) {

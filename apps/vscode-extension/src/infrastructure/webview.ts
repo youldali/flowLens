@@ -69,6 +69,8 @@ export class FlowLensGraphWebview {
       if (isConfigureAiEvent(message)) {
         const result = await executeSetAiApiKeyCommand();
         const outcome = result.match(identity, error => {
+          if (error.reason === 'cancelled') return 'cancelled' as const;
+
           console.error('FlowLens: Could not configure AI.', {
             ...message.payload,
             reason: error.reason,
