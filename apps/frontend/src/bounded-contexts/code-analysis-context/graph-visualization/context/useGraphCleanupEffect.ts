@@ -1,7 +1,7 @@
 import type { GraphId } from '@flowlens/analyzer-core/domain/graph-session'
 import { useEffect } from 'react'
 import { useQueryClient } from 'react-query'
-import { getExplanationGraphQueryKey } from '#code-analysis-context/code-insights/apis/useExplainNodeQuery/useExplainNodeQuery.ts'
+import { getExplanationGraphQueryKey } from '#code-analysis-context/code-insights/apis/useExplainNodeQuery/index.ts'
 import { useAppDispatch } from '#store/hooks.ts'
 import { actions } from '../slice'
 

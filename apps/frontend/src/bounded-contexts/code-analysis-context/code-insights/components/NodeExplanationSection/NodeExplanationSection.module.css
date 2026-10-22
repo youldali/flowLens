@@ -16,7 +16,7 @@
   text-transform: uppercase;
 }
 
-.section button {
+.button {
   justify-self: start;
   padding: 7px 10px;
   border: 1px solid var(--graph-toolbar-border, var(--border));
@@ -26,37 +26,17 @@
   cursor: pointer;
 }
 
-.section button:disabled {
+.button:disabled {
   opacity: 0.6;
   cursor: default;
 }
 
-.section button:focus-visible {
+.button:focus-visible {
   outline: 2px solid var(--graph-focus-border, var(--accent));
   outline-offset: 2px;
 }
 
-.section p,
-.result h4 {
+.description {
   margin: 0;
   white-space: pre-wrap;
-}
-
-.result {
-  display: grid;
-  gap: 10px;
-}
-
-.result ul {
-  margin: 7px 0 0;
-  padding-left: 20px;
-  white-space: pre-wrap;
-}
-
-.alert {
-  display: grid;
-  gap: 7px;
-  padding: 10px;
-  border: 1px solid var(--vscode-inputValidation-errorBorder, var(--border));
-  border-radius: 4px;
 }

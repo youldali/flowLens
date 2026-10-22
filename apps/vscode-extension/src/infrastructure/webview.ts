@@ -3,12 +3,17 @@ import * as path from "node:path";
 import * as vscode from "vscode";
 
 import type { FlowGraph } from "@flowlens/analyzer-core/domain/flow-graph";
+import { identity } from "@flowlens/common/utils";
 import {
   createVsCodeEvent,
   isOpenSourceEvent,
+  isConfigureAiEvent,
+  isGenerateGraphEvent,
   isViewReadyEvent,
+  type ConfigureAiOutcome,
 } from "@flowlens/registries/vscode-events";
 
+import { executeSetAiApiKeyCommand } from '@infrastructure/ai-key-commands.js';
 import { GraphController, type GraphControllerOptions } from '@services/graph-controller.js';
 
 type FlowLensGraphWebviewOptions = GraphControllerOptions;
@@ -61,6 +66,26 @@ export class FlowLensGraphWebview {
 
     panel.webview.onDidReceiveMessage(async (message: unknown) => {
       if (this.panel !== panel) return;
+      if (isConfigureAiEvent(message)) {
+        const result = await executeSetAiApiKeyCommand();
+        const outcome = result.match(identity, error => {
+          console.error('FlowLens: Could not configure AI.', {
+            ...message.payload,
+            reason: error.reason,
+          });
+
+          return 'failed' as const;
+        });
+
+        await this.postConfigureAiResult(panel, message.payload.requestId, outcome);
+        return;
+      }
+
+      if (isGenerateGraphEvent(message)) {
+        await vscode.commands.executeCommand('flowlens.generateGraph');
+        return;
+      }
+
       if (isOpenSourceEvent(message)) {
         void this.openSource(message.payload.filePath, message.payload.offset);
         return;
@@ -85,6 +110,16 @@ export class FlowLensGraphWebview {
       panel.dispose();
       throw error;
     }
+  }
+
+  private async postConfigureAiResult(
+    panel: vscode.WebviewPanel,
+    requestId: string,
+    outcome: ConfigureAiOutcome,
+  ): Promise<void> {
+    if (this.panel !== panel) return;
+
+    await panel.webview.postMessage(createVsCodeEvent('ai.configure.result', { requestId, outcome }));
   }
 
   private async postCurrentGraph(): Promise<void> {

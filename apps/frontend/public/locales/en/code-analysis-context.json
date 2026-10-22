@@ -77,26 +77,52 @@
         "title": "Explanation",
         "explain": "Explain",
         "explainAgain": "Explain again",
-        "explaining": "Explaining…",
+        "explaining": "Explaining\u2026",
         "vscodeRequired": "Explanations are available in VS Code.",
-        "dismiss": "Dismiss error",
         "purpose": "Purpose",
         "behavior": "Behavior",
         "sideEffects": "Side effects",
         "failureCases": "Failure cases",
         "uncertainties": "Uncertainties",
         "errors": {
-            "missing-api-token": "No AI API key is configured. Run “FlowLens: Set AI API Key” in the VS Code command palette.",
-            "graph-unavailable": "The graph is unavailable. Regenerate the graph and try again.",
-            "stale-graph": "The graph is out of date. Regenerate the graph and try again.",
-            "node-not-found": "The selected node could not be found. Regenerate the graph and try again.",
-            "node-not-explainable": "The selected node cannot be explained.",
-            "api-error": "The AI provider request failed. Check your provider configuration or try again.",
-            "invalid-output": "The AI provider returned an invalid explanation. Try again.",
-            "generation-failed": "The explanation could not be generated. Try again.",
-            "delivery-failed": "Could not contact the VS Code extension. Try again.",
+            "missing-api-token": "AI provider not configured",
+            "graph-unavailable": "Code graph unavailable",
+            "stale-graph": "Code graph is outdated",
+            "node-not-found": "Selected function is no longer available",
+            "node-not-explainable": "This node cannot be explained",
+            "api-error": "AI provider request failed",
+            "invalid-output": "Couldn't process the AI response",
+            "generation-failed": "Couldn't generate explanation",
+            "delivery-failed": "Couldn't receive the explanation",
             "cancelled": "The explanation request was cancelled.",
             "unknown": "The explanation could not be loaded. Try again."
+        },
+        "actions": {
+            "configure-api-key": "Configure API key",
+            "generate-graph": "Generate graph",
+            "retry": "Retry"
+        },
+        "configuring": "Configuring\u2026",
+        "configured": "AI provider configured",
+        "configuredDescription": "Your API key is saved. Retry to generate an explanation.",
+        "configurationFailed": "Couldn't save the API key. Try configuring it again.",
+        "graphDeliveryFailed": "Couldn't contact the extension. Try generating the graph again.",
+        "descriptions": {
+            "missing-api-token": "Add an API key to generate explanations for your code.",
+            "graph-unavailable": "Generate a graph from your TypeScript editor to continue.",
+            "stale-graph": "Run FlowLens: Generate Graph from your TypeScript editor to use the latest code.",
+            "node-not-found": "Generate a new graph and select the function again.",
+            "node-not-explainable": "Explanations are available for function declarations.",
+            "api-error": "The AI provider could not complete the request. Try again.",
+            "invalid-output": "The AI response could not be read. Try again.",
+            "generation-failed": "Try generating the explanation again.",
+            "delivery-failed": "The extension could not deliver the explanation. Try again."
+        },
+        "providerDetails": {
+            "authentication": "The AI provider rejected the API key. Check it with FlowLens: Set AI API Key, then retry.",
+            "permissions": "The AI provider denied access. Check your account permissions, then retry.",
+            "rateLimit": "The AI provider is limiting requests. Wait a moment, then retry.",
+            "unavailable": "The AI provider is temporarily unavailable. Try again shortly."
         }
     }
 }

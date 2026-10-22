@@ -29,6 +29,14 @@ describe('requestNodeExplanationViaVsCode', () => {
     assert.equal(remove.mock.calls[0]?.[0], 'message')
   })
 
+  it('preserves only numeric provider status for safe presentation', async () => {
+    await assert.rejects(requestNodeExplanationViaVsCode({ postMessage: (message: unknown) => {
+      send(createVsCodeEvent('explain.node.error', {
+        ...(message as ExplainNodeEvent).payload, reason: 'api-error', statusCode: 429,
+      }))
+    } }, 'graph', 'one'), { reason: 'api-error', statusCode: 429 })
+  })
+
   it('removes listeners on remote errors and delivery failures', async () => {
     const remove = vi.spyOn(window, 'removeEventListener')
     const cause = new Error('Unavailable')

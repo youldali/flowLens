@@ -23,6 +23,29 @@ describe('createVsCodeEvent', () => {
 });
 
 describe('parseVsCodeEvent', () => {
+  it('validates credential-free recovery messages and optional HTTP status', () => {
+    const messages = [
+      createVsCodeEvent('ai.configure', { requestId: 'request' }),
+      createVsCodeEvent('ai.configure.result', { requestId: 'request', outcome: 'saved' }),
+      createVsCodeEvent('graph.generate', {}),
+    ];
+
+    for (const message of messages) {
+      assertOk(parseVsCodeEvent(message, message.type));
+      assertErr(parseVsCodeEvent({ ...message, payload: { ...message.payload, apiKey: 'secret' } }, message.type));
+    }
+
+    const error = createVsCodeEvent('explain.node.error', {
+      requestId: 'request', nodeId: 'node', graphId: 'graph', reason: 'api-error', statusCode: 429,
+    });
+    assertOk(parseVsCodeEvent(error, error.type));
+
+    for (const statusCode of [99, 600, 401.5, '401']) {
+      assertErr(parseVsCodeEvent({ ...error, payload: { ...error.payload, statusCode } }, error.type));
+    }
+
+  });
+
   it('accepts all generator error reasons unchanged', () => {
     const ids = { graphId: 'graph', nodeId: 'node', requestId: 'request' };
 

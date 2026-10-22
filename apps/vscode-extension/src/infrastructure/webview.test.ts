@@ -6,8 +6,9 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createFunctionDeclarationNode, createFileNode } from '@flowlens/analyzer-core/fixtures/node';
 import { createVsCodeEvent, isFlowGraphEvent } from '@flowlens/registries/vscode-events';
-import { panels, Uri } from '@mocks/vscode.js';
-import { ok } from 'neverthrow';
+import { panels, Uri, commands } from '@mocks/vscode.js';
+import type { SetAiApiKeyResult } from '@infrastructure/ai-key-commands.js';
+import { err, ok } from 'neverthrow';
 
 const hooks = registerHooks({
   resolve(specifier, context, nextResolve) {
@@ -27,6 +28,51 @@ const graph = { nodes: [node, file], edges: [] };
 const explanation = { purpose: 'Test', behavior: [], sideEffects: [], failureCases: [], uncertainties: [] };
 
 describe('FlowLensGraphWebview', () => {
+  it('routes recovery requests through existing commands and returns only configuration outcomes', async context => {
+    const { panel } = await setup();
+    const calls: string[] = [];
+    let outcome = 'saved';
+    context.mock.method(commands, 'executeCommand', async (id: string) => {
+      calls.push(id);
+      if (outcome === 'throws') throw new Error('secret-key');
+      return outcome === 'failed' ? err({ reason: 'configuration-failed', cause: new Error('secret-key') }) : ok(outcome);
+    });
+
+    for (const expected of ['saved', 'cancelled', 'failed'] as const) {
+      outcome = expected;
+      await panel.receive(createVsCodeEvent('ai.configure', { requestId: expected }));
+      assert.deepEqual(panel.messages.at(-1), createVsCodeEvent('ai.configure.result', {
+        requestId: expected, outcome: expected,
+      }));
+    }
+
+    outcome = 'throws';
+    await panel.receive(createVsCodeEvent('ai.configure', { requestId: 'failure' }));
+    assert.deepEqual(panel.messages.at(-1), createVsCodeEvent('ai.configure.result', {
+      requestId: 'failure', outcome: 'failed',
+    }));
+    outcome = 'saved';
+    await panel.receive(createVsCodeEvent('graph.generate', {}));
+    assert.deepEqual(calls, [...Array(4).fill('flowlens.setAiApiKey'), 'flowlens.generateGraph']);
+    await panel.receive({ type: 'ai.configure', payload: { requestId: 'bad', apiKey: 'secret-key' } });
+    assert.equal(calls.length, 5);
+    assert.equal(JSON.stringify(panel.messages).includes('secret-key'), false);
+  });
+
+  it('does not deliver configuration completion to a disposed panel', async context => {
+    const { host, panel } = await setup();
+    const deferred = Promise.withResolvers<SetAiApiKeyResult>();
+    context.mock.method(commands, 'executeCommand', () => deferred.promise);
+    const count = panel.messages.length;
+    const delivery = panel.receive(createVsCodeEvent('ai.configure', { requestId: 'pending' }));
+    panel.dispose();
+    await host.showGraph(graph);
+    deferred.resolve(ok('saved'));
+    await delivery;
+    assert.equal(panel.messages.length, count);
+    assert.deepEqual(panels.at(-1)!.messages, []);
+  });
+
   it('reuses one panel, preserves IDs on resend, and replaces graph generations', async () => {
     const { host, panel, session } = await setup();
     const count = panels.length;

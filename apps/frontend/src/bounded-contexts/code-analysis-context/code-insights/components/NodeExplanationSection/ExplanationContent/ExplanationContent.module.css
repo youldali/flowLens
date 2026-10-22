@@ -1,0 +1,16 @@
+.result p,
+.result h4 {
+  margin: 0;
+  white-space: pre-wrap;
+}
+
+.result {
+  display: grid;
+  gap: 10px;
+}
+
+.result ul {
+  margin: 7px 0 0;
+  padding-left: 20px;
+  white-space: pre-wrap;
+}

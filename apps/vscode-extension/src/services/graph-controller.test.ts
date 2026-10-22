@@ -64,6 +64,7 @@ describe('GraphController', () => {
       assert.deepEqual(response, createVsCodeEvent('explain.node.error', {
         ...request,
         reason,
+        statusCode: 401,
       }));
     }
   });

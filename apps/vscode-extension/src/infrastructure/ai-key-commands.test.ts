@@ -1,3 +1,6 @@
+import { err, ok } from 'neverthrow';
+import { assertErr, assertOk } from '@flowlens/common/testing';
+import type { SetAiApiKeyResult } from './ai-key-commands.js';
 import assert from 'node:assert/strict';
 import { registerHooks } from 'node:module';
 import { readFile } from 'node:fs/promises';
@@ -11,24 +14,25 @@ const hooks = registerHooks({
     return nextResolve(specifier === 'vscode' ? new URL('../mocks/vscode.ts', import.meta.url).href : specifier, context);
   },
 });
-const { registerAIKeyCommands } = await import('./ai-key-commands.js');
+const { registerAIKeyCommands, executeSetAiApiKeyCommand } = await import('./ai-key-commands.js');
 hooks.deregister();
 
 describe('registerAIKeyCommands', () => {
   it('registers palette commands and handles set, cancel, replace, remove, and failures safely', async context => {
-    const handlers = new Map<string, () => unknown>();
+    const handlers = new Map<string, () => Promise<unknown>>();
     const notices: string[] = [];
     let provider = 'openai';
     let input: string | undefined;
     let confirmation: string | undefined;
     let fail = false;
+    const storageFailure = new Error('sensitive-key');
     const values = new Map<string, string>();
     const storage: AIKeyStorage = {
       get: async selected => { if (fail) throw new Error('sensitive-key'); return values.get(selected); },
-      set: async (selected, key) => { if (fail) throw new Error(key); values.set(selected, key); },
+      set: async (selected, key) => { if (fail) throw storageFailure; values.set(selected, key); },
       delete: async selected => { if (fail) throw new Error('sensitive-key'); values.delete(selected); },
     };
-    context.mock.method(commands, 'registerCommand', (id: string, handler: () => unknown) => {
+    context.mock.method(commands, 'registerCommand', (id: string, handler: () => Promise<unknown>) => {
       handlers.set(id, handler);
       return { dispose() {} };
     });
@@ -49,7 +53,7 @@ describe('registerAIKeyCommands', () => {
       return confirmation;
     });
     assert.equal(registerAIKeyCommands(new AiKeyService(storage)).length, 2);
-    const set = handlers.get('flowlens.setAiApiKey')!;
+    const set = handlers.get('flowlens.setAiApiKey')! as () => Promise<SetAiApiKeyResult>;
     const remove = handlers.get('flowlens.removeAiApiKey')!;
     const manifest = JSON.parse(await readFile(new URL('../../package.json', import.meta.url), 'utf8'));
 
@@ -57,13 +61,19 @@ describe('registerAIKeyCommands', () => {
       assert.ok(manifest.contributes.commands.some((command: { command: string }) => command.command === id));
     }
 
-    await set();
+    const cancelled = await set();
+    assertOk(cancelled);
+    assert.equal(cancelled.value, 'cancelled');
     assert.equal(notices.length, 0);
     input = '  ';
-    await set();
+    const invalid = await set();
+    assertErr(invalid);
+    assert.deepEqual(invalid.error, { reason: 'invalid-api-key', cause: undefined });
     assert.equal(values.size, 0);
     input = ' sensitive-key ';
-    await set();
+    const saved = await set();
+    assertOk(saved);
+    assert.equal(saved.value, 'saved');
     assert.equal(values.get('openai'), 'sensitive-key');
     input = 'replacement-key';
     await set();
@@ -79,11 +89,53 @@ describe('registerAIKeyCommands', () => {
     await remove();
     assert.match(notices.at(-1)!, /No API key/);
     fail = true;
-    await set();
+    const failed = await set();
+    assertErr(failed);
+    assert.deepEqual(failed.error, { reason: 'configuration-failed', cause: storageFailure });
+    assert.equal(failed.error.cause, storageFailure);
     assert.match(notices.at(-1)!, /Could not save/);
     await remove();
     assert.match(notices.at(-1)!, /Could not remove/);
     assert.equal(notices.join().includes('sensitive-key'), false);
     assert.equal(notices.join().includes('replacement-key'), false);
+  });
+});
+
+describe('executeSetAiApiKeyCommand', () => {
+  it('preserves command results, including the original configuration failure cause', async context => {
+    const cause = new Error('private storage details');
+    const failure = err({ reason: 'configuration-failed' as const, cause });
+    let response: SetAiApiKeyResult = ok('saved');
+    context.mock.method(commands, 'executeCommand', async (id: string) => {
+      assert.equal(id, 'flowlens.setAiApiKey');
+      return response;
+    });
+
+    for (const result of [ok('saved' as const), ok('cancelled' as const), failure]) {
+      response = result;
+      assert.equal(await executeSetAiApiKeyCommand(), result);
+    }
+
+    const result = await executeSetAiApiKeyCommand();
+    assertErr(result);
+    assert.equal(result.error.cause, cause);
+  });
+
+  it('returns an error with the original cause when command execution rejects', async context => {
+    const cause = { message: 'private command details' };
+    context.mock.method(commands, 'executeCommand', async () => { throw cause; });
+    const result = await executeSetAiApiKeyCommand();
+
+    assertErr(result);
+    assert.equal(result.error.cause, cause);
+    assert.equal(result.error.reason, 'command-execution-failed');
+  });
+
+  it('reports a missing command result as an explicit failure', async context => {
+    context.mock.method(commands, 'executeCommand', async () => undefined);
+    const result = await executeSetAiApiKeyCommand();
+
+    assertErr(result);
+    assert.deepEqual(result.error, { reason: 'missing-command-result', cause: undefined });
   });
 });

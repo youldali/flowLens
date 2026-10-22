@@ -1,0 +1,27 @@
+.feedback {
+  display: grid;
+  grid-template-columns: 16px minmax(0, 1fr);
+  gap: 8px;
+  padding: 6px 0;
+  overflow-wrap: anywhere;
+  font-size: 13px;
+  line-height: 1.5;
+}
+.icon { color: var(--vscode-editorInfo-foreground, var(--accent)); }
+.feedback[data-severity='warning'] .icon { color: var(--vscode-editorWarning-foreground, #c9a45b); }
+.feedback[data-severity='error'] .icon { color: var(--vscode-editorError-foreground, #e27b7b); }
+.content { display: grid; gap: 7px; min-width: 0; }
+.content strong { color: var(--text-h); font-weight: 600; }
+.content p { margin: 0; color: var(--text); }
+.content button {
+  justify-self: start;
+  max-width: 100%;
+  padding: 7px 10px;
+  border: 1px solid var(--graph-toolbar-border, var(--border));
+  border-radius: 4px;
+  color: var(--graph-button-foreground, var(--text-h));
+  background: var(--graph-button-background, var(--accent-bg));
+  cursor: pointer;
+}
+.content button:disabled { opacity: 0.6; cursor: default; }
+.content button:focus-visible { outline: 2px solid var(--graph-focus-border, var(--accent)); outline-offset: 2px; }

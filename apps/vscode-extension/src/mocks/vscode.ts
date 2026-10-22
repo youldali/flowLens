@@ -18,6 +18,7 @@ export class MockPanel {
 
 export const panels: MockPanel[] = [];
 export const commands = {
+  executeCommand: async (_id: string): Promise<unknown> => undefined,
   registerCommand: (_id: string, _handler: (...args: unknown[]) => unknown) => ({ dispose() {} }),
 };
 export const window = {

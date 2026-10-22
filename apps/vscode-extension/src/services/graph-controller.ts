@@ -19,7 +19,7 @@ export type GraphEvent = ExplainNodeEvent;
 export type GraphEventResult = ExplainNodeResultEvent | ExplainNodeErrorEvent;
 type NodeRequest = { graphId: GraphId; nodeId: string };
 type NodeResolutionError = 'stale-graph' | 'node-not-found';
-type ExplanationError = { reason: 'node-not-explainable' | AiApiError['reason'] };
+type ExplanationError = { reason: 'node-not-explainable' | AiApiError['reason']; statusCode?: number | undefined };
 
 export class GraphController {
   readonly session: GraphSession;
@@ -63,7 +63,10 @@ export class GraphController {
           reason: error.reason,
         });
 
-        return createVsCodeEvent('explain.node.error', { ...request.payload, reason: error.reason });
+        return createVsCodeEvent('explain.node.error', {
+          ...request.payload, reason: error.reason,
+          ...(error.statusCode !== undefined ? { statusCode: error.statusCode } : {}),
+        });
       },
     );
   }

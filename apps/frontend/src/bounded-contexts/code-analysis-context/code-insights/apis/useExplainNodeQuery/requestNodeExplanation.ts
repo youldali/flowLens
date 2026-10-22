@@ -4,12 +4,10 @@ import type { VsCodeApi } from '#common/config/index.ts'
 import type { NodeId } from '@flowlens/analyzer-core/domain/node'
 import type { FunctionExplanation } from '@flowlens/code-insights/domain/function-explanation-contract'
 import {
-  createVsCodeEvent, isExplainNodeResultEvent, isExplainNodeErrorEvent,
-  type ExplainNodeErrorEvent,
+  createVsCodeEvent, isExplainNodeResultEvent, isExplainNodeErrorEvent, type ExplainNodeErrorEvent,
 } from '@flowlens/registries/vscode-events'
 
-export type ExplanationErrorReason = ExplainNodeErrorEvent['payload']['reason']
-  | 'delivery-failed' | 'cancelled'
+export type ExplanationErrorReason = ExplainNodeErrorEvent['payload']['reason'] | 'delivery-failed' | 'cancelled'
 
 export function requestNodeExplanationViaVsCode(
   vscodeApi: VsCodeApi,
@@ -36,7 +34,7 @@ export function requestNodeExplanationViaVsCode(
       cleanup()
       return isExplainNodeResultEvent(message)
         ? resolve(message.payload.explanation)
-        : reject(new VsCodeQueryErrorClass({ reason: message.payload.reason, operation: 'explain.node', requestId }))
+        : reject(new VsCodeQueryErrorClass({ reason: message.payload.reason, statusCode: message.payload.statusCode, operation: 'explain.node', requestId }))
     }
 
     if (signal?.aborted) {

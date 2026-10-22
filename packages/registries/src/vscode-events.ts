@@ -11,6 +11,12 @@ const explanationRequestSchema = z.object({
 });
 
 export const eventRegistry = {
+  'ai.configure': { type: 'ai.configure', payload: z.object({ requestId: z.string().min(1) }).strict() },
+  'ai.configure.result': {
+    type: 'ai.configure.result',
+    payload: z.object({ requestId: z.string().min(1), outcome: z.enum(['saved', 'cancelled', 'failed']) }).strict(),
+  },
+  'graph.generate': { type: 'graph.generate', payload: z.object({}).strict() },
   'explain.node': { type: 'explain.node', payload: explanationRequestSchema },
   'explain.node.result': {
     type: 'explain.node.result',
@@ -19,6 +25,7 @@ export const eventRegistry = {
   'explain.node.error': {
     type: 'explain.node.error',
     payload: explanationRequestSchema.extend({
+      statusCode: z.number().int().min(100).max(599).optional(),
       reason: z.enum(['graph-unavailable', 'stale-graph', 'node-not-found', 'node-not-explainable', 'missing-api-token', 'api-error', 'invalid-output', 'generation-failed']),
     }),
   },
@@ -46,6 +53,8 @@ export type VsCodeEventRegistry = {
   [EventName in keyof typeof eventRegistry]: EventFromDefinition<(typeof eventRegistry)[EventName]>;
 };
 
+export type ConfigureAiOutcome = VsCodeEventRegistry['ai.configure.result']['payload']['outcome'];
+
 export type ExplainNodeEvent = VsCodeEventRegistry['explain.node'];
 export type ExplainNodeResultEvent = VsCodeEventRegistry['explain.node.result'];
 export type ExplainNodeErrorEvent = VsCodeEventRegistry['explain.node.error'];
@@ -56,6 +65,9 @@ export type ParseVsCodeEventError =
   | { kind: 'event-type-unknown'; eventType: string }
   | { kind: 'parsing-vscode-event-failed'; eventType: keyof VsCodeEventRegistry };
 
+export const configureAiEventSchema = createEventSchema(eventRegistry['ai.configure']);
+export const configureAiResultEventSchema = createEventSchema(eventRegistry['ai.configure.result']);
+export const generateGraphEventSchema = createEventSchema(eventRegistry['graph.generate']);
 export const explainNodeEventSchema = createEventSchema(eventRegistry['explain.node']);
 export const explainNodeResultEventSchema = createEventSchema(eventRegistry['explain.node.result']);
 export const explainNodeErrorEventSchema = createEventSchema(eventRegistry['explain.node.error']);
@@ -68,6 +80,9 @@ type VsCodeEventRegistryGuards = {
 };
 
 export const vscodeEventRegistryGuards = {
+  'ai.configure': isConfigureAiEvent,
+  'ai.configure.result': isConfigureAiResultEvent,
+  'graph.generate': isGenerateGraphEvent,
   'explain.node': isExplainNodeEvent,
   'explain.node.result': isExplainNodeResultEvent,
   'explain.node.error': isExplainNodeErrorEvent,
@@ -131,6 +146,18 @@ export function isExplainNodeResultEvent(event: unknown): event is ExplainNodeRe
 
 export function isExplainNodeErrorEvent(event: unknown): event is ExplainNodeErrorEvent {
   return explainNodeErrorEventSchema.safeParse(event).success;
+}
+
+export function isConfigureAiEvent(event: unknown): event is VsCodeEventRegistry['ai.configure'] {
+  return configureAiEventSchema.safeParse(event).success;
+}
+
+export function isConfigureAiResultEvent(event: unknown): event is VsCodeEventRegistry['ai.configure.result'] {
+  return configureAiResultEventSchema.safeParse(event).success;
+}
+
+export function isGenerateGraphEvent(event: unknown): event is VsCodeEventRegistry['graph.generate'] {
+  return generateGraphEventSchema.safeParse(event).success;
 }
 
 function isVsCodeEventType(type: string): type is keyof VsCodeEventRegistry {
