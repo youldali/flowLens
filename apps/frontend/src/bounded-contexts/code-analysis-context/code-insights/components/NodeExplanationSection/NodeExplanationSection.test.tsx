@@ -153,6 +153,10 @@ describe('NodeExplanationSection', () => {
       })
       await screen.findByRole('button', { name: 'Configure AI provider' })
       assert.ok(screen.queryByRole('button', { name: 'Retry' }) === null)
+      if (outcome === 'cancelled') {
+        assert.equal(screen.queryByText(translations.explanation.configurationFailed), null)
+        screen.getByText(translations.explanation.descriptions['missing-api-token'])
+      }
     }
 
     screen.getByText(translations.explanation.configurationFailed)

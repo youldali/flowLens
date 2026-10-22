@@ -2,7 +2,7 @@ import type { VsCodeApi } from '#common/config/index.ts'
 import { VsCodeQueryErrorClass } from '#common/utils/QueryError/index.ts'
 import { createVsCodeEvent, isConfigureAiResultEvent, type ConfigureAiOutcome } from '@flowlens/registries/vscode-events'
 
-export type ConfigureAiProviderOutcome = Exclude<ConfigureAiOutcome, 'failed'>
+export type ConfigureAiProviderOutcome = Extract<ConfigureAiOutcome, 'saved'>
 export type ConfigureAiProviderErrorReason = 'configuration-failed' | 'delivery-failed' | 'cancelled'
 
 export function requestConfigureAiProviderViaVsCode(
@@ -24,9 +24,13 @@ export function requestConfigureAiProviderViaVsCode(
       const { outcome } = event.data.payload
 
       cleanup()
-      return outcome === 'failed'
-        ? reject(new VsCodeQueryErrorClass({ reason: 'configuration-failed', operation: 'ai.configure', requestId }))
-        : resolve(outcome)
+      return outcome === 'saved'
+        ? resolve(outcome)
+        : reject(new VsCodeQueryErrorClass({
+          reason: outcome === 'cancelled' ? 'cancelled' : 'configuration-failed',
+          operation: 'ai.configure',
+          requestId,
+        }))
     }
 
     if (signal?.aborted) {

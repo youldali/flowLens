@@ -21,7 +21,7 @@ describe('requestConfigureAiProviderViaVsCode', () => {
     for (const outcome of ['saved', 'cancelled'] as const) {
       const controller = new AbortController()
       const removeAbort = vi.spyOn(controller.signal, 'removeEventListener')
-      const response = await requestConfigureAiProviderViaVsCode({ postMessage(message) {
+      const response = requestConfigureAiProviderViaVsCode({ postMessage(message) {
         const removals = remove.mock.calls.length
 
         window.dispatchEvent(new MessageEvent('message', { data: { type: 'ai.configure.result' } }))
@@ -30,7 +30,8 @@ describe('requestConfigureAiProviderViaVsCode', () => {
         reply(message, outcome)
       } }, controller.signal)
 
-      assert.equal(response, outcome)
+      if (outcome === 'saved') assert.equal(await response, 'saved')
+      else await assert.rejects(response, { reason: 'cancelled', operation: 'ai.configure', transport: 'vscode' })
       assert.equal(removeAbort.mock.calls[0]?.[0], 'abort')
     }
 

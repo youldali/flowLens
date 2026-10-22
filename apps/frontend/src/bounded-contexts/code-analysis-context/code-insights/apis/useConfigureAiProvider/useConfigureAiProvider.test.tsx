@@ -31,8 +31,8 @@ describe('useConfigureAiProvider', () => {
   it('shares pending work across both entrypoints, even after reset', async () => {
     const sent: unknown[] = []
     const { result } = renderConfiguration(message => { sent.push(message) })
-    let first!: Promise<'saved' | 'cancelled'>
-    let second!: Promise<'saved' | 'cancelled'>
+    let first!: Promise<'saved'>
+    let second!: Promise<'saved'>
 
     await waitFor(() => assert.equal(result.current.status, 'idle'))
     act(() => {
@@ -55,7 +55,8 @@ describe('useConfigureAiProvider', () => {
     act(() => result.current.mutate())
     await waitFor(() => assert.equal(sent.length, 2))
     await act(async () => { reply(sent[1], 'cancelled') })
-    await waitFor(() => assert.equal(result.current.data, 'cancelled'))
+    await waitFor(() => assert.equal(result.current.error?.reason, 'cancelled'))
+    assert.equal(result.current.isSuccess, false)
   })
 
   it('reports success, cancellation and failure, with explicit retry and reset', async () => {
@@ -66,8 +67,10 @@ describe('useConfigureAiProvider', () => {
     for (const nextOutcome of ['saved', 'cancelled', 'failed'] as const) {
       outcome = nextOutcome
       await act(async () => { result.current.mutate() })
-      await waitFor(() => assert.equal(result.current.status, outcome === 'failed' ? 'error' : 'success'))
-      assert.equal(result.current.data, outcome === 'failed' ? undefined : outcome)
+      await waitFor(() => assert.equal(result.current.status, outcome === 'saved' ? 'success' : 'error'))
+      assert.equal(result.current.data, outcome === 'saved' ? 'saved' : undefined)
+      assert.equal(result.current.error?.reason,
+        outcome === 'saved' ? undefined : outcome === 'cancelled' ? 'cancelled' : 'configuration-failed')
       act(() => result.current.reset())
       await waitFor(() => assert.equal(result.current.status, 'idle'))
     }
@@ -76,6 +79,22 @@ describe('useConfigureAiProvider', () => {
     outcome = 'saved'
     await act(async () => { assert.equal(await result.current.mutateAsync(), 'saved') })
     assert.equal(result.current.data, 'saved')
+  })
+
+  it('rejects mutateAsync on cancellation and permits a successful retry', async () => {
+    let outcome: 'saved' | 'cancelled' = 'cancelled'
+    const { result } = renderConfiguration(message => { reply(message, outcome) })
+
+    await act(async () => {
+      await assert.rejects(result.current.mutateAsync(), { reason: 'cancelled' })
+    })
+    await waitFor(() => assert.equal(result.current.isError, true))
+    assert.equal(result.current.isSuccess, false)
+    assert.equal(result.current.data, undefined)
+    outcome = 'saved'
+    await act(async () => { assert.equal(await result.current.mutateAsync(), 'saved') })
+    await waitFor(() => assert.equal(result.current.isSuccess, true))
+    assert.equal(result.current.error, null)
   })
 
   it('exposes delivery errors and permits a later attempt', async () => {
@@ -95,7 +114,7 @@ describe('useConfigureAiProvider', () => {
     const add = vi.spyOn(window, 'addEventListener')
     const remove = vi.spyOn(window, 'removeEventListener')
     const { result, unmount } = renderConfiguration(postMessage)
-    let pending!: Promise<'saved' | 'cancelled'>
+    let pending!: Promise<'saved'>
 
     act(() => { pending = result.current.mutateAsync() })
     const rejection = assert.rejects(pending, { reason: 'cancelled' })

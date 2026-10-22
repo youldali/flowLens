@@ -17,7 +17,7 @@ export function ExplanationError({ error, onRetry }: ExplanationErrorProps) {
   const graphGeneration = useGenerateGraph()
   const presentation = getExplanationErrorPresentation(error.reason, error.statusCode, {
     configured: configuration.data === 'saved',
-    configurationFailed: configuration.isError,
+    configurationFailed: configuration.isError && configuration.error.reason !== 'cancelled',
     generationFailed: graphGeneration.isError,
   })
 
