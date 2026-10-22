@@ -1,5 +1,5 @@
 import type { ExplanationErrorReason } from '../../../apis/useExplainNodeQuery'
-export type ExplanationRecoveryAction = 'configure-api-key' | 'generate-graph' | 'retry'
+export type ExplanationRecoveryAction = 'configure-ai-provider' | 'generate-graph' | 'retry'
 export type ExplanationSeverity = 'info' | 'warning' | 'error'
 export interface ExplanationErrorPresentation {
   severity: ExplanationSeverity
@@ -11,7 +11,7 @@ export interface ExplanationErrorPresentation {
 }
 
 const presentations = {
-  'missing-api-token': { severity: 'info', action: 'configure-api-key' },
+  'missing-api-token': { severity: 'info', action: 'configure-ai-provider' },
   'graph-unavailable': { severity: 'warning', action: 'generate-graph' },
   'stale-graph': { severity: 'warning' },
   'node-not-found': { severity: 'warning' },

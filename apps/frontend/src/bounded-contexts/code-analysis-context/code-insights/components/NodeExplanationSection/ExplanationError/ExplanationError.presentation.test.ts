@@ -5,7 +5,7 @@ import { getExplanationErrorPresentation } from './ExplanationError.presentation
 describe('getExplanationErrorPresentation', () => {
   it('maps every failure to its severity, copy and supported recovery', () => {
     const cases = [
-      ['missing-api-token', 'info', 'configure-api-key'],
+      ['missing-api-token', 'info', 'configure-ai-provider'],
       ['graph-unavailable', 'warning', 'generate-graph'],
       ['stale-graph', 'warning', undefined],
       ['node-not-found', 'warning', undefined],

@@ -1,6 +1,6 @@
 import type { VsCodeQueryError } from '#common/utils/QueryError/index.ts'
 import type { ExplanationErrorReason } from '../../../apis/useExplainNodeQuery'
-import { useConfigureAiApiKey } from '../../../apis/useConfigureAiApiKey'
+import { useConfigureAiProvider } from '../../../apis/useConfigureAiProvider'
 import { useGenerateGraph } from '../../../apis/useGenerateGraph'
 import { getExplanationErrorPresentation } from './ExplanationError.presentation'
 import { useTranslation } from '#common/hooks/useTranslation.ts'
@@ -13,7 +13,7 @@ interface ExplanationErrorProps {
 
 export function ExplanationError({ error, onRetry }: ExplanationErrorProps) {
   const { t } = useTranslation('code-analysis-context')
-  const configuration = useConfigureAiApiKey()
+  const configuration = useConfigureAiProvider()
   const graphGeneration = useGenerateGraph()
   const presentation = getExplanationErrorPresentation(error.reason, error.statusCode, {
     configured: configuration.data === 'saved',
@@ -22,7 +22,7 @@ export function ExplanationError({ error, onRetry }: ExplanationErrorProps) {
   })
 
   const pending = configuration.isLoading
-  const actions = { 'configure-api-key': configuration.mutate, 'generate-graph': graphGeneration.mutate, retry: onRetry }
+  const actions = { 'configure-ai-provider': configuration.mutate, 'generate-graph': graphGeneration.mutate, retry: onRetry }
   const action = presentation?.action
 
   return presentation ? (

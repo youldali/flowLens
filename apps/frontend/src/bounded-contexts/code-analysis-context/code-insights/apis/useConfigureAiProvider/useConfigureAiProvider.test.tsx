@@ -4,7 +4,7 @@ import { act, cleanup, renderHook, waitFor } from '@testing-library/react'
 import { afterEach, describe, it, vi } from 'vitest'
 import { createVsCodeEvent, type VsCodeEventRegistry } from '@flowlens/registries/vscode-events'
 import { AppShell } from '#common/test-utils/appShell.tsx'
-import { useConfigureAiApiKey } from './useConfigureAiApiKey'
+import { useConfigureAiProvider } from './useConfigureAiProvider'
 
 afterEach(() => {
   cleanup()
@@ -20,14 +20,14 @@ function reply(message: unknown, outcome: 'saved' | 'cancelled' | 'failed') {
 }
 
 function renderConfiguration(postMessage: (message: unknown) => void) {
-  return renderHook(useConfigureAiApiKey, {
+  return renderHook(useConfigureAiProvider, {
     wrapper: ({ children }) => (
       <AppShell config={{ runtimeHost: 'vscode', vscodeApi: { postMessage } }}>{children}</AppShell>
     ),
   })
 }
 
-describe('useConfigureAiApiKey', () => {
+describe('useConfigureAiProvider', () => {
   it('shares pending work across both entrypoints, even after reset', async () => {
     const sent: unknown[] = []
     const { result } = renderConfiguration(message => { sent.push(message) })

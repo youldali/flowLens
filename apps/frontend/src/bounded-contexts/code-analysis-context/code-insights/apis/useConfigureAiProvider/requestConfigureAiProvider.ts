@@ -2,13 +2,13 @@ import type { VsCodeApi } from '#common/config/index.ts'
 import { VsCodeQueryErrorClass } from '#common/utils/QueryError/index.ts'
 import { createVsCodeEvent, isConfigureAiResultEvent, type ConfigureAiOutcome } from '@flowlens/registries/vscode-events'
 
-export type ConfigureAiApiKeyOutcome = Exclude<ConfigureAiOutcome, 'failed'>
-export type ConfigureAiApiKeyErrorReason = 'configuration-failed' | 'delivery-failed' | 'cancelled'
+export type ConfigureAiProviderOutcome = Exclude<ConfigureAiOutcome, 'failed'>
+export type ConfigureAiProviderErrorReason = 'configuration-failed' | 'delivery-failed' | 'cancelled'
 
-export function requestConfigureAiApiKeyViaVsCode(
+export function requestConfigureAiProviderViaVsCode(
   api: VsCodeApi,
   signal?: AbortSignal,
-): Promise<ConfigureAiApiKeyOutcome> {
+): Promise<ConfigureAiProviderOutcome> {
   return new Promise((resolve, reject) => {
     const requestId = crypto.randomUUID()
     const cleanup = () => {

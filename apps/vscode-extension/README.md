@@ -65,11 +65,13 @@ Before each request the extension reads `flowlens.ai.provider` and retrieves its
 key from VS Code SecretStorage, then calls the shared `createFunctionExplainer`.
 OpenAI uses `gpt-4.1-mini`; Anthropic uses `claude-sonnet-5-5`.
 
-Use **FlowLens: Set AI API Key** from the Command Palette to save or replace the
-selected provider's key. Input is masked and stored securely by VS Code, separately
-for OpenAI and Anthropic, across reloads and restarts. Use **FlowLens: Remove AI API
-Key** to delete that provider's key after confirmation. Select the provider using
-`flowlens.ai.provider`; never put API keys in settings.
+Use **FlowLens: Configure AI Provider** from the Command Palette or the explanation
+recovery button to choose OpenAI or Anthropic, then enter its API key. The picker
+initially highlights the current provider, defaulting to OpenAI. Input is masked
+and stored securely by VS Code, separately for each provider, across reloads and
+restarts. Saving also updates `flowlens.ai.provider`; cancelling either prompt
+leaves settings and keys unchanged. Use **FlowLens: Remove AI API Key** to delete
+the current provider's key after confirmation. Never put API keys in settings.
 
 Provider and key changes apply to subsequent requests without reloading; requests
 already started retain their captured credentials. Missing keys produce
@@ -82,4 +84,4 @@ and invoke Remove AI API Key: the confirmation should still appear. Cancel to re
 The frontend `useExplainNodeQuery(graphId)` hook provides the transport for later UI
 integration. Graph changes and unmounting reject pending requests, and unmatched
 or late responses are ignored. Synchronous message-delivery failures reject with
-`delivery-failed`. No Explain button, provider setup, or request timeout is included.
+`delivery-failed`. Provider setup uses native VS Code prompts; no request timeout is included.

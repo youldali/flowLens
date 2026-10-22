@@ -81,7 +81,7 @@ describe('NodeExplanationSection', () => {
     const { sent, recovery } = setup()
     fireEvent.click(screen.getByRole('button', { name: 'Explain' }))
     fail(sent[0]!, 'missing-api-token')
-    const configure = await screen.findByRole('button', { name: 'Configure API key' })
+    const configure = await screen.findByRole('button', { name: 'Configure AI provider' })
     await act(async () => { fireEvent.click(configure) })
     const pending = await screen.findByRole('button', { name: 'Configuring…' })
     assert.equal((pending as HTMLButtonElement).disabled, true)
@@ -103,7 +103,7 @@ describe('NodeExplanationSection', () => {
     const { sent, recovery } = setup()
     fireEvent.click(screen.getByRole('button', { name: 'Explain' }))
     fail(sent[0]!, 'missing-api-token')
-    fireEvent.click(await screen.findByRole('button', { name: 'Configure API key' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Configure AI provider' }))
     await waitFor(() => assert.equal(recovery.length, 1))
     act(() => window.dispatchEvent(new MessageEvent('message', {
       data: createVsCodeEvent('ai.configure.result', { ...recovery[0]!.payload, outcome: 'saved' }),
@@ -111,7 +111,7 @@ describe('NodeExplanationSection', () => {
     fireEvent.click(await screen.findByRole('button', { name: 'Retry' }))
     await screen.findByRole('button', { name: 'Explaining…' })
     fail(sent[1]!, 'missing-api-token')
-    await screen.findByRole('button', { name: 'Configure API key' })
+    await screen.findByRole('button', { name: 'Configure AI provider' })
     assert.equal(screen.queryByText(translations.explanation.configured), null)
     assert.equal(screen.queryByRole('button', { name: 'Retry' }), null)
   })
@@ -144,14 +144,14 @@ describe('NodeExplanationSection', () => {
     fail(sent[0]!, 'missing-api-token')
 
     for (const outcome of ['cancelled', 'failed'] as const) {
-      const configure = await screen.findByRole('button', { name: 'Configure API key' })
+      const configure = await screen.findByRole('button', { name: 'Configure AI provider' })
       await act(async () => { fireEvent.click(configure) })
       await act(async () => {
         window.dispatchEvent(new MessageEvent('message', {
           data: createVsCodeEvent('ai.configure.result', { ...recovery.at(-1)!.payload, outcome }),
         }))
       })
-      await screen.findByRole('button', { name: 'Configure API key' })
+      await screen.findByRole('button', { name: 'Configure AI provider' })
       assert.ok(screen.queryByRole('button', { name: 'Retry' }) === null)
     }
 
@@ -162,7 +162,7 @@ describe('NodeExplanationSection', () => {
     const { sent, recovery, change } = setup()
     fireEvent.click(screen.getByRole('button', { name: 'Explain' }))
     fail(sent[0]!, 'missing-api-token')
-    const configure = await screen.findByRole('button', { name: 'Configure API key' })
+    const configure = await screen.findByRole('button', { name: 'Configure AI provider' })
     await act(async () => { fireEvent.click(configure) })
     change('two')
     act(() => window.dispatchEvent(new MessageEvent('message', {
@@ -195,7 +195,7 @@ describe('NodeExplanationSection', () => {
   })
 
   for (const { reason, action, description } of [
-    { reason: 'missing-api-token', action: 'Configure API key', description: 'configurationFailed' },
+    { reason: 'missing-api-token', action: 'Configure AI provider', description: 'configurationFailed' },
     { reason: 'graph-unavailable', action: 'Generate graph', description: 'graphDeliveryFailed' },
   ] as const) {
     it(`shows recovery delivery failure for ${reason} and permits another attempt`, async () => {

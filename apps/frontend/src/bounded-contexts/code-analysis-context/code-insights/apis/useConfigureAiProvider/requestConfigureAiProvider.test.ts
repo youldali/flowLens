@@ -2,7 +2,7 @@
 import assert from 'node:assert/strict'
 import { afterEach, describe, it, vi } from 'vitest'
 import { createVsCodeEvent, type VsCodeEventRegistry } from '@flowlens/registries/vscode-events'
-import { requestConfigureAiApiKeyViaVsCode } from './requestConfigureAiApiKey'
+import { requestConfigureAiProviderViaVsCode } from './requestConfigureAiProvider'
 
 afterEach(() => vi.restoreAllMocks())
 
@@ -14,14 +14,14 @@ function reply(message: unknown, outcome: 'saved' | 'cancelled' | 'failed') {
   }))
 }
 
-describe('requestConfigureAiApiKeyViaVsCode', () => {
+describe('requestConfigureAiProviderViaVsCode', () => {
   it('filters malformed and unrelated replies, accepts synchronous outcomes, and cleans up listeners', async () => {
     const remove = vi.spyOn(window, 'removeEventListener')
 
     for (const outcome of ['saved', 'cancelled'] as const) {
       const controller = new AbortController()
       const removeAbort = vi.spyOn(controller.signal, 'removeEventListener')
-      const response = await requestConfigureAiApiKeyViaVsCode({ postMessage(message) {
+      const response = await requestConfigureAiProviderViaVsCode({ postMessage(message) {
         const removals = remove.mock.calls.length
 
         window.dispatchEvent(new MessageEvent('message', { data: { type: 'ai.configure.result' } }))
@@ -41,10 +41,10 @@ describe('requestConfigureAiApiKeyViaVsCode', () => {
     const remove = vi.spyOn(window, 'removeEventListener')
     const cause = new Error('Unavailable')
 
-    await assert.rejects(requestConfigureAiApiKeyViaVsCode({ postMessage(message) { reply(message, 'failed') } }), {
+    await assert.rejects(requestConfigureAiProviderViaVsCode({ postMessage(message) { reply(message, 'failed') } }), {
       reason: 'configuration-failed', operation: 'ai.configure', transport: 'vscode',
     })
-    await assert.rejects(requestConfigureAiApiKeyViaVsCode({ postMessage() { throw cause } }), {
+    await assert.rejects(requestConfigureAiProviderViaVsCode({ postMessage() { throw cause } }), {
       reason: 'delivery-failed', operation: 'ai.configure', transport: 'vscode', cause,
     })
     assert.equal(remove.mock.calls.length, 2)
@@ -54,13 +54,13 @@ describe('requestConfigureAiApiKeyViaVsCode', () => {
     const controller = new AbortController()
     const postMessage = vi.fn()
     const remove = vi.spyOn(window, 'removeEventListener')
-    const pending = requestConfigureAiApiKeyViaVsCode({ postMessage }, controller.signal)
+    const pending = requestConfigureAiProviderViaVsCode({ postMessage }, controller.signal)
     const rejection = assert.rejects(pending, { reason: 'cancelled', operation: 'ai.configure' })
 
     controller.abort()
     await rejection
     assert.equal(remove.mock.calls[0]?.[0], 'message')
-    await assert.rejects(requestConfigureAiApiKeyViaVsCode({ postMessage }, controller.signal), { reason: 'cancelled' })
+    await assert.rejects(requestConfigureAiProviderViaVsCode({ postMessage }, controller.signal), { reason: 'cancelled' })
     assert.equal(postMessage.mock.calls.length, 1)
   })
 })

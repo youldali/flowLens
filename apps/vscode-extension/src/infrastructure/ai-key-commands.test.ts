@@ -5,7 +5,7 @@ import assert from 'node:assert/strict';
 import { registerHooks } from 'node:module';
 import { readFile } from 'node:fs/promises';
 import { describe, it } from 'node:test';
-import { commands, window, workspace } from '@mocks/vscode.js';
+import { commands, window, workspace, MockQuickPick } from '@mocks/vscode.js';
 import type { AIKeyStorage } from '@infrastructure/ai-key-storage.js';
 import { AiKeyService } from '@services/ai-key-service.js';
 
@@ -37,6 +37,14 @@ describe('registerAIKeyCommands', () => {
       return { dispose() {} };
     });
     context.mock.method(workspace, 'getConfiguration', () => ({ get: () => provider, update: async () => {} }));
+    context.mock.method(window, 'createQuickPick', () => {
+      const picker = new MockQuickPick<import('vscode').QuickPickItem>();
+      picker.show = () => {
+        assert.equal(picker.activeItems[0]?.label, provider === 'openai' ? 'OpenAI' : 'Anthropic');
+        picker.acceptSelection(picker.activeItems[0]!);
+      };
+      return picker;
+    });
     context.mock.method(window, 'showInputBox', async (options: import('vscode').InputBoxOptions) => {
       assert.equal(options.password, true);
       assert.equal(options.ignoreFocusOut, true);
@@ -93,11 +101,100 @@ describe('registerAIKeyCommands', () => {
     assertErr(failed);
     assert.deepEqual(failed.error, { reason: 'configuration-failed', cause: storageFailure });
     assert.equal(failed.error.cause, storageFailure);
-    assert.match(notices.at(-1)!, /Could not save/);
+    assert.match(notices.at(-1)!, /Could not configure/);
     await remove();
     assert.match(notices.at(-1)!, /Could not remove/);
     assert.equal(notices.join().includes('sensitive-key'), false);
     assert.equal(notices.join().includes('replacement-key'), false);
+  });
+});
+
+describe('configureAIProvider', () => {
+  it('selects providers, cancels without writes, and reports partial save failures', async context => {
+    const handlers = new Map<string, () => Promise<SetAiApiKeyResult>>();
+    const values = new Map<string, string>();
+    const updates: unknown[] = [];
+    let provider: string | undefined;
+    let selection: 'OpenAI' | 'Anthropic' | undefined;
+    let input: string | undefined = ' new-key ';
+    let storageFails = false;
+    let settingsFail = false;
+    let inputCalls = 0;
+    let lastPicker: MockQuickPick<import('vscode').QuickPickItem> | undefined;
+
+    context.mock.method(commands, 'registerCommand', (id: string, handler: () => Promise<SetAiApiKeyResult>) => {
+      handlers.set(id, handler);
+      return { dispose() {} };
+    });
+    context.mock.method(workspace, 'getConfiguration', () => ({
+      get: (_key: string, fallback: unknown) => provider ?? fallback,
+      update: async (_key: string, value: unknown) => {
+        updates.push(value);
+        if (settingsFail) throw new Error('settings failure');
+        provider = value as string;
+      },
+    }));
+    context.mock.method(window, 'createQuickPick', () => {
+      const picker = new MockQuickPick<import('vscode').QuickPickItem>();
+      lastPicker = picker;
+      picker.show = () => {
+        assert.deepEqual(picker.items.map(item => item.label), ['OpenAI', 'Anthropic']);
+        assert.equal(picker.activeItems[0]?.label, provider === 'anthropic' ? 'Anthropic' : 'OpenAI');
+        return selection ? picker.acceptSelection(picker.items.find(item => item.label === selection)!) : picker.cancel();
+      };
+      return picker;
+    });
+    context.mock.method(window, 'showInputBox', async (options: import('vscode').InputBoxOptions) => {
+      inputCalls++;
+      assert.ok(options.title?.includes(selection!.toLowerCase()));
+      assert.equal(options.password, true);
+      assert.equal(options.value, undefined);
+      return input;
+    });
+    registerAIKeyCommands(new AiKeyService({
+      get: async selected => values.get(selected),
+      set: async (selected, key) => {
+        if (storageFails) throw new Error('storage failure');
+        values.set(selected, key);
+      },
+      delete: async selected => { values.delete(selected); },
+    }));
+    const configure = handlers.get('flowlens.setAiApiKey')!;
+    const cancelledPicker = await configure();
+    assertOk(cancelledPicker);
+    assert.equal(cancelledPicker.value, 'cancelled');
+    assert.equal(inputCalls, 0);
+    assert.equal(lastPicker?.disposed, true);
+    selection = 'Anthropic';
+    input = undefined;
+    const cancelledKey = await configure();
+    assertOk(cancelledKey);
+    assert.equal(cancelledKey.value, 'cancelled');
+    assert.equal(values.size, 0);
+    assert.deepEqual(updates, []);
+
+    input = ' new-key ';
+    const saved = await configure();
+    assertOk(saved);
+    assert.equal(saved.value, 'saved');
+    assert.equal(provider, 'anthropic');
+    assert.equal(values.get('anthropic'), 'new-key');
+    selection = 'OpenAI';
+    storageFails = true;
+    assertErr(await configure());
+    assert.deepEqual(updates, ['anthropic']);
+    assert.equal(provider, 'anthropic');
+
+    storageFails = false;
+    settingsFail = true;
+    assertErr(await configure());
+    assert.equal(values.get('openai'), 'new-key');
+    assert.equal(provider, 'anthropic');
+    settingsFail = false;
+    assertOk(await configure());
+    assert.equal(provider, 'openai');
+    assert.equal(values.get('anthropic'), 'new-key');
+    assert.equal(lastPicker?.disposed, true);
   });
 });
 

@@ -98,17 +98,17 @@
             "unknown": "The explanation could not be loaded. Try again."
         },
         "actions": {
-            "configure-api-key": "Configure API key",
+            "configure-ai-provider": "Configure AI provider",
             "generate-graph": "Generate graph",
             "retry": "Retry"
         },
         "configuring": "Configuring\u2026",
         "configured": "AI provider configured",
-        "configuredDescription": "Your API key is saved. Retry to generate an explanation.",
-        "configurationFailed": "Couldn't save the API key. Try configuring it again.",
+        "configuredDescription": "Your AI provider and API key are saved. Retry to generate an explanation.",
+        "configurationFailed": "Couldn't configure the AI provider. Try again.",
         "graphDeliveryFailed": "Couldn't contact the extension. Try generating the graph again.",
         "descriptions": {
-            "missing-api-token": "Add an API key to generate explanations for your code.",
+            "missing-api-token": "Choose an AI provider and add its API key to generate explanations for your code.",
             "graph-unavailable": "Generate a graph from your TypeScript editor to continue.",
             "stale-graph": "Run FlowLens: Generate Graph from your TypeScript editor to use the latest code.",
             "node-not-found": "Generate a new graph and select the function again.",
@@ -119,7 +119,7 @@
             "delivery-failed": "The extension could not deliver the explanation. Try again."
         },
         "providerDetails": {
-            "authentication": "The AI provider rejected the API key. Check it with FlowLens: Set AI API Key, then retry.",
+            "authentication": "The AI provider rejected the API key. Check it with FlowLens: Configure AI Provider, then retry.",
             "permissions": "The AI provider denied access. Check your account permissions, then retry.",
             "rateLimit": "The AI provider is limiting requests. Wait a moment, then retry.",
             "unavailable": "The AI provider is temporarily unavailable. Try again shortly."

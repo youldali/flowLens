@@ -1,3 +1,27 @@
+export class MockQuickPick<T extends import('vscode').QuickPickItem> {
+  title?: string;
+  placeholder?: string;
+  ignoreFocusOut = false;
+  items: readonly T[] = [];
+  activeItems: readonly T[] = [];
+  selectedItems: readonly T[] = [];
+  disposed = false;
+  private accept = () => {};
+  private hide = () => {};
+  onDidAccept(handler: () => void) {
+    this.accept = handler;
+    return { dispose: () => { this.accept = () => {}; } };
+  }
+  onDidHide(handler: () => void) {
+    this.hide = handler;
+    return { dispose: () => { this.hide = () => {}; } };
+  }
+  show() { this.hide(); }
+  acceptSelection(item: T) { this.selectedItems = [item]; this.accept(); }
+  cancel() { this.hide(); }
+  dispose() { this.disposed = true; }
+}
+
 export class MockPanel {
   readonly messages: unknown[] = [];
   private onDispose = () => {};
@@ -22,6 +46,7 @@ export const commands = {
   registerCommand: (_id: string, _handler: (...args: unknown[]) => unknown) => ({ dispose() {} }),
 };
 export const window = {
+  createQuickPick: <T extends import('vscode').QuickPickItem>() => new MockQuickPick<T>(),
   showInputBox: async (_options: import('vscode').InputBoxOptions): Promise<string | undefined> => undefined,
   showInformationMessage: async (_message: string): Promise<string | undefined> => undefined,
   showErrorMessage: async (_message: string): Promise<string | undefined> => undefined,
