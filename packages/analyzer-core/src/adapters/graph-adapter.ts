@@ -6,7 +6,7 @@ import { Queue } from '@flowlens/common/queue';
 import * as NodeModule from '../domain/node.js';
 import * as TsNodeModule from './ts-node/index.js';
 import * as EdgeModule from '../domain/edge.js';
-import { ProjectServiceRegistry } from '../infrastructure/project-service-registry.js';
+import { LegacyProjectServiceRegistry } from '../infrastructure/legacy-project-service-registry.js';
 import { ImplementationDiscovery } from '../infrastructure/implementation-discovery.js';
 
 import type { FlowGraph } from '../domain/flow-graph.js';
@@ -38,7 +38,7 @@ export class GraphAdapter {
   private readonly nodeAdapter: NodeAdapter;
 
   constructor(tsconfigPath: string) {
-    const projectService = ProjectServiceRegistry.getInstance().getService(tsconfigPath);
+    const projectService = LegacyProjectServiceRegistry.getInstance().getService(tsconfigPath);
 
     this.rootDir = path.dirname(projectService.projectConfig.configPath)
     this.languageService = projectService.languageService;

@@ -1,133 +1,128 @@
 import assert from 'node:assert/strict';
-import * as fs from 'node:fs';
+import { cp, mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import * as os from 'node:os';
 import * as path from 'node:path';
 import { afterEach, beforeEach, describe, it } from 'node:test';
-import * as ts from 'typescript';
-import { ImplementationDiscovery } from './implementation-discovery.js';
-import { ProjectServiceRegistry, type ProjectService } from './project-service-registry.js';
+import { ScriptTarget } from 'typescript-native/ast';
+import { ProjectServiceRegistry } from './project-service-registry.js';
 
 describe('ProjectServiceRegistry', () => {
   const registry = ProjectServiceRegistry.getInstance();
   let root: string;
-  let selected: ProjectService;
-  let adapterPath: string;
+  let config: string;
 
-  beforeEach(() => {
-    registry.clear();
-    root = fs.mkdtempSync(path.join(os.tmpdir(), 'flowlens-registry-'));
-    fs.cpSync(path.resolve('src/fixtures/workspace'), root, { recursive: true });
-    fs.mkdirSync(path.join(root, '.git'));
-    selected = registry.getService(path.join(root, 'core/tsconfig.json'));
-    adapterPath = path.join(root, 'infrastructure/src/adapter.ts');
+  beforeEach(async () => {
+    await registry.clear();
+    root = await mkdtemp(path.join(os.tmpdir(), 'flowlens-native-registry-'));
+    await cp(path.resolve('src/fixtures/workspace'), root, { recursive: true });
+    await mkdir(path.join(root, '.git'));
+    config = path.join(root, 'core/tsconfig.json');
   });
 
-  afterEach(() => {
-    registry.clear();
-    fs.rmSync(root, { recursive: true, force: true });
+  afterEach(async () => {
+    await registry.clear();
+    await rm(root, { recursive: true, force: true });
   });
 
-  it('lazily discovers and shares services across implementation discovery instances', (t) => {
-    assert.equal(ProjectServiceRegistry.getInstance(), registry);
-    const readDirectory = t.mock.method(ts.sys, 'readDirectory');
-    const first = new ImplementationDiscovery(selected.projectConfig.configPath);
-    const second = new ImplementationDiscovery(selected.projectConfig.configPath);
-    const pending = registry.getProjectServices(selected.projectConfig.configPath);
-    assert.equal(readDirectory.mock.callCount(), 0);
-    assert.ok(first.getNavigableSource(adapterPath));
-    const projectServices = [...pending];
-    assert.equal(projectServices.length, 2);
-    assert.deepEqual(projectServices.map(service => service.projectConfig.configPath), [
-      path.join(root, 'core/tsconfig.json'), path.join(root, 'infrastructure/tsconfig.json'),
-    ]);
-    const sibling = projectServices[1]!;
-    assert.ok(sibling.program.getSourceFile(adapterPath));
-    assert.ok(sibling.program.getSourceFile(path.join(root, 'core/src/ports.ts')));
-    assert.equal(first.getNavigableSource(adapterPath), sibling.program.getSourceFile(adapterPath));
-    assert.equal(second.getNavigableSource(adapterPath), first.getNavigableSource(adapterPath));
-    const reads = readDirectory.mock.callCount();
-    assert.equal([...registry.getProjectServices(selected.projectConfig.configPath)][1], sibling);
-    assert.equal(readDirectory.mock.callCount(), reads);
-  });
-
-  it('shares selected and discovered services and isolates workspaces', (t) => {
-    const sibling = [...registry.getProjectServices(selected.projectConfig.configPath)][1]!;
-    const selectedSibling = registry.getService(sibling.projectConfig.configPath);
-    assert.equal(selectedSibling, sibling);
-    const siblingServices = [...registry.getProjectServices(selected.projectConfig.configPath)];
-    assert.equal(siblingServices[1], selectedSibling);
-    assert.equal(siblingServices[0], selected);
-    assert.equal([...registry.getProjectServices(selected.projectConfig.configPath)][0], selected);
-    assert.equal([...registry.getProjectServices(selected.projectConfig.configPath)][1], sibling);
-
-    const otherRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'flowlens-registry-other-'));
-    t.after(() => fs.rmSync(otherRoot, { recursive: true, force: true }));
-    fs.cpSync(path.resolve('src/fixtures/workspace'), otherRoot, { recursive: true });
-    fs.mkdirSync(path.join(otherRoot, '.git'));
-    const other = registry.getService(path.join(otherRoot, 'core/tsconfig.json'));
-    assert.equal(new ImplementationDiscovery(other.projectConfig.configPath).getNavigableSource(adapterPath), undefined);
-    const otherServices = [...registry.getProjectServices(other.projectConfig.configPath)];
-    assert.equal(otherServices.length, 2);
-    assert.ok(otherServices.every(service => service.projectConfig.configPath.startsWith(otherRoot + path.sep)));
-    assert.notEqual(otherServices[1], sibling);
-  });
-
-  it('includes explicitly selected custom configs after workspace discovery', () => {
-    assert.equal([...registry.getProjectServices(selected.projectConfig.configPath)].length, 2);
-    const configPath = path.join(root, 'custom/project.json');
-    fs.mkdirSync(path.dirname(configPath));
-    fs.writeFileSync(configPath, JSON.stringify({ files: ['index.ts'] }));
-    fs.writeFileSync(path.join(root, 'custom/index.ts'), 'export const value = 1;');
-    const custom = registry.getService(configPath);
-    assert.equal(registry.getService(path.relative(process.cwd(), configPath)), custom);
-    assert.ok([...registry.getProjectServices(selected.projectConfig.configPath)].includes(custom));
-    assert.equal([...registry.getProjectServices(selected.projectConfig.configPath)].length, 3);
-  });
-
-  it('clears discovered workspaces and disposes all services', (t) => {
-    const sibling = [...registry.getProjectServices(selected.projectConfig.configPath)][1]!;
-    const ownedDispose = t.mock.method(sibling.languageService, 'dispose');
-    const selectedDispose = t.mock.method(selected.languageService, 'dispose');
-    const extraDirectory = path.join(root, 'extra');
-    fs.mkdirSync(extraDirectory);
-    fs.writeFileSync(path.join(extraDirectory, 'tsconfig.json'), JSON.stringify({ files: ['index.ts'] }));
-    fs.writeFileSync(path.join(extraDirectory, 'index.ts'), 'export const value = 1;');
-    assert.equal([...registry.getProjectServices(selected.projectConfig.configPath)].length, 2);
-    registry.clear();
-    registry.clear();
-    assert.equal(ownedDispose.mock.callCount(), 1);
-    assert.equal(selectedDispose.mock.callCount(), 1);
-    const refreshed = [...registry.getProjectServices(selected.projectConfig.configPath)];
-    assert.equal(refreshed.length, 3);
-    assert.ok(refreshed.every(service => service !== sibling && service !== selected));
-    assert.ok(refreshed.some(service => service.program.getSourceFile(path.join(extraDirectory, 'index.ts'))));
-  });
-
-  it('throws with the original cause on failed service creation and retries without clearing', (t) => {
-    const originalReadFile = ts.sys.readFile;
-    let failures = 0;
-    const cause = new Error('fixture read failure');
-    const readFile = t.mock.method(ts.sys, 'readFile', (fileName: string, encoding?: string) => {
-      if (fileName === adapterPath) {
-        failures++;
-        throw cause;
-      }
-      return originalReadFile(fileName, encoding);
-    });
-    assert.throws(
-      () => [...registry.getProjectServices(selected.projectConfig.configPath)],
-      (error: unknown) => {
-        assert.ok(error instanceof Error);
-        assert.equal(error.message, `FlowLens: failed to create project service for ${path.join(root, 'infrastructure/tsconfig.json')}`);
-        assert.equal(error.cause, cause);
-        return true;
-      },
-    );
-    assert.equal(failures, 1);
-    readFile.mock.restore();
-    const services = [...registry.getProjectServices(selected.projectConfig.configPath)];
+  it('shares native sessions and preserves configuration, aliases, and unbuilt references', async () => {
+    const [selected, duplicate] = await Promise.all([registry.getService(config), registry.getService(config)]);
+    assert.equal(selected, duplicate);
+    const services = await registry.getProjectServices(config);
     assert.equal(services.length, 2);
     assert.equal(services[0], selected);
-    assert.ok(services[1]!.program.getSourceFile(adapterPath));
+    const sibling = services[1]!;
+    assert.equal(sibling.server, selected.server);
+    assert.equal(await registry.getService(sibling.projectConfig.configPath), sibling);
+    assert.equal(selected.program.getCompilerOptions().target, ScriptTarget.ES2022);
+    assert.equal(sibling.program.getCompilerOptions().target, ScriptTarget.ES2023);
+    assert.deepEqual(sibling.program.getCompilerOptions().paths, { '@fixture/core/*': ['../core/src/*'] });
+    const adapterPath = path.join(root, 'infrastructure/src/adapter.ts');
+    assert.equal(await selected.program.getSourceFile(adapterPath), undefined);
+    assert.ok(await sibling.program.getSourceFile(adapterPath));
+    assert.ok(await sibling.program.getSourceFile(path.join(root, 'core/src/ports.ts')));
+    assert.deepEqual(await sibling.program.getSemanticDiagnostics(), []);
+    assert.deepEqual(await registry.getProjectServices(config), services);
+  });
+
+  it('loads custom configurations after discovery and honors extends', async () => {
+    await registry.getProjectServices(config);
+    const custom = path.join(root, 'custom/project.json');
+    await mkdir(path.dirname(custom));
+    await writeFile(path.join(root, 'custom/base.json'), JSON.stringify({ compilerOptions: { strict: true, target: 'ES2022' } }));
+    await writeFile(custom, JSON.stringify({ extends: './base.json', files: ['entry.ts'] }));
+    await writeFile(path.join(root, 'custom/entry.ts'), 'export const value = 1;');
+    const service = await registry.getService(custom);
+    assert.equal(service.program.getCompilerOptions().strict, true);
+    assert.equal(service.program.getCompilerOptions().target, ScriptTarget.ES2022);
+    assert.ok(await service.program.getSourceFile(path.join(root, 'custom/entry.ts')));
+    assert.equal(await registry.getService(path.relative(process.cwd(), custom)), service);
+    assert.ok((await registry.getProjectServices(config)).includes(service));
+  });
+
+  it('isolates workspaces and disposes snapshots and servers once when cleared', async t => {
+    const other = await mkdtemp(path.join(os.tmpdir(), 'flowlens-native-other-'));
+    t.after(() => rm(other, { recursive: true, force: true }));
+    await cp(path.resolve('src/fixtures/workspace'), other, { recursive: true });
+    await mkdir(path.join(other, '.git'));
+    const selected = await registry.getService(config);
+    const second = await registry.getService(path.join(other, 'core/tsconfig.json'));
+    assert.notEqual(selected.server, second.server);
+    assert.equal((await registry.getProjectServices(config)).length, 2);
+    const dispose = t.mock.method(selected.server, 'dispose');
+    await registry.clear();
+    await registry.clear();
+    assert.equal(dispose.mock.callCount(), 1);
+    assert.equal(selected.snapshot.isDisposed(), true);
+    assert.equal(second.snapshot.isDisposed(), true);
+    await assert.rejects(selected.server.getSnapshot(), /disposed/);
+    const refreshed = await registry.getService(config);
+    assert.notEqual(refreshed, selected);
+    assert.notEqual(refreshed.server, selected.server);
+  });
+
+  it('reports malformed configs with context and retries without caching failures', async () => {
+    const broken = path.join(root, 'broken.json');
+    await writeFile(broken, '{ "compilerOptions": { "target": "not-a-target" } }');
+    await assert.rejects(registry.getService(broken), error => {
+      assert.ok(error instanceof Error);
+      assert.match(error.message, /failed to create native project service/);
+      assert.ok(error.cause instanceof Error);
+      assert.match(error.cause.message, /target/);
+      return true;
+    });
+    await writeFile(broken, JSON.stringify({ files: ['core/src/ports.ts'] }));
+    const service = await registry.getService(broken);
+    assert.ok(await service.program.getSourceFile(path.join(root, 'core/src/ports.ts')));
+  });
+
+  it('discovers referenced custom configs while excluding output directories and empty shared configs', async () => {
+    await mkdir(path.join(root, 'custom'));
+    await mkdir(path.join(root, 'generated'));
+    await writeFile(path.join(root, 'tsconfig.json'), JSON.stringify({
+      files: [], references: [{ path: './custom/project.json' }], compilerOptions: { outDir: './generated' },
+    }));
+    await writeFile(path.join(root, 'custom/project.json'), JSON.stringify({ files: ['entry.ts'], compilerOptions: { composite: true } }));
+    await writeFile(path.join(root, 'custom/entry.ts'), 'export const value = 1;');
+    await writeFile(path.join(root, 'generated/tsconfig.json'), JSON.stringify({ files: ['output.ts'] }));
+    await writeFile(path.join(root, 'generated/output.ts'), 'export const generated = 1;');
+    const services = await registry.getProjectServices(config);
+    assert.deepEqual(services.map(service => path.relative(root, service.projectConfig.configPath)), [
+      'core/tsconfig.json', 'custom/project.json', 'infrastructure/tsconfig.json',
+    ]);
+  });
+
+  it('serializes clear after pending loads and rediscovers newly added projects', async () => {
+    const pending = registry.getService(config);
+    const clearing = registry.clear();
+    const service = await pending;
+    await clearing;
+    assert.equal(service.snapshot.isDisposed(), true);
+    await registry.getProjectServices(config);
+    await mkdir(path.join(root, 'extra'));
+    await writeFile(path.join(root, 'extra/tsconfig.json'), JSON.stringify({ files: ['entry.ts'] }));
+    await writeFile(path.join(root, 'extra/entry.ts'), 'export const extra = 1;');
+    assert.equal((await registry.getProjectServices(config)).length, 2);
+    await registry.clear();
+    assert.equal((await registry.getProjectServices(config)).length, 3);
   });
 });

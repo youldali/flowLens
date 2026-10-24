@@ -7,7 +7,7 @@ import * as ts from 'typescript';
 import { assertErr, assertOk } from '@flowlens/common/testing';
 import { GraphAdapter } from '../adapters/graph-adapter.js';
 import { ImplementationDiscovery, findImplementationsInProjectService } from './implementation-discovery.js';
-import { ProjectServiceRegistry, type ProjectService } from './project-service-registry.js';
+import { LegacyProjectServiceRegistry, type ProjectService } from './legacy-project-service-registry.js';
 import { isCallableTypeMemberDeclarationNode } from '../domain/node.js';
 import { createLanguageService } from '../mocks/language-service.js';
 import { createProgram } from '../mocks/program.js';
@@ -35,11 +35,11 @@ describe('ImplementationDiscovery', () => {
   });
 
   beforeEach(() => {
-    core = ProjectServiceRegistry.getInstance().getService(path.join(root, 'core/tsconfig.json'));
-    infrastructure = ProjectServiceRegistry.getInstance().getService(path.join(root, 'infrastructure/tsconfig.json'));
+    core = LegacyProjectServiceRegistry.getInstance().getService(path.join(root, 'core/tsconfig.json'));
+    infrastructure = LegacyProjectServiceRegistry.getInstance().getService(path.join(root, 'infrastructure/tsconfig.json'));
   });
 
-  afterEach(() => ProjectServiceRegistry.getInstance().clear());
+  afterEach(() => LegacyProjectServiceRegistry.getInstance().clear());
 
   after(() => {
     fs.rmSync(root, { recursive: true, force: true });

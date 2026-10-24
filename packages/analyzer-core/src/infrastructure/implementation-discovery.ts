@@ -5,7 +5,7 @@ import { identity } from '@flowlens/common/utils';
 import { normalizePath } from '@flowlens/common/fs';
 import { isNavigable } from './source-navigation.js';
 import type { ImplementationEntry } from '../domain/implementation.js';
-import { ProjectServiceRegistry, type ProjectService } from './project-service-registry.js';
+import { LegacyProjectServiceRegistry, type ProjectService } from './legacy-project-service-registry.js';
 
 export function findImplementationsInProjectService(
   projectService: ProjectService,
@@ -36,7 +36,7 @@ export function findImplementationsInProjectService(
 
 export class ImplementationDiscovery {
   private readonly tsconfigPath: string;
-  private readonly projectServiceRegistry = ProjectServiceRegistry.getInstance();
+  private readonly projectServiceRegistry = LegacyProjectServiceRegistry.getInstance();
   private readonly implementationsFound = new Map<string, ImplementationEntry[]>();
 
   constructor(tsconfigPath: string) {
