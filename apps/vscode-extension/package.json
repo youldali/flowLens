@@ -90,7 +90,8 @@
     "vscode:prepublish": "node ./scripts/vscode-prepublish.js"
   },
   "dependencies": {
-    "typescript": "^6.0.3"
+    "typescript": "^6.0.3",
+    "typescript-native": "npm:typescript@7.1.0-beta"
   },
   "devDependencies": {
     "@flowlens/analyzer-core": "workspace:*",

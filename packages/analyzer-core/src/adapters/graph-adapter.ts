@@ -1,12 +1,13 @@
 import * as path from 'node:path';
-import * as ts from 'typescript';
+import * as ts from 'typescript-native/ast';
+import type { Program } from 'typescript-native/async';
 import { err, ok, type Result } from 'neverthrow';
 import { normalizePath } from '@flowlens/common/fs';
 import { Queue } from '@flowlens/common/queue';
 import * as NodeModule from '../domain/node.js';
 import * as TsNodeModule from './ts-node/index.js';
 import * as EdgeModule from '../domain/edge.js';
-import { LegacyProjectServiceRegistry } from '../infrastructure/legacy-project-service-registry.js';
+import { ProjectServiceRegistry, type ProjectService } from '../infrastructure/project-service-registry.js';
 import { ImplementationDiscovery } from '../infrastructure/implementation-discovery.js';
 
 import type { FlowGraph } from '../domain/flow-graph.js';
@@ -25,9 +26,7 @@ type QueueItem =
 | { node: ts.Node; parentNode?: ts.Node | undefined };
 
 export class GraphAdapter {
-  private readonly program: ts.Program
-  private readonly languageService: ts.LanguageService
-  private readonly checker: ts.TypeChecker
+  private readonly program: Program
   private readonly nodes = new Map<NodeModule.NodeId, NodeModule.Node>();
   private readonly tsNodesByNodeId = new Map<NodeModule.NodeId, ts.Node>();
   private readonly edges: Map<EdgeModule.EdgeId, EdgeModule.Edge> = new Map()
@@ -37,33 +36,38 @@ export class GraphAdapter {
   private readonly implementationDiscovery: ImplementationDiscovery;
   private readonly nodeAdapter: NodeAdapter;
 
-  constructor(tsconfigPath: string) {
-    const projectService = LegacyProjectServiceRegistry.getInstance().getService(tsconfigPath);
-
-    this.rootDir = path.dirname(projectService.projectConfig.configPath)
-    this.languageService = projectService.languageService;
-    this.program = projectService.program;
-    this.implementationDiscovery = new ImplementationDiscovery(tsconfigPath);
-    this.checker = this.program.getTypeChecker()
-    this.nodeAdapter = new NodeAdapter(this.checker, this.program, this.implementationDiscovery, this.rootDir);
+  static async create(tsconfigPath: string): Promise<GraphAdapter> {
+    const projectService = await ProjectServiceRegistry.getInstance().getService(tsconfigPath);
+    return new GraphAdapter(tsconfigPath, projectService);
   }
 
-  fromFile(entryFilePath: string): Result<void, SourceFileNotFoundError> {
-    const sourceFileResult = this.getSourceFileByPath(entryFilePath);
+  static async clearProjectServices(): Promise<void> {
+    await ProjectServiceRegistry.getInstance().clear();
+  }
+
+  private constructor(tsconfigPath: string, projectService: ProjectService) {
+    this.rootDir = path.dirname(projectService.projectConfig.configPath)
+    this.program = projectService.program;
+    this.implementationDiscovery = new ImplementationDiscovery(tsconfigPath);
+    this.nodeAdapter = new NodeAdapter(projectService.project.checker, this.program, this.implementationDiscovery, this.rootDir);
+  }
+
+  async fromFile(entryFilePath: string): Promise<Result<void, SourceFileNotFoundError>> {
+    const sourceFileResult = await this.getSourceFileByPath(entryFilePath);
 
     if (sourceFileResult.isErr()) {
       return err(sourceFileResult.error);
     }
 
-    this.build(sourceFileResult.value);
+    await this.build(sourceFileResult.value);
     return ok(undefined);
   }
 
-  fromFilePosition(
-    sourceFile: ts.SourceFile | string,
+  async fromFilePosition(
+    sourceFile: { fileName: string } | string,
     position: number,
-  ): Result<void, FromFilePositionError> {
-    const sourceFileResult = this.getSourceFileByPath(
+  ): Promise<Result<void, FromFilePositionError>> {
+    const sourceFileResult = await this.getSourceFileByPath(
       typeof sourceFile === 'string' ? sourceFile : sourceFile.fileName,
     );
 
@@ -83,16 +87,16 @@ export class GraphAdapter {
       return err({ reason: 'enclosing-function-not-found' });
     }
 
-    this.build(enclosingFunctionResult.value, sourceFileResult.value);
+    await this.build(enclosingFunctionResult.value, sourceFileResult.value);
     return ok(undefined);
   }
 
-  private build(startNode: ts.Node, parentNode?: ts.Node): void {
+  private async build(startNode: ts.Node, parentNode?: ts.Node): Promise<void> {
     this.nodeQueue.enqueue({ node: startNode, parentNode });
-    this.processQueue();
+    await this.processQueue();
   }
 
-  private processQueue(): void {
+  private async processQueue(): Promise<void> {
     while (this.nodeQueue.count() > 0) {
       const result = this.nodeQueue.pop();
 
@@ -106,46 +110,46 @@ export class GraphAdapter {
         continue;
       }
 
-      this.visitNode(node, parentNode);
+      await this.visitNode(node, parentNode);
       this.visitedNodes.add(node);
     }
   }
 
-  private visitNode(node: ts.Node, parentNode: ts.Node | undefined): void {
+  private async visitNode(node: ts.Node, parentNode: ts.Node | undefined): Promise<void> {
     if(!this.isInternalNode(node)) {
       return;
     }
     
     if (ts.isCallExpression(node)) {
-      this.visitCallExpression(node, parentNode);
+      await this.visitCallExpression(node, parentNode);
     }
 
     if(TsNodeModule.isExecutableFunction(node)) {
-      this.visitFunctionDeclaration(node, parentNode);
+      await this.visitFunctionDeclaration(node, parentNode);
     }
 
     if (TsNodeModule.isTypeCallableDeclaration(node)) {
-      this.visitCallableTypeMemberDeclaration(node, parentNode);
+      await this.visitCallableTypeMemberDeclaration(node, parentNode);
     }
 
     if (ts.isSourceFile(node)) {
-      this.visitSourceFile(node);
+      await this.visitSourceFile(node);
     }
 
     // For any node, we want to keep traversing its children to find more nodes and edges, but we only want to create graph nodes and edges for specific kinds of nodes (e.g. call expressions, function declarations, source files)
     const nextParent = TsNodeModule.isNodeProcessable(node) ? node : parentNode;
 
-    ts.forEachChild(node, (child) => this.nodeQueue.enqueue({ node: child, parentNode: nextParent }));
+    node.forEachChild((child) => { this.nodeQueue.enqueue({ node: child, parentNode: nextParent }); });
   }
 
-  private visitSourceFile(sourceFile: ts.SourceFile): void {
-    const fileNode = this.nodeAdapter.buildFileNode(sourceFile);
+  private async visitSourceFile(sourceFile: ts.SourceFile): Promise<void> {
+    const fileNode = await this.nodeAdapter.buildFileNode(sourceFile);
     this.addNode(fileNode, sourceFile);
   }
 
-  private visitCallExpression(node: ts.CallExpression, parentNode: ts.Node | undefined): void {
-    const callExpressionNode = this.nodeAdapter.buildCallExpressionNode(node);
-    const declarationTsNode = this.nodeAdapter.findDeclarationForCallExpression(node);
+  private async visitCallExpression(node: ts.CallExpression, parentNode: ts.Node | undefined): Promise<void> {
+    const callExpressionNode = await this.nodeAdapter.buildCallExpressionNode(node);
+    const declarationTsNode = await this.nodeAdapter.findDeclarationForCallExpression(node);
     this.addNode(callExpressionNode, node);
 
     if (parentNode) {
@@ -154,8 +158,8 @@ export class GraphAdapter {
 
     if (declarationTsNode) {
       const declarationGraphNode = TsNodeModule.isTypeCallableDeclaration(declarationTsNode)
-        ? this.nodeAdapter.buildCallableTypeMemberDeclarationNode(declarationTsNode)
-        : this.nodeAdapter.buildFunctionDeclarationNode(declarationTsNode);
+        ? await this.nodeAdapter.buildCallableTypeMemberDeclarationNode(declarationTsNode)
+        : await this.nodeAdapter.buildFunctionDeclarationNode(declarationTsNode);
       this.addNode(declarationGraphNode, declarationTsNode);
       this.addEdge(node, declarationTsNode, 'references');
 
@@ -164,8 +168,8 @@ export class GraphAdapter {
     }
   }
 
-  private visitFunctionDeclaration(node: TsNodeModule.ExecutableFunctionDeclaration, parentNode: ts.Node | undefined): void {
-    const functionDeclarationGraphNode = this.nodeAdapter.buildFunctionDeclarationNode(node);
+  private async visitFunctionDeclaration(node: TsNodeModule.ExecutableFunctionDeclaration, parentNode: ts.Node | undefined): Promise<void> {
+    const functionDeclarationGraphNode = await this.nodeAdapter.buildFunctionDeclarationNode(node);
     this.addNode(functionDeclarationGraphNode, node);
 
     if (parentNode) {
@@ -173,11 +177,11 @@ export class GraphAdapter {
     }
   }
 
-  private visitCallableTypeMemberDeclaration(
+  private async visitCallableTypeMemberDeclaration(
     node: TsNodeModule.TypeCallableDeclaration,
     parentNode: ts.Node | undefined,
-  ): void {
-    const declarationGraphNode = this.nodeAdapter.buildCallableTypeMemberDeclarationNode(node);
+  ): Promise<void> {
+    const declarationGraphNode = await this.nodeAdapter.buildCallableTypeMemberDeclarationNode(node);
     this.addNode(declarationGraphNode, node);
 
     if (parentNode) {
@@ -185,12 +189,8 @@ export class GraphAdapter {
     }
   }
   
-  private getSourceFileByPath(filePath: string): Result<ts.SourceFile, SourceFileNotFoundError> {
-    const normalizedEntryPath = normalizePath(filePath);
-    const sourceFile = this.program.getSourceFiles().find((candidate) => {
-      const candidatePath = normalizePath(candidate.fileName)
-      return candidatePath === normalizedEntryPath
-    });
+  private async getSourceFileByPath(filePath: string): Promise<Result<ts.SourceFile, SourceFileNotFoundError>> {
+    const sourceFile = await this.program.getSourceFile(path.resolve(filePath));
 
     return sourceFile ? ok(sourceFile) : err({ reason: 'source-file-not-found' });
   }

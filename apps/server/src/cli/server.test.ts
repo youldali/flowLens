@@ -1,3 +1,4 @@
+import { after } from 'node:test';
 import assert from 'node:assert/strict';
 import * as path from 'node:path';
 import * as fs from 'node:fs';
@@ -9,7 +10,7 @@ import { createGraphViewerServer } from './server.js';
 
 describe('createGraphViewerServer', () => {
   it('generates a new graph ID per request while preserving graph contents', async (t) => {
-    const adapter = new GraphAdapter(path.resolve('../../packages/analyzer-core/tsconfig.json'));
+    const adapter = await GraphAdapter.create(path.resolve('../../packages/analyzer-core/tsconfig.json'));
     const app = createGraphViewerServer(adapter, path.resolve('../frontend/dist'));
     t.after(() => app.close());
     const first = await app.inject({ method: 'GET', url: '/graph.json' });
@@ -31,8 +32,8 @@ describe('createGraphViewerServer', () => {
     t.after(() => fs.rmSync(root, { recursive: true, force: true }));
     fs.cpSync(path.resolve('../../packages/analyzer-core/src/fixtures/workspace'), root, { recursive: true });
     fs.mkdirSync(path.join(root, '.git'));
-    const adapter = new GraphAdapter(path.join(root, 'core/tsconfig.json'));
-    assertOk(adapter.fromFile(path.join(root, 'core/src/use-case.ts')));
+    const adapter = await GraphAdapter.create(path.join(root, 'core/tsconfig.json'));
+    assertOk(await adapter.fromFile(path.join(root, 'core/src/use-case.ts')));
     const app = createGraphViewerServer(adapter, path.resolve('../frontend/dist'));
     t.after(() => app.close());
     const graphResponse = await app.inject({ method: 'GET', url: '/graph.json' });
@@ -51,9 +52,9 @@ describe('createGraphViewerServer', () => {
   });
 
   it('serves eager graph metadata and navigable project source while rejecting unknown files', async () => {
-    const adapter = new GraphAdapter(path.resolve('../../packages/analyzer-core/tsconfig.json'));
+    const adapter = await GraphAdapter.create(path.resolve('../../packages/analyzer-core/tsconfig.json'));
     const filePath = path.resolve('../../packages/analyzer-core/src/fixtures/implementation-entry.ts');
-    assertOk(adapter.fromFile(filePath));
+    assertOk(await adapter.fromFile(filePath));
     const member = adapter.extract().nodes.find((node) =>
       node.kind === 'callableTypeMemberDeclaration' && node.name === 'run');
     assert.ok(member);
@@ -113,3 +114,5 @@ describe('createGraphViewerServer', () => {
     }
   });
 });
+
+after(() => GraphAdapter.clearProjectServices());

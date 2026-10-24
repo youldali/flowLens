@@ -1,4 +1,4 @@
-import ts from 'typescript';
+import * as ts from 'typescript-native/ast';
 import { err, ok, type Result } from 'neverthrow';
 
 export type ExecutableFunctionDeclaration =
@@ -11,11 +11,11 @@ export type ExecutableFunctionDeclaration =
   | ts.SetAccessorDeclaration;
 
 export type TypeCallableDeclaration =
-  | (ts.PropertySignature & {
+  | (ts.PropertySignatureDeclaration & {
       parent: ts.InterfaceDeclaration | ts.TypeLiteralNode;
       type: ts.FunctionTypeNode;
     })
-  | (ts.MethodSignature & {
+  | (ts.MethodSignatureDeclaration & {
       parent: ts.InterfaceDeclaration | ts.TypeLiteralNode;
     });
 
@@ -45,17 +45,10 @@ export function findEnclosingFunction(
 export function isExecutableFunction(
   node: ts.Node,
 ): node is ExecutableFunctionDeclaration {
-  return ts.isFunctionLike(node) && (node as any).body && (node as any).body != null;
-
-  // return (
-  //   ts.isFunctionDeclaration(node) ||
-  //   ts.isMethodDeclaration(node) ||
-  //   ts.isConstructorDeclaration(node) ||
-  //   ts.isFunctionExpression(node) ||
-  //   ts.isArrowFunction(node) ||
-  //   ts.isGetAccessorDeclaration(node) ||
-  //   ts.isSetAccessorDeclaration(node)
-  // );
+  return (ts.isFunctionDeclaration(node) || ts.isMethodDeclaration(node)
+    || ts.isConstructorDeclaration(node) || ts.isFunctionExpression(node)
+    || ts.isArrowFunction(node) || ts.isGetAccessorDeclaration(node)
+    || ts.isSetAccessorDeclaration(node)) && !!node.body;
 }
 
 export function isTypeCallableDeclaration(
@@ -68,14 +61,14 @@ export function isTypeCallableDeclaration(
     return false;
   }
 
-  return ts.isMethodSignature(node)
-    || (ts.isPropertySignature(node) && !!node.type && ts.isFunctionTypeNode(node.type));
+  return ts.isMethodSignatureDeclaration(node)
+    || (ts.isPropertySignatureDeclaration(node) && !!node.type && ts.isFunctionTypeNode(node.type));
 }
 
 export function getExecutableFunctionKind(
   node: ExecutableFunctionDeclaration,
 ): 'functionDeclaration' | 'methodDeclaration' {
-  return ts.isMethodDeclaration(node) || ts.isConstructorDeclaration(node) || ts.isAccessor(node)
+  return ts.isMethodDeclaration(node) || ts.isConstructorDeclaration(node) || (ts.isGetAccessorDeclaration(node) || ts.isSetAccessorDeclaration(node))
     ? 'methodDeclaration'
     : 'functionDeclaration';
 }

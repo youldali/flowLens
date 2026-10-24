@@ -61,8 +61,8 @@ export function activate(context: vscode.ExtensionContext): void {
             return;
           }
 
-          const graphAdapter = new GraphAdapter(tsconfigPathResult.value);
-          const buildResult = graphAdapter.fromFilePosition(filePath, offset);
+          const graphAdapter = await GraphAdapter.create(tsconfigPathResult.value);
+          const buildResult = await graphAdapter.fromFilePosition(filePath, offset);
 
           if (buildResult.isErr()) {
             const message = `FlowLens: Could not generate graph (${buildResult.error.reason}).`;
@@ -90,7 +90,9 @@ export function activate(context: vscode.ExtensionContext): void {
   context.subscriptions.push(disposable);
 }
 
-export function deactivate(): void {}
+export async function deactivate(): Promise<void> {
+  await GraphAdapter.clearProjectServices();
+}
 
 function getErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);

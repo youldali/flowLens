@@ -24,16 +24,21 @@ if (args.length !== 1) {
     throw new Error(`Could not find tsconfig.json at or above ${path.dirname(entryFilePath)}`);
   }
 
-  const graphAdapter = new GraphAdapter(tsconfigPathResult.value);
+  try {
+    const graphAdapter = await GraphAdapter.create(tsconfigPathResult.value);
 
-  const buildResult = graphAdapter.fromFile(entryFilePath);
+    const buildResult = await graphAdapter.fromFile(entryFilePath);
 
-  if (buildResult.isErr()) {
-    throw new Error(`Could not build graph: ${buildResult.error.reason}`);
+    if (buildResult.isErr()) {
+      throw new Error(`Could not build graph: ${buildResult.error.reason}`);
+    }
+
+    const graph = graphAdapter.extract();
+    console.log(graph);
+
+    await serveGraphViewer(graphAdapter);
+  } catch (error) {
+    await GraphAdapter.clearProjectServices();
+    throw error;
   }
-
-  const graph = graphAdapter.extract();
-  console.log(graph);
-
-  await serveGraphViewer(graphAdapter);
 }

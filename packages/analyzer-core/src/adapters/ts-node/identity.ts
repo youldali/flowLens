@@ -1,4 +1,4 @@
-import ts from 'typescript';
+import * as ts from 'typescript-native/ast';
 
 import { normalizePath } from '@flowlens/common/fs';
 import type { NodeId } from '../../domain/node.js';

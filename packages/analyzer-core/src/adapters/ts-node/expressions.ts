@@ -1,4 +1,4 @@
-import ts from 'typescript';
+import * as ts from 'typescript-native/ast';
 import { err, ok, type Result } from 'neverthrow';
 
 // Finds the first parent that changes the naming context and the direct child leading to it.
@@ -25,7 +25,7 @@ export function isTransparentExpression(node: ts.Node): node is
   | ts.NonNullExpression
   | ts.SatisfiesExpression {
   return ts.isParenthesizedExpression(node) || ts.isAsExpression(node)
-    || ts.isTypeAssertionExpression(node) || ts.isNonNullExpression(node)
+    || ts.isTypeAssertion(node) || ts.isNonNullExpression(node)
     || ts.isSatisfiesExpression(node);
 }
 
@@ -38,7 +38,7 @@ export function getUnwrappedExpression(node: ts.Expression): ts.Expression {
 // Returns the text of a non-empty string-like or numeric literal.
 // For example, `"submit"` yields `submit` and `42` yields `42`.
 export function getLiteralName(node: ts.Node): string | undefined {
-  return (ts.isStringLiteralLike(node) || ts.isNumericLiteral(node)) && node.text.length > 0
+  return (ts.isStringLiteralLikeNode(node) || ts.isNumericLiteral(node)) && node.text.length > 0
     ? node.text
     : undefined;
 }

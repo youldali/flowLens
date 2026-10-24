@@ -1,4 +1,4 @@
-import ts from 'typescript';
+import * as ts from 'typescript-native/ast';
 import { err, ok, type Result } from 'neverthrow';
 import {
   findFirstMeaningfulParent,
@@ -99,7 +99,7 @@ function inferEventHandlerName(
 
   const eventArgument = callExpression.arguments[0];
   const event = eventArgument ? getUnwrappedExpression(eventArgument) : undefined;
-  return event && ts.isStringLiteralLike(event) && event.text.length > 0
+  return event && ts.isStringLiteralLikeNode(event) && event.text.length > 0
     ? ok(`${event.text} ${EVENT_HANDLER_SUFFIX}`)
     : err('not-found');
 }

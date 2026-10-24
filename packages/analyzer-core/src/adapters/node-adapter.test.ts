@@ -1,11 +1,11 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import ts from 'typescript';
+import * as ts from '../fixtures/native-compiler.js';
 
 import * as NodeModule from '../domain/node.js';
 import * as TsNodeModule from './ts-node/index.js';
 import { normalizePath } from '@flowlens/common/fs';
-import { createProgram } from '../mocks/program.js';
+import { createNativeProgram as createProgram } from '../mocks/program.js';
 import { createTypeChecker } from '../mocks/typechecker.js';
 import { arrowFunctionFixture, callExpressionFixture, functionDeclarationFixture, methodSignatureFixture, propertySignatureFixture, sourceFileFixture } from '../fixtures/ts-node.js';
 
@@ -19,7 +19,7 @@ const createNodeAdapter = (
 };
 
 describe("NodeAdapter", () => {
-  it("adds semantic labels without changing legacy names or IDs", () => {
+  it("adds semantic labels with native identities", async () => {
     const source = ts.createSourceFile("naming.ts", `
       function parent() {
         retry(() => {});
@@ -29,16 +29,20 @@ describe("NodeAdapter", () => {
     `, ts.ScriptTarget.Latest, true);
     const adapter = createNodeAdapter(createTypeChecker());
     const nodes: NodeModule.FunctionDeclarationNode[] = [];
-    const visit = (node: ts.Node): void => {
+    const visit = async (node: ts.Node): Promise<void> => {
       if (TsNodeModule.isExecutableFunction(node)) {
-        const graphNode = adapter.buildFunctionDeclarationNode(node);
+        const graphNode = await adapter.buildFunctionDeclarationNode(node);
         assert.equal(graphNode.id, TsNodeModule.deriveIdFromTsNode(node));
         assert.equal(graphNode.name, TsNodeModule.getExecutableFunctionName(node, source));
         nodes.push(graphNode);
       }
-      ts.forEachChild(node, visit);
+
+      for (const child of node.childrenIter()) {
+        await visit(child);
+      }
+
     };
-    visit(source);
+    await visit(source);
     assert.deepEqual(nodes.map(({ name, displayName }) => [name, displayName]), [
       ['parent', 'parent'], ['anonymous', 'retry callback'],
       ['anonymous', 'anonymous at line 4'], ['anonymous', 'anonymous at line 4'],
@@ -46,10 +50,10 @@ describe("NodeAdapter", () => {
     ]);
   });
 
-  it("builds file nodes from source files", () => {
+  it("builds file nodes from source files", async () => {
     const adapter = createNodeAdapter(createTypeChecker());
 
-    assert.deepEqual(adapter.buildFileNode(sourceFileFixture), {
+    assert.deepEqual(await adapter.buildFileNode(sourceFileFixture), {
       id: normalizePath(sourceFileFixture.fileName),
       name: "fixture.ts",
       filePath: normalizePath(sourceFileFixture.fileName),
@@ -59,18 +63,18 @@ describe("NodeAdapter", () => {
     });
   });
 
-  it("builds function declaration nodes with jsdoc data", () => {
+  it("builds function declaration nodes with jsdoc data", async () => {
     const symbol = {
-      getDocumentationComment: () => [{ text: "Fixture docs", kind: "text" }],
+      getDocumentationComment: async () => "Fixture docs",
     } as unknown as ts.Symbol;
     const adapter = createNodeAdapter(createTypeChecker({
-      getSymbolAtLocation: (node) => {
-        assert.equal(node, functionDeclarationFixture);
+      getSymbolAtLocation: async (node) => {
+        assert.equal(node, functionDeclarationFixture.name);
         return symbol;
       },
     }));
 
-    assert.deepEqual(adapter.buildFunctionDeclarationNode(functionDeclarationFixture), {
+    assert.deepEqual(await adapter.buildFunctionDeclarationNode(functionDeclarationFixture), {
       id: TsNodeModule.deriveIdFromTsNode(functionDeclarationFixture),
       name: "fixtureFunction",
       displayName: "fixtureFunction",
@@ -85,10 +89,10 @@ describe("NodeAdapter", () => {
     });
   });
 
-  it("builds arrow function nodes from their variable declaration name", () => {
+  it("builds arrow function nodes from their variable declaration name", async () => {
     const adapter = createNodeAdapter(createTypeChecker());
 
-    assert.deepEqual(adapter.buildFunctionDeclarationNode(arrowFunctionFixture), {
+    assert.deepEqual(await adapter.buildFunctionDeclarationNode(arrowFunctionFixture), {
       id: TsNodeModule.deriveIdFromTsNode(arrowFunctionFixture),
       name: "arrowFixture",
       displayName: "arrowFixture",
@@ -102,7 +106,7 @@ describe("NodeAdapter", () => {
     });
   });
 
-  it('captures exact implementation ranges without leading comments or whitespace', () => {
+  it('captures exact implementation ranges without leading comments or whitespace', async () => {
     const source = ts.createSourceFile('ranges.ts', `
       /** Function docs */
       async function run() { return 1; }
@@ -114,15 +118,19 @@ describe("NodeAdapter", () => {
     `, ts.ScriptTarget.Latest, true);
     const adapter = createNodeAdapter();
     const implementations: NodeModule.FunctionDeclarationNode[] = [];
-    const visit = (node: ts.Node): void => {
+    const visit = async (node: ts.Node): Promise<void> => {
       if (TsNodeModule.isExecutableFunction(node)) {
-        implementations.push(adapter.buildFunctionDeclarationNode(node));
+        implementations.push(await adapter.buildFunctionDeclarationNode(node));
       }
 
-      ts.forEachChild(node, visit);
+
+      for (const child of node.childrenIter()) {
+        await visit(child);
+      }
+
     };
 
-    visit(source);
+    await visit(source);
     assert.deepEqual(implementations.map(node => source.text.slice(node.start, node.end)), [
       'async function run() { return 1; }',
       'run() { return 2; }',
@@ -131,12 +139,12 @@ describe("NodeAdapter", () => {
     assert.deepEqual(implementations.map(node => source.text.slice(node.start, node.end)), implementations.map(node => node.sourceText));
   });
 
-  it("builds callable type member declaration nodes with jsdoc data", () => {
+  it("builds callable type member declaration nodes with jsdoc data", async () => {
     const symbol = {
-      getDocumentationComment: () => [{ text: "Interface docs", kind: "text" }],
+      getDocumentationComment: async () => "Interface docs",
     } as unknown as ts.Symbol;
     const adapter = createNodeAdapter(createTypeChecker({
-      getSymbolAtLocation: (node) => {
+      getSymbolAtLocation: async (node) => {
         assert.equal(node, propertySignatureFixture.name);
         return symbol;
       },
@@ -146,7 +154,7 @@ describe("NodeAdapter", () => {
       assert.fail("Expected a callable type declaration.");
     }
 
-    assert.deepEqual(adapter.buildCallableTypeMemberDeclarationNode(propertySignatureFixture), {
+    assert.deepEqual(await adapter.buildCallableTypeMemberDeclarationNode(propertySignatureFixture), {
       id: TsNodeModule.deriveIdFromTsNode(propertySignatureFixture),
       name: "property",
       filePath: normalizePath(sourceFileFixture.fileName),
@@ -158,18 +166,18 @@ describe("NodeAdapter", () => {
     });
   });
 
-  it("builds call expression nodes with resolved declaration data", () => {
+  it("builds call expression nodes with resolved declaration data", async () => {
     const signature = {
-      declaration: functionDeclarationFixture,
-    } as ts.Signature;
+      declaration: { resolve: async () => functionDeclarationFixture },
+    } as unknown as ts.Signature;
     const adapter = createNodeAdapter(createTypeChecker({
-      getResolvedSignature: (node) => {
+      getResolvedSignature: async (node) => {
         assert.equal(node, callExpressionFixture);
         return signature;
       },
     }));
 
-    assert.deepEqual(adapter.buildCallExpressionNode(callExpressionFixture), {
+    assert.deepEqual(await adapter.buildCallExpressionNode(callExpressionFixture), {
       id: TsNodeModule.deriveIdFromTsNode(callExpressionFixture),
       name: "dependency",
       filePath: normalizePath(sourceFileFixture.fileName),
@@ -181,47 +189,47 @@ describe("NodeAdapter", () => {
       text: callExpressionFixture.getText(sourceFileFixture),
       declarationFile: normalizePath(sourceFileFixture.fileName),
     });
-    assert.equal(adapter.findDeclarationForCallExpression(callExpressionFixture), functionDeclarationFixture);
+    assert.equal(await adapter.findDeclarationForCallExpression(callExpressionFixture), functionDeclarationFixture);
   });
 
-  it("resolves a function-valued interface property when no executable declaration exists", () => {
+  it("resolves a function-valued interface property when no executable declaration exists", async () => {
     const signature = {
-      declaration: propertySignatureFixture.type,
-    } as ts.Signature;
+      declaration: { resolve: async () => propertySignatureFixture.type },
+    } as unknown as ts.Signature;
     const adapter = createNodeAdapter(createTypeChecker({
-      getResolvedSignature: () => signature,
+      getResolvedSignature: async () => signature,
     }));
 
-    assert.equal(adapter.findDeclarationForCallExpression(callExpressionFixture), propertySignatureFixture);
+    assert.equal(await adapter.findDeclarationForCallExpression(callExpressionFixture), propertySignatureFixture);
   });
 
-  it("resolves an interface method signature when no executable declaration exists", () => {
+  it("resolves an interface method signature when no executable declaration exists", async () => {
     const signature = {
-      declaration: methodSignatureFixture,
-    } as ts.Signature;
+      declaration: { resolve: async () => methodSignatureFixture },
+    } as unknown as ts.Signature;
     const adapter = createNodeAdapter(createTypeChecker({
-      getResolvedSignature: () => signature,
+      getResolvedSignature: async () => signature,
     }));
 
-    assert.equal(adapter.findDeclarationForCallExpression(callExpressionFixture), methodSignatureFixture);
+    assert.equal(await adapter.findDeclarationForCallExpression(callExpressionFixture), methodSignatureFixture);
   });
 
-  it("prefers an executable declaration over an interface declaration", () => {
+  it("prefers an executable declaration over an interface declaration", async () => {
     const interfaceSymbol = {
-      getDeclarations: () => [propertySignatureFixture],
+      declarations: [{ resolve: async () => propertySignatureFixture }],
     } as unknown as ts.Symbol;
     const signature = {
-      declaration: functionDeclarationFixture,
-    } as ts.Signature;
+      declaration: { resolve: async () => functionDeclarationFixture },
+    } as unknown as ts.Signature;
     const adapter = createNodeAdapter(createTypeChecker({
-      getResolvedSignature: () => signature,
-      getSymbolAtLocation: () => interfaceSymbol,
+      getResolvedSignature: async () => signature,
+      getSymbolAtLocation: async () => interfaceSymbol,
     }));
 
-    assert.equal(adapter.findDeclarationForCallExpression(callExpressionFixture), functionDeclarationFixture);
+    assert.equal(await adapter.findDeclarationForCallExpression(callExpressionFixture), functionDeclarationFixture);
   });
 
-  it("resolves callable members declared by object type aliases", () => {
+  it("resolves callable members declared by object type aliases", async () => {
     const typeLiteralSourceFile = ts.createSourceFile(
       "type-literal.ts",
       "type Service = { property: () => void }",
@@ -235,19 +243,19 @@ describe("NodeAdapter", () => {
     }
 
     const property = typeAlias.type.members[0];
-    if (!property || !ts.isPropertySignature(property)) {
+    if (!property || !ts.isPropertySignatureDeclaration(property)) {
       assert.fail("Expected a property signature.");
     }
 
-    const signature = { declaration: property.type } as ts.Signature;
+    const signature = { declaration: { resolve: async () => property.type } } as unknown as ts.Signature;
     const adapter = createNodeAdapter(createTypeChecker({
-      getResolvedSignature: () => signature,
+      getResolvedSignature: async () => signature,
     }));
 
-    assert.equal(adapter.findDeclarationForCallExpression(callExpressionFixture), property);
+    assert.equal(await adapter.findDeclarationForCallExpression(callExpressionFixture), property);
   });
 
-  it("does not resolve non-callable interface properties", () => {
+  it("does not resolve non-callable interface properties", async () => {
     const interfaceSourceFile = ts.createSourceFile(
       "interface.ts",
       "interface Service { count: number }",
@@ -261,25 +269,25 @@ describe("NodeAdapter", () => {
     }
 
     const property = declaration.members[0];
-    if (!property || !ts.isPropertySignature(property)) {
+    if (!property || !ts.isPropertySignatureDeclaration(property)) {
       assert.fail("Expected a property signature.");
     }
 
-    const signature = { declaration: property } as unknown as ts.Signature;
+    const signature = { declaration: { resolve: async () => property } } as unknown as ts.Signature;
     const adapter = createNodeAdapter(createTypeChecker({
-      getResolvedSignature: () => signature,
+      getResolvedSignature: async () => signature,
     }));
 
-    assert.equal(adapter.findDeclarationForCallExpression(callExpressionFixture), undefined);
+    assert.equal(await adapter.findDeclarationForCallExpression(callExpressionFixture), undefined);
   });
 
-  it("marks unresolved call expression nodes with unknown source origin", () => {
+  it("marks unresolved call expression nodes with unknown source origin", async () => {
     const adapter = createNodeAdapter(createTypeChecker());
 
-    assert.equal(adapter.buildCallExpressionNode(callExpressionFixture).sourceOrigin, "unknown");
+    assert.equal((await adapter.buildCallExpressionNode(callExpressionFixture)).sourceOrigin, "unknown");
   });
 
-  it("marks call expression nodes with external declarations as external", () => {
+  it("marks call expression nodes with external declarations as external", async () => {
     const externalSourceFile = ts.createSourceFile(
       "/typescript/lib/lib.es5.d.ts",
       "interface Array<T> { map<U>(): U[] }",
@@ -289,16 +297,16 @@ describe("NodeAdapter", () => {
     );
     const externalDeclaration = externalSourceFile.statements[0];
     const signature = {
-      declaration: externalDeclaration,
-    } as ts.Signature;
+      declaration: { resolve: async () => externalDeclaration },
+    } as unknown as ts.Signature;
     const adapter = createNodeAdapter(createTypeChecker({
-      getResolvedSignature: () => signature,
+      getResolvedSignature: async () => signature,
     }));
 
-    assert.equal(adapter.buildCallExpressionNode(callExpressionFixture).sourceOrigin, "external");
+    assert.equal((await adapter.buildCallExpressionNode(callExpressionFixture)).sourceOrigin, "external");
   });
 
-  it("marks TypeScript standard library call expression nodes as native JavaScript API", () => {
+  it("marks TypeScript standard library call expression nodes as native JavaScript API", async () => {
     const nativeSourceFile = ts.createSourceFile(
       "/packaged-extension/node_modules/typescript/lib/lib.es2019.object.d.ts",
       "interface ObjectConstructor { fromEntries(): object }",
@@ -308,19 +316,19 @@ describe("NodeAdapter", () => {
     );
     const nativeDeclaration = nativeSourceFile.statements[0];
     const signature = {
-      declaration: nativeDeclaration,
-    } as ts.Signature;
+      declaration: { resolve: async () => nativeDeclaration },
+    } as unknown as ts.Signature;
     const program = createProgram({
-      isSourceFileDefaultLibrary: (sourceFile: ts.SourceFile) => sourceFile === nativeSourceFile,
+      isSourceFileDefaultLibrary: async (sourceFile: ts.SourceFile) => sourceFile === nativeSourceFile,
     });
     const adapter = createNodeAdapter(createTypeChecker({
-      getResolvedSignature: () => signature,
+      getResolvedSignature: async () => signature,
     }), program);
 
-    assert.equal(adapter.buildCallExpressionNode(callExpressionFixture).sourceOrigin, "native-js-api");
+    assert.equal((await adapter.buildCallExpressionNode(callExpressionFixture)).sourceOrigin, "native-js-api");
   });
 
-  it("marks Node API call expression nodes as native Node API", () => {
+  it("marks Node API call expression nodes as native Node API", async () => {
     const nativeSourceFile = ts.createSourceFile(
       "/workspace/node_modules/@types/node/fs.d.ts",
       "export function existsSync(): boolean",
@@ -330,12 +338,12 @@ describe("NodeAdapter", () => {
     );
     const nativeDeclaration = nativeSourceFile.statements[0];
     const signature = {
-      declaration: nativeDeclaration,
-    } as ts.Signature;
+      declaration: { resolve: async () => nativeDeclaration },
+    } as unknown as ts.Signature;
     const adapter = createNodeAdapter(createTypeChecker({
-      getResolvedSignature: () => signature,
+      getResolvedSignature: async () => signature,
     }));
 
-    assert.equal(adapter.buildCallExpressionNode(callExpressionFixture).sourceOrigin, "native-node-api");
+    assert.equal((await adapter.buildCallExpressionNode(callExpressionFixture)).sourceOrigin, "native-node-api");
   });
 });

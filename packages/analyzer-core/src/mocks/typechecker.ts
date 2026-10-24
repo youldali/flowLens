@@ -1,11 +1,9 @@
-import ts from 'typescript';
+import type { Node } from 'typescript-native/ast';
+import type { Checker, Signature, Symbol } from 'typescript-native/async';
 
-export const createTypeChecker = (overrides: Partial<ts.TypeChecker> = {}): ts.TypeChecker => {
-  return {
-    getResolvedSignature: () => undefined,
-    getSignaturesOfType: () => [],
-    getSymbolAtLocation: () => undefined,
-    getTypeOfSymbolAtLocation: () => ({} as ts.Type),
-    ...overrides,
-  } as ts.TypeChecker;
-};
+export const createTypeChecker = (overrides: Omit<Partial<Checker>, 'getSymbolAtLocation'> & { getSymbolAtLocation?: (node: Node) => Promise<Symbol | undefined> } = {}): Checker => ({
+  getResolvedSignature: async () => ({} as Signature),
+  isUnknownSignature: async (signature: Signature) => !signature.declaration,
+  getSymbolAtLocation: async () => undefined,
+  ...overrides,
+} as Checker);

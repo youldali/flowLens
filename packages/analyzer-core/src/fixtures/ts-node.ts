@@ -1,4 +1,4 @@
-import ts from 'typescript';
+import * as ts from './native-compiler.js';
 
 import { createFixture } from '@flowlens/test-utils';
 
@@ -78,8 +78,8 @@ export const functionExpressionFixture = findNode(ts.isFunctionExpression);
 export const arrowFunctionFixture = findNode(ts.isArrowFunction);
 export const getAccessorDeclarationFixture = findNode(ts.isGetAccessorDeclaration);
 export const setAccessorDeclarationFixture = findNode(ts.isSetAccessorDeclaration);
-export const propertySignatureFixture = findNode(ts.isPropertySignature);
-export const methodSignatureFixture = findNode(ts.isMethodSignature);
+export const propertySignatureFixture = findNode(ts.isPropertySignatureDeclaration);
+export const methodSignatureFixture = findNode(ts.isMethodSignatureDeclaration);
 export const variableStatementNodeFixture = findNode(ts.isVariableStatement);
 
 export const create = createFixture<ts.Node>(nodeFixture);
@@ -92,6 +92,6 @@ export const createFunctionExpression = createFixture<ts.FunctionExpression>(fun
 export const createArrowFunction = createFixture<ts.ArrowFunction>(arrowFunctionFixture);
 export const createGetAccessorDeclaration = createFixture<ts.GetAccessorDeclaration>(getAccessorDeclarationFixture);
 export const createSetAccessorDeclaration = createFixture<ts.SetAccessorDeclaration>(setAccessorDeclarationFixture);
-export const createPropertySignature = createFixture<ts.PropertySignature>(propertySignatureFixture);
-export const createMethodSignature = createFixture<ts.MethodSignature>(methodSignatureFixture);
+export const createPropertySignature = createFixture<ts.PropertySignatureDeclaration>(propertySignatureFixture);
+export const createMethodSignature = createFixture<ts.MethodSignatureDeclaration>(methodSignatureFixture);
 export const createVariableStatementNode = createFixture<ts.VariableStatement>(variableStatementNodeFixture);

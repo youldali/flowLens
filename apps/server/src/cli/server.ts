@@ -29,6 +29,7 @@ export async function serveGraphViewer(graphAdapter: GraphAdapter): Promise<void
 
 export function createGraphViewerServer(graphAdapter: GraphAdapter, frontendDistPath: string) {
   const app = Fastify();
+  app.addHook('onClose', () => GraphAdapter.clearProjectServices());
 
   app.get('/graph.json', async (_request, reply) => {
     return reply

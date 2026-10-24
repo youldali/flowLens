@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
-import ts from 'typescript';
+import * as ts from '../../fixtures/native-compiler.js';
 import { getDisplayName } from './function-naming.js';
 import { isExecutableFunction, type ExecutableFunctionDeclaration } from './functions.js';
 

@@ -23,7 +23,7 @@ describe('ImplementationDiscovery', () => {
   let plainPosition: number;
   let mappedPosition: number;
 
-  before(() => {
+  before(async () => {
     root = fs.mkdtempSync(path.join(os.tmpdir(), 'flowlens-workspace-'));
     fs.cpSync(path.resolve('src/fixtures/workspace'), root, { recursive: true });
     fs.mkdirSync(path.join(root, '.git'));
@@ -45,7 +45,7 @@ describe('ImplementationDiscovery', () => {
     fs.rmSync(root, { recursive: true, force: true });
   });
 
-  it('preserves separate configurations and exposes the visibility and mapped-type limitations', () => {
+  it('preserves separate configurations and exposes the visibility and mapped-type limitations', async () => {
     assert.equal(core.program.getSourceFile(adapterPath), undefined);
     assert.ok(infrastructure.program.getSourceFile(adapterPath));
     assert.ok(infrastructure.program.getSourceFile(portsPath));
@@ -62,9 +62,9 @@ describe('ImplementationDiscovery', () => {
     assert.deepEqual(infrastructure.languageService.getImplementationAtPosition(portsPath, mappedPosition) ?? [], []);
   });
 
-  it('discovers and navigates sibling implementations without traversing their bodies', (t) => {
-    const adapter = new GraphAdapter(path.join(root, 'core/tsconfig.json'));
-    assertOk(adapter.fromFile(path.join(root, 'core/src/use-case.ts')));
+  it('discovers and navigates sibling implementations without traversing their bodies', async (t) => {
+    const adapter = await GraphAdapter.create(path.join(root, 'core/tsconfig.json'));
+    assertOk(await adapter.fromFile(path.join(root, 'core/src/use-case.ts')));
     const graph = adapter.extract();
     const members = graph.nodes.filter(isCallableTypeMemberDeclarationNode);
     const entries = members.flatMap((member) => member.implementations);
@@ -80,20 +80,20 @@ describe('ImplementationDiscovery', () => {
     assert.equal(entry.column, coordinates.character + 1);
     assert.equal(members.filter((member) => member.name === 'list' && member.implementations.length === 0).length, 1);
     assert.ok(graph.nodes.every((node) => node.filePath.startsWith(path.join(root, 'core') + path.sep)));
-    const baseline = new GraphAdapter(path.join(root, 'core/tsconfig.json'));
+    const baseline = await GraphAdapter.create(path.join(root, 'core/tsconfig.json'));
     const baselineDiscovery = (baseline as unknown as { implementationDiscovery: ImplementationDiscovery }).implementationDiscovery;
     t.mock.method(baselineDiscovery, 'findImplementations', () => []);
-    assertOk(baseline.fromFile(path.join(root, 'core/src/use-case.ts')));
+    assertOk(await baseline.fromFile(path.join(root, 'core/src/use-case.ts')));
     assert.deepEqual(graph.edges, baseline.extract().edges);
     assert.deepEqual(graph.nodes.map((node) => isCallableTypeMemberDeclarationNode(node) ? { ...node, implementations: [] } : node), baseline.extract().nodes);
     const source = adapter.getNavigableSource(entry.filePath);
     assertOk(source);
     assert.equal(source.value, text);
     assertErr(adapter.getNavigableSource(path.join(root, 'missing.ts')));
-    assertErr(adapter.fromFile(adapterPath));
+    assertErr(await adapter.fromFile(adapterPath));
   });
 
-  it('deduplicates across projects and excludes declarations, dependencies, and outside sources', (t) => {
+  it('deduplicates across projects and excludes declarations, dependencies, and outside sources', async (t) => {
     const sibling = root + '-outside.ts';
     const excludedPaths = [path.join(root, 'core/src/excluded.d.ts'), path.join(root, 'node_modules/dependency/index.ts'), sibling];
     for (const filePath of excludedPaths) {
@@ -123,7 +123,7 @@ describe('ImplementationDiscovery', () => {
 });
 
 describe('findImplementationsInProjectService', () => {
-  it('builds entries for implementation locations with source files', () => {
+  it('builds entries for implementation locations with source files', async () => {
     const text = 'export class Adapter {}';
     const source = ts.createSourceFile('/workspace/adapter.ts', text, ts.ScriptTarget.Latest);
     const start = text.indexOf('Adapter');
@@ -170,3 +170,5 @@ describe('findImplementationsInProjectService', () => {
     }]);
   });
 });
+
+after(() => GraphAdapter.clearProjectServices());

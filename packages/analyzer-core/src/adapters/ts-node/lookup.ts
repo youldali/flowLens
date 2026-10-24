@@ -1,4 +1,4 @@
-import ts from 'typescript';
+import * as ts from 'typescript-native/ast';
 import { err, ok, type Result } from 'neverthrow';
 
 export function findNodeAtPosition(
@@ -16,7 +16,7 @@ export function findNodeAtPosition(
     }
 
     nodeAtPosition = node;
-    ts.forEachChild(node, visit);
+    node.forEachChild(visit);
   }
 
   visit(sourceFile);

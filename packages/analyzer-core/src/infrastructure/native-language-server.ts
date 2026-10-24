@@ -3,7 +3,7 @@ import { createRequire } from 'node:module';
 import * as path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { createMessageConnection, StreamMessageReader, StreamMessageWriter, type MessageConnection } from 'vscode-jsonrpc/node.js';
-import { API, formatDiagnostics, type LanguageServerSnapshotChanges } from 'typescript-native/async';
+import type { API, LanguageServerSnapshotChanges } from 'typescript-native/async';
 
 export interface ImplementationLocation {
   uri: string;
@@ -23,7 +23,8 @@ export class NativeLanguageServer {
   private stderr = '';
 
   private constructor(root: string) {
-    const require = createRequire(import.meta.resolve('typescript-native/package.json'));
+    const resolvePackage = createRequire(import.meta.url);
+    const require = createRequire(resolvePackage.resolve('typescript-native/package.json'));
     const platformPackage = require.resolve(`@typescript/typescript-${process.platform}-${process.arch}/package.json`);
     const executable = path.join(path.dirname(platformPackage), 'lib', process.platform === 'win32' ? 'tsc.exe' : 'tsc');
     this.child = spawn(executable, ['--lsp', '--stdio'], { cwd: root, stdio: 'pipe' });
@@ -40,6 +41,7 @@ export class NativeLanguageServer {
   }
 
   static async create(root: string): Promise<NativeLanguageServer> {
+    const { API } = await import('typescript-native/async');
     const server = new NativeLanguageServer(root);
 
     try {
@@ -91,7 +93,10 @@ export class NativeLanguageServer {
     if (!this.api) throw new Error('Native TypeScript API is not initialized');
     const parsed = await this.api.parseConfigFile(file);
     const errors = parsed.errors.filter(error => error.code !== 18003);
-    if (errors.length) throw new Error(formatDiagnostics(errors, this.api));
+    if (errors.length) {
+      const { formatDiagnostics } = await import('typescript-native/async');
+      throw new Error(formatDiagnostics(errors, this.api));
+    }
     return parsed;
   }
 

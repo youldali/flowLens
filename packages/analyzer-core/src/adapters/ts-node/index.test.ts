@@ -1,6 +1,6 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import ts from 'typescript';
+import * as ts from '../../fixtures/native-compiler.js';
 
 import * as TsNodeModule from './index.js';
 import { assertErr, assertOk } from '@flowlens/common/testing';
@@ -184,8 +184,9 @@ describe("getUnwrappedExpression", () => {
     const wrapped = ts.factory.createNonNullExpression(
       ts.factory.createAsExpression(
         ts.factory.createParenthesizedExpression(identifier),
-        ts.factory.createTypeReferenceNode("Handler"),
+        ts.factory.createTypeReferenceNode(ts.factory.createIdentifier("Handler")),
       ),
+      ts.NodeFlags.None,
     );
 
     assert.equal(TsNodeModule.getUnwrappedExpression(wrapped), identifier);
@@ -194,9 +195,9 @@ describe("getUnwrappedExpression", () => {
 
 describe("getLiteralName", () => {
   it("returns names only for non-empty string-like and numeric literals", () => {
-    assert.equal(TsNodeModule.getLiteralName(ts.factory.createStringLiteral("submit")), "submit");
-    assert.equal(TsNodeModule.getLiteralName(ts.factory.createNumericLiteral(42)), "42");
-    assert.equal(TsNodeModule.getLiteralName(ts.factory.createStringLiteral("")), undefined);
+    assert.equal(TsNodeModule.getLiteralName(ts.factory.createStringLiteral("submit", ts.TokenFlags.None)), "submit");
+    assert.equal(TsNodeModule.getLiteralName(ts.factory.createNumericLiteral("42", ts.TokenFlags.None)), "42");
+    assert.equal(TsNodeModule.getLiteralName(ts.factory.createStringLiteral("", ts.TokenFlags.None)), undefined);
     assert.equal(TsNodeModule.getLiteralName(ts.factory.createIdentifier("submit")), undefined);
   });
 });
@@ -204,10 +205,10 @@ describe("getLiteralName", () => {
 describe("getPropertyName", () => {
   it("returns statically known property names", () => {
     assert.equal(TsNodeModule.getPropertyName(ts.factory.createIdentifier("submit")), "submit");
-    assert.equal(TsNodeModule.getPropertyName(ts.factory.createStringLiteral("submit")), "submit");
+    assert.equal(TsNodeModule.getPropertyName(ts.factory.createStringLiteral("submit", ts.TokenFlags.None)), "submit");
     assert.equal(
       TsNodeModule.getPropertyName(
-        ts.factory.createComputedPropertyName(ts.factory.createStringLiteral("submit")),
+        ts.factory.createComputedPropertyName(ts.factory.createStringLiteral("submit", ts.TokenFlags.None)),
       ),
       "submit",
     );
@@ -226,9 +227,9 @@ describe("getExpressionName", () => {
 
     const staticNameResults = [
       TsNodeModule.getExpressionName(ts.factory.createIdentifier("submit")),
-      TsNodeModule.getExpressionName(ts.factory.createPropertyAccessExpression(object, "submit")),
+      TsNodeModule.getExpressionName(ts.factory.createPropertyAccessExpression(object, undefined, ts.factory.createIdentifier("submit"), ts.NodeFlags.None)),
       TsNodeModule.getExpressionName(
-        ts.factory.createElementAccessExpression(object, ts.factory.createStringLiteral("submit")),
+        ts.factory.createElementAccessExpression(object, undefined, ts.factory.createStringLiteral("submit", ts.TokenFlags.None), ts.NodeFlags.None),
       ),
     ];
     for (const result of staticNameResults) {
@@ -237,7 +238,7 @@ describe("getExpressionName", () => {
     }
 
     const dynamicNameResult = TsNodeModule.getExpressionName(
-      ts.factory.createElementAccessExpression(object, ts.factory.createIdentifier("key")),
+      ts.factory.createElementAccessExpression(object, undefined, ts.factory.createIdentifier("key"), ts.NodeFlags.None),
     );
     assertErr(dynamicNameResult);
     assert.equal(dynamicNameResult.error, "not-found");
