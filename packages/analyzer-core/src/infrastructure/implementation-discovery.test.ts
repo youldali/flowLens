@@ -7,7 +7,8 @@ import * as ts from 'typescript';
 import { assertErr, assertOk } from '@flowlens/common/testing';
 import { GraphAdapter } from '../adapters/graph-adapter.js';
 import { ImplementationDiscovery, findImplementationsInProjectService } from './implementation-discovery.js';
-import { LegacyProjectServiceRegistry, type ProjectService } from './legacy-project-service-registry.js';
+import type { ProjectService } from './legacy-project-service-registry.js';
+import { RepositoryAnalysisContext } from './repository-analysis-context.js';
 import { isCallableTypeMemberDeclarationNode } from '../domain/node.js';
 import { createLanguageService } from '../mocks/language-service.js';
 import { createProgram } from '../mocks/program.js';
@@ -16,6 +17,7 @@ import { createProgram } from '../mocks/program.js';
 // projects cannot accidentally make the adapter visible to these tests.
 describe('ImplementationDiscovery', () => {
   let root: string;
+  let context: RepositoryAnalysisContext;
   let core: ProjectService;
   let infrastructure: ProjectService;
   let portsPath: string;
@@ -35,11 +37,12 @@ describe('ImplementationDiscovery', () => {
   });
 
   beforeEach(() => {
-    core = LegacyProjectServiceRegistry.getInstance().getService(path.join(root, 'core/tsconfig.json'));
-    infrastructure = LegacyProjectServiceRegistry.getInstance().getService(path.join(root, 'infrastructure/tsconfig.json'));
+    context = new RepositoryAnalysisContext(root);
+    core = context.legacyRegistry.getService(path.join(root, 'core/tsconfig.json'));
+    infrastructure = context.legacyRegistry.getService(path.join(root, 'infrastructure/tsconfig.json'));
   });
 
-  afterEach(() => LegacyProjectServiceRegistry.getInstance().clear());
+  afterEach(() => context.clear());
 
   after(() => {
     fs.rmSync(root, { recursive: true, force: true });
@@ -63,7 +66,7 @@ describe('ImplementationDiscovery', () => {
   });
 
   it('discovers and navigates sibling implementations without traversing their bodies', async (t) => {
-    const adapter = await GraphAdapter.create(path.join(root, 'core/tsconfig.json'));
+    const adapter = await GraphAdapter.create(path.join(root, 'core/tsconfig.json'), context);
     assertOk(await adapter.fromFile(path.join(root, 'core/src/use-case.ts')));
     const graph = adapter.extract();
     const members = graph.nodes.filter(isCallableTypeMemberDeclarationNode);
@@ -80,7 +83,7 @@ describe('ImplementationDiscovery', () => {
     assert.equal(entry.column, coordinates.character + 1);
     assert.equal(members.filter((member) => member.name === 'list' && member.implementations.length === 0).length, 1);
     assert.ok(graph.nodes.every((node) => node.filePath.startsWith(path.join(root, 'core') + path.sep)));
-    const baseline = await GraphAdapter.create(path.join(root, 'core/tsconfig.json'));
+    const baseline = await GraphAdapter.create(path.join(root, 'core/tsconfig.json'), context);
     const baselineDiscovery = (baseline as unknown as { implementationDiscovery: ImplementationDiscovery }).implementationDiscovery;
     t.mock.method(baselineDiscovery, 'findImplementations', () => []);
     assertOk(await baseline.fromFile(path.join(root, 'core/src/use-case.ts')));
@@ -115,7 +118,7 @@ describe('ImplementationDiscovery', () => {
       implementation, implementation,
       ...excludedPaths.map((fileName) => ({ ...implementation, fileName, textSpan: { start: 16, length: 8 } })),
     ]);
-    const discovery = new ImplementationDiscovery(core.projectConfig.configPath);
+    const discovery = new ImplementationDiscovery(core.projectConfig.configPath, context.legacyRegistry);
     const entries = discovery.findImplementations(portsPath, plainPosition);
     assert.deepEqual(entries.map((entry) => entry.filePath), [adapterPath]);
     for (const filePath of excludedPaths) assert.equal(discovery.getNavigableSource(filePath), undefined);
@@ -170,5 +173,3 @@ describe('findImplementationsInProjectService', () => {
     }]);
   });
 });
-
-after(() => GraphAdapter.clearProjectServices());

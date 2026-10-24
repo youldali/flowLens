@@ -54,6 +54,10 @@
     "./adapter/graph-adapter": {
       "types": "./dist/src/adapters/graph-adapter.d.ts",
       "default": "./dist/src/adapters/graph-adapter.js"
+    },
+    "./infrastructure/repository-analysis-context": {
+      "types": "./dist/src/infrastructure/repository-analysis-context.d.ts",
+      "default": "./dist/src/infrastructure/repository-analysis-context.js"
     }
   },
   "dependencies": {

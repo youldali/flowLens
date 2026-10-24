@@ -7,16 +7,16 @@ import { ScriptTarget } from 'typescript-native/ast';
 import { ProjectServiceRegistry } from './project-service-registry.js';
 
 describe('ProjectServiceRegistry', () => {
-  const registry = ProjectServiceRegistry.getInstance();
+  let registry: ProjectServiceRegistry;
   let root: string;
   let config: string;
 
   beforeEach(async () => {
-    await registry.clear();
     root = await mkdtemp(path.join(os.tmpdir(), 'flowlens-native-registry-'));
     await cp(path.resolve('src/fixtures/workspace'), root, { recursive: true });
     await mkdir(path.join(root, '.git'));
     config = path.join(root, 'core/tsconfig.json');
+    registry = new ProjectServiceRegistry(root);
   });
 
   afterEach(async () => {
@@ -27,7 +27,7 @@ describe('ProjectServiceRegistry', () => {
   it('shares native sessions and preserves configuration, aliases, and unbuilt references', async () => {
     const [selected, duplicate] = await Promise.all([registry.getService(config), registry.getService(config)]);
     assert.equal(selected, duplicate);
-    const services = await registry.getProjectServices(config);
+    const services = await registry.getProjectServices();
     assert.equal(services.length, 2);
     assert.equal(services[0], selected);
     const sibling = services[1]!;
@@ -41,11 +41,11 @@ describe('ProjectServiceRegistry', () => {
     assert.ok(await sibling.program.getSourceFile(adapterPath));
     assert.ok(await sibling.program.getSourceFile(path.join(root, 'core/src/ports.ts')));
     assert.deepEqual(await sibling.program.getSemanticDiagnostics(), []);
-    assert.deepEqual(await registry.getProjectServices(config), services);
+    assert.deepEqual(await registry.getProjectServices(), services);
   });
 
   it('loads custom configurations after discovery and honors extends', async () => {
-    await registry.getProjectServices(config);
+    await registry.getProjectServices();
     const custom = path.join(root, 'custom/project.json');
     await mkdir(path.dirname(custom));
     await writeFile(path.join(root, 'custom/base.json'), JSON.stringify({ compilerOptions: { strict: true, target: 'ES2022' } }));
@@ -56,7 +56,7 @@ describe('ProjectServiceRegistry', () => {
     assert.equal(service.program.getCompilerOptions().target, ScriptTarget.ES2022);
     assert.ok(await service.program.getSourceFile(path.join(root, 'custom/entry.ts')));
     assert.equal(await registry.getService(path.relative(process.cwd(), custom)), service);
-    assert.ok((await registry.getProjectServices(config)).includes(service));
+    assert.ok((await registry.getProjectServices()).includes(service));
   });
 
   it('isolates workspaces and disposes snapshots and servers once when cleared', async t => {
@@ -65,15 +65,19 @@ describe('ProjectServiceRegistry', () => {
     await cp(path.resolve('src/fixtures/workspace'), other, { recursive: true });
     await mkdir(path.join(other, '.git'));
     const selected = await registry.getService(config);
-    const second = await registry.getService(path.join(other, 'core/tsconfig.json'));
+    const otherRegistry = new ProjectServiceRegistry(other);
+    t.after(() => otherRegistry.clear());
+    const second = await otherRegistry.getService(path.join(other, 'core/tsconfig.json'));
+    await assert.rejects(registry.getService(path.join(other, 'core/tsconfig.json')), /outside repository/);
     assert.notEqual(selected.server, second.server);
-    assert.equal((await registry.getProjectServices(config)).length, 2);
+    assert.equal((await registry.getProjectServices()).length, 2);
     const dispose = t.mock.method(selected.server, 'dispose');
     await registry.clear();
     await registry.clear();
     assert.equal(dispose.mock.callCount(), 1);
     assert.equal(selected.snapshot.isDisposed(), true);
-    assert.equal(second.snapshot.isDisposed(), true);
+    assert.equal(second.snapshot.isDisposed(), false);
+    assert.ok(await second.program.getSourceFile(path.join(other, 'core/src/ports.ts')));
     await assert.rejects(selected.server.getSnapshot(), /disposed/);
     const refreshed = await registry.getService(config);
     assert.notEqual(refreshed, selected);
@@ -105,7 +109,7 @@ describe('ProjectServiceRegistry', () => {
     await writeFile(path.join(root, 'custom/entry.ts'), 'export const value = 1;');
     await writeFile(path.join(root, 'generated/tsconfig.json'), JSON.stringify({ files: ['output.ts'] }));
     await writeFile(path.join(root, 'generated/output.ts'), 'export const generated = 1;');
-    const services = await registry.getProjectServices(config);
+    const services = await registry.getProjectServices();
     assert.deepEqual(services.map(service => path.relative(root, service.projectConfig.configPath)), [
       'core/tsconfig.json', 'custom/project.json', 'infrastructure/tsconfig.json',
     ]);
@@ -117,12 +121,12 @@ describe('ProjectServiceRegistry', () => {
     const service = await pending;
     await clearing;
     assert.equal(service.snapshot.isDisposed(), true);
-    await registry.getProjectServices(config);
+    await registry.getProjectServices();
     await mkdir(path.join(root, 'extra'));
     await writeFile(path.join(root, 'extra/tsconfig.json'), JSON.stringify({ files: ['entry.ts'] }));
     await writeFile(path.join(root, 'extra/entry.ts'), 'export const extra = 1;');
-    assert.equal((await registry.getProjectServices(config)).length, 2);
+    assert.equal((await registry.getProjectServices()).length, 2);
     await registry.clear();
-    assert.equal((await registry.getProjectServices(config)).length, 3);
+    assert.equal((await registry.getProjectServices()).length, 3);
   });
 });

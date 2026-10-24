@@ -1,17 +1,21 @@
-import { after } from 'node:test';
 import assert from 'node:assert/strict';
 import * as path from 'node:path';
 import * as fs from 'node:fs';
 import * as os from 'node:os';
 import { describe, it } from 'node:test';
 import { GraphAdapter } from '@flowlens/analyzer-core/adapter/graph-adapter';
+import { RepositoryAnalysisContext } from '@flowlens/analyzer-core/infrastructure/repository-analysis-context';
+import { findWorkspaceRoot } from '@flowlens/common/fs';
 import { assertOk } from '@flowlens/common/testing';
 import { createGraphViewerServer } from './server.js';
 
 describe('createGraphViewerServer', () => {
   it('generates a new graph ID per request while preserving graph contents', async (t) => {
-    const adapter = await GraphAdapter.create(path.resolve('../../packages/analyzer-core/tsconfig.json'));
-    const app = createGraphViewerServer(adapter, path.resolve('../frontend/dist'));
+    const config = path.resolve('../../packages/analyzer-core/tsconfig.json');
+    const context = new RepositoryAnalysisContext(findWorkspaceRoot(config));
+    t.after(() => context.clear());
+    const adapter = await GraphAdapter.create(config, context);
+    const app = createGraphViewerServer(adapter, path.resolve('../frontend/dist'), () => context.clear());
     t.after(() => app.close());
     const first = await app.inject({ method: 'GET', url: '/graph.json' });
     const second = await app.inject({ method: 'GET', url: '/graph.json' });
@@ -32,9 +36,11 @@ describe('createGraphViewerServer', () => {
     t.after(() => fs.rmSync(root, { recursive: true, force: true }));
     fs.cpSync(path.resolve('../../packages/analyzer-core/src/fixtures/workspace'), root, { recursive: true });
     fs.mkdirSync(path.join(root, '.git'));
-    const adapter = await GraphAdapter.create(path.join(root, 'core/tsconfig.json'));
+    const context = new RepositoryAnalysisContext(root);
+    t.after(() => context.clear());
+    const adapter = await GraphAdapter.create(path.join(root, 'core/tsconfig.json'), context);
     assertOk(await adapter.fromFile(path.join(root, 'core/src/use-case.ts')));
-    const app = createGraphViewerServer(adapter, path.resolve('../frontend/dist'));
+    const app = createGraphViewerServer(adapter, path.resolve('../frontend/dist'), () => context.clear());
     t.after(() => app.close());
     const graphResponse = await app.inject({ method: 'GET', url: '/graph.json' });
     assert.equal(graphResponse.statusCode, 200);
@@ -51,14 +57,17 @@ describe('createGraphViewerServer', () => {
     assert.match(response.body, /id="selected" class="selected"/);
   });
 
-  it('serves eager graph metadata and navigable project source while rejecting unknown files', async () => {
-    const adapter = await GraphAdapter.create(path.resolve('../../packages/analyzer-core/tsconfig.json'));
+  it('serves eager graph metadata and navigable project source while rejecting unknown files', async (t) => {
+    const config = path.resolve('../../packages/analyzer-core/tsconfig.json');
+    const context = new RepositoryAnalysisContext(findWorkspaceRoot(config));
+    t.after(() => context.clear());
+    const adapter = await GraphAdapter.create(config, context);
     const filePath = path.resolve('../../packages/analyzer-core/src/fixtures/implementation-entry.ts');
     assertOk(await adapter.fromFile(filePath));
     const member = adapter.extract().nodes.find((node) =>
       node.kind === 'callableTypeMemberDeclaration' && node.name === 'run');
     assert.ok(member);
-    const app = createGraphViewerServer(adapter, path.resolve('../frontend/dist'));
+    const app = createGraphViewerServer(adapter, path.resolve('../frontend/dist'), () => context.clear());
 
     try {
       const graphResponse = await app.inject({ method: 'GET', url: '/graph.json' });
@@ -113,6 +122,38 @@ describe('createGraphViewerServer', () => {
       await app.close();
     }
   });
-});
+  it('closing one viewer leaves another repository available', async t => {
+    const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'flowlens-viewers-'));
+    const contexts = ['first', 'second'].map(name => new RepositoryAnalysisContext(path.join(directory, name)));
+    const apps: ReturnType<typeof createGraphViewerServer>[] = [];
+    t.after(async () => {
+      try {
+        await Promise.all(apps.map(app => app.close()));
+        await Promise.all(contexts.map(context => context.clear()));
+      } finally {
+        fs.rmSync(directory, { recursive: true, force: true });
+      }
+    });
 
-after(() => GraphAdapter.clearProjectServices());
+    for (const context of contexts) {
+      fs.cpSync(path.resolve('../../packages/analyzer-core/src/fixtures/workspace'), context.root, { recursive: true });
+      fs.mkdirSync(path.join(context.root, '.git'));
+      const adapter = await GraphAdapter.create(path.join(context.root, 'core/tsconfig.json'), context);
+      assertOk(await adapter.fromFile(path.join(context.root, 'core/src/use-case.ts')));
+      apps.push(createGraphViewerServer(adapter, path.resolve('../frontend/dist'), () => context.clear()));
+    }
+
+    await Promise.all(apps.map(app => app.ready()));
+    const firstService = await contexts[0]!.nativeRegistry.getService(path.join(contexts[0]!.root, 'core/tsconfig.json'));
+    const secondService = await contexts[1]!.nativeRegistry.getService(path.join(contexts[1]!.root, 'core/tsconfig.json'));
+    await apps[0]!.close();
+    assert.equal(firstService.snapshot.isDisposed(), true);
+    assert.equal(secondService.snapshot.isDisposed(), false);
+    const source = path.join(contexts[1]!.root, 'infrastructure/src/adapter.ts');
+    const response = await apps[1]!.inject({ method: 'GET', url: '/source?filePath=' + encodeURIComponent(source) + '&offset=0' });
+    assert.equal(response.statusCode, 200);
+    assert.match(response.body, /PlainCustomerRepositoryAdapter/);
+    assert.equal((await apps[1]!.inject({ method: 'GET', url: '/graph.json' })).statusCode, 200);
+  });
+
+});

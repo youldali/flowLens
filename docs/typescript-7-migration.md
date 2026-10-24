@@ -100,9 +100,32 @@ discovery/disposal cases were then added; all six native-registry tests passed
 in the targeted rerun. Native tests require local Unix sockets on Linux and
 therefore need to run outside a sandbox that prohibits socket creation.
 
+### Repository-scoped analysis ownership
+
+`RepositoryAnalysisContext(root)` now owns one native `ProjectServiceRegistry`
+and one `LegacyProjectServiceRegistry` for a resolved repository root. Neither
+registry is a singleton. Each discovers only its bound root, and direct
+configuration requests outside that root are rejected. The native registry
+lazily starts one server, retains project snapshots, and serializes operations
+within that repository; different repositories have independent queues.
+
+`GraphAdapter.create(configPath, context)` borrows both registries explicitly.
+Implementation discovery still uses the legacy registry, now supplied by the
+same context. `getProjectServices()` no longer takes a configuration argument.
+The analyzer exports the context at
+`@flowlens/analyzer-core/infrastructure/repository-analysis-context`.
+
+The CLI owns one context and passes its cleanup callback to the viewer server.
+The extension reuses contexts by inferred repository root, tracks active
+analyses, and waits for them before clearing all contexts on deactivation.
+Closing one viewer only clears its repository's resources. Context `clear()`
+attempts both registries' cleanup, reports failures, and is reusable: subsequent
+analysis can recreate resources, but callers must stop using earlier adapters.
+Automatic edit refresh and cache eviction are not part of this change.
+
 ### Native graph construction (migration step 2)
 
-`GraphAdapter.create(configPath)`, `fromFile`, and `fromFilePosition` are
+`GraphAdapter.create(configPath, context)`, `fromFile`, and `fromFilePosition` are
 asynchronous. The CLI and extension await them. Graph extraction remains
 synchronous and produces plain domain records; no native AST, symbol, or
 signature handles enter the serialized graph. Native source locations,
@@ -167,9 +190,9 @@ legacy implementation is retained until step 3.
 
 ## Checks performed and limits
 
-- Analyzer: 149 tests passed, including the native registry and graph adapters.
-- Server: all 3 tests passed with asynchronous native graph construction.
-- Extension: all 26 tests passed; type-check and CommonJS bundling passed.
+- Analyzer: 151 tests passed, including repository ownership, native registries, and graph adapters.
+- Server: all 4 tests passed, including cleanup isolation between viewers.
+- Extension: all 28 tests passed; type-check and CommonJS bundling passed.
 - A real graph build from a CommonJS bundle loaded the native compiler and
   resolved a documented function successfully.
 - Real-compiler assertions cover aliases, re-exports, default imports, imported

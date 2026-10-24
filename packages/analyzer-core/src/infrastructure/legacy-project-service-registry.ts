@@ -1,7 +1,7 @@
 import * as path from 'node:path';
 import * as ts from 'typescript';
 import { loadProjectConfig, type ConfigPath, type ProjectConfig } from './project-config.js';
-import { findWorkspaceRoot } from '@flowlens/common/fs';
+import { isWithinDirectory } from '@flowlens/common/fs';
 import { discoverWorkspaceProjects } from './workspace-projects.js';
 
 export interface ProjectService {
@@ -11,39 +11,51 @@ export interface ProjectService {
 }
 
 export class LegacyProjectServiceRegistry {
-  private static readonly instance = new LegacyProjectServiceRegistry();
+  readonly root: string;
   private readonly projectServices = new Map<ConfigPath, ProjectService>();
-  private readonly discoveredWorkspaces = new Set<string>();
+  private discovered = false;
 
-  private constructor() {}
-
-  static getInstance(): LegacyProjectServiceRegistry {
-    return this.instance;
+  constructor(root: string) {
+    this.root = path.resolve(root);
   }
 
   getService(tsconfigPath: string): ProjectService {
     const configPath = path.resolve(tsconfigPath);
+
+    if (!isWithinDirectory(this.root, configPath)) {
+      throw new Error(`Configuration ${configPath} is outside repository ${this.root}`);
+    }
+
     return this.projectServices.getOrInsertComputed(configPath, () => createProjectService(loadProjectConfig(configPath)));
   }
 
-  *getProjectServices(tsconfigPath: string): Generator<ProjectService> {
-    const workspaceRoot = findWorkspaceRoot(path.resolve(tsconfigPath));
-    this.discoverProjectServices(workspaceRoot);
+  *getProjectServices(): Generator<ProjectService> {
+    this.discoverProjectServices();
     yield* [...this.projectServices.values()]
-      .filter(service => findWorkspaceRoot(service.projectConfig.configPath) === workspaceRoot)
       .sort((a, b) => a.projectConfig.configPath.localeCompare(b.projectConfig.configPath));
   }
 
   clear(): void {
-    this.projectServices.forEach(service => service.languageService.dispose());
+    const services = [...this.projectServices.values()];
+    const failures: unknown[] = [];
     this.projectServices.clear();
-    this.discoveredWorkspaces.clear();
+    this.discovered = false;
+
+    for (const service of services) {
+      try {
+        service.languageService.dispose();
+      } catch (error) {
+        failures.push(error);
+      }
+    }
+
+    if (failures.length) throw new AggregateError(failures, `Failed to clear legacy project registry for ${this.root}`);
   }
 
-  private discoverProjectServices(workspaceRoot: string): void {
-    if (this.discoveredWorkspaces.has(workspaceRoot)) return;
-    discoverWorkspaceProjects(workspaceRoot).forEach(config => this.resolveService(config));
-    this.discoveredWorkspaces.add(workspaceRoot);
+  private discoverProjectServices(): void {
+    if (this.discovered) return;
+    discoverWorkspaceProjects(this.root).forEach(config => this.resolveService(config));
+    this.discovered = true;
   }
 
   private resolveService(config: ProjectConfig): ProjectService | undefined {

@@ -5,7 +5,7 @@ import { identity } from '@flowlens/common/utils';
 import { normalizePath } from '@flowlens/common/fs';
 import { isNavigable } from './source-navigation.js';
 import type { ImplementationEntry } from '../domain/implementation.js';
-import { LegacyProjectServiceRegistry, type ProjectService } from './legacy-project-service-registry.js';
+import type { LegacyProjectServiceRegistry, ProjectService } from './legacy-project-service-registry.js';
 
 export function findImplementationsInProjectService(
   projectService: ProjectService,
@@ -36,10 +36,9 @@ export function findImplementationsInProjectService(
 
 export class ImplementationDiscovery {
   private readonly tsconfigPath: string;
-  private readonly projectServiceRegistry = LegacyProjectServiceRegistry.getInstance();
   private readonly implementationsFound = new Map<string, ImplementationEntry[]>();
 
-  constructor(tsconfigPath: string) {
+  constructor(tsconfigPath: string, private readonly projectServiceRegistry: LegacyProjectServiceRegistry) {
     this.tsconfigPath = path.resolve(tsconfigPath);
   }
 
@@ -57,7 +56,7 @@ export class ImplementationDiscovery {
   }
 
   getNavigableSource(filePath: string): ts.SourceFile | undefined {
-    for (const { program } of this.projectServiceRegistry.getProjectServices(this.tsconfigPath)) {
+    for (const { program } of this.projectServiceRegistry.getProjectServices()) {
       const source = program.getSourceFile(path.resolve(filePath));
       if (source && isNavigable(this.tsconfigPath, source)) return source;
     }
@@ -70,7 +69,7 @@ export class ImplementationDiscovery {
   ): ImplementationEntry[] {
     const implementationEntries = new Map<string, ImplementationEntry>();
 
-    for (const projectService of this.projectServiceRegistry.getProjectServices(this.tsconfigPath)) {
+    for (const projectService of this.projectServiceRegistry.getProjectServices()) {
       const { program } = projectService;
 
       if (!program.getSourceFile(typeDeclarationFileName)) continue;

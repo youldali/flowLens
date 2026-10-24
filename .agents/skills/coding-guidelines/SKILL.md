@@ -39,6 +39,11 @@ function findImplementations(): Result<ImplementationEntry[], 'not-found'> {
 }
 ```
 
+## Variable Naming
+
+- Prefer explicit, unambiguous variable names that describe the value's domain and purpose.
+- Avoid generic names such as `context`, `data`, or `service` when a more specific name makes their role clearer. For example, prefer `repositoryAnalysisContext` over `context` for a `RepositoryAnalysisContext` instance.
+
 ## Function Naming
 
 - Generally start function names with a verb that describes their action, such as `fetch`, `get`, `generate`, `verify`, or `check`.

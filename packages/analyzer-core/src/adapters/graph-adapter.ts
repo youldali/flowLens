@@ -7,7 +7,8 @@ import { Queue } from '@flowlens/common/queue';
 import * as NodeModule from '../domain/node.js';
 import * as TsNodeModule from './ts-node/index.js';
 import * as EdgeModule from '../domain/edge.js';
-import { ProjectServiceRegistry, type ProjectService } from '../infrastructure/project-service-registry.js';
+import type { ProjectService } from '../infrastructure/project-service-registry.js';
+import type { RepositoryAnalysisContext } from '../infrastructure/repository-analysis-context.js';
 import { ImplementationDiscovery } from '../infrastructure/implementation-discovery.js';
 
 import type { FlowGraph } from '../domain/flow-graph.js';
@@ -36,19 +37,15 @@ export class GraphAdapter {
   private readonly implementationDiscovery: ImplementationDiscovery;
   private readonly nodeAdapter: NodeAdapter;
 
-  static async create(tsconfigPath: string): Promise<GraphAdapter> {
-    const projectService = await ProjectServiceRegistry.getInstance().getService(tsconfigPath);
-    return new GraphAdapter(tsconfigPath, projectService);
+  static async create(tsconfigPath: string, context: RepositoryAnalysisContext): Promise<GraphAdapter> {
+    const projectService = await context.nativeRegistry.getService(tsconfigPath);
+    return new GraphAdapter(tsconfigPath, projectService, context);
   }
 
-  static async clearProjectServices(): Promise<void> {
-    await ProjectServiceRegistry.getInstance().clear();
-  }
-
-  private constructor(tsconfigPath: string, projectService: ProjectService) {
+  private constructor(tsconfigPath: string, projectService: ProjectService, context: RepositoryAnalysisContext) {
     this.rootDir = path.dirname(projectService.projectConfig.configPath)
     this.program = projectService.program;
-    this.implementationDiscovery = new ImplementationDiscovery(tsconfigPath);
+    this.implementationDiscovery = new ImplementationDiscovery(tsconfigPath, context.legacyRegistry);
     this.nodeAdapter = new NodeAdapter(projectService.project.checker, this.program, this.implementationDiscovery, this.rootDir);
   }
 

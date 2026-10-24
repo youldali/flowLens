@@ -8,16 +8,16 @@ import { ImplementationDiscovery } from './implementation-discovery.js';
 import { LegacyProjectServiceRegistry, type ProjectService } from './legacy-project-service-registry.js';
 
 describe('LegacyProjectServiceRegistry', () => {
-  const registry = LegacyProjectServiceRegistry.getInstance();
+  let registry: LegacyProjectServiceRegistry;
   let root: string;
   let selected: ProjectService;
   let adapterPath: string;
 
   beforeEach(() => {
-    registry.clear();
     root = fs.mkdtempSync(path.join(os.tmpdir(), 'flowlens-registry-'));
     fs.cpSync(path.resolve('src/fixtures/workspace'), root, { recursive: true });
     fs.mkdirSync(path.join(root, '.git'));
+    registry = new LegacyProjectServiceRegistry(root);
     selected = registry.getService(path.join(root, 'core/tsconfig.json'));
     adapterPath = path.join(root, 'infrastructure/src/adapter.ts');
   });
@@ -28,11 +28,10 @@ describe('LegacyProjectServiceRegistry', () => {
   });
 
   it('lazily discovers and shares services across implementation discovery instances', (t) => {
-    assert.equal(LegacyProjectServiceRegistry.getInstance(), registry);
     const readDirectory = t.mock.method(ts.sys, 'readDirectory');
-    const first = new ImplementationDiscovery(selected.projectConfig.configPath);
-    const second = new ImplementationDiscovery(selected.projectConfig.configPath);
-    const pending = registry.getProjectServices(selected.projectConfig.configPath);
+    const first = new ImplementationDiscovery(selected.projectConfig.configPath, registry);
+    const second = new ImplementationDiscovery(selected.projectConfig.configPath, registry);
+    const pending = registry.getProjectServices();
     assert.equal(readDirectory.mock.callCount(), 0);
     assert.ok(first.getNavigableSource(adapterPath));
     const projectServices = [...pending];
@@ -46,58 +45,61 @@ describe('LegacyProjectServiceRegistry', () => {
     assert.equal(first.getNavigableSource(adapterPath), sibling.program.getSourceFile(adapterPath));
     assert.equal(second.getNavigableSource(adapterPath), first.getNavigableSource(adapterPath));
     const reads = readDirectory.mock.callCount();
-    assert.equal([...registry.getProjectServices(selected.projectConfig.configPath)][1], sibling);
+    assert.equal([...registry.getProjectServices()][1], sibling);
     assert.equal(readDirectory.mock.callCount(), reads);
   });
 
   it('shares selected and discovered services and isolates workspaces', (t) => {
-    const sibling = [...registry.getProjectServices(selected.projectConfig.configPath)][1]!;
+    const sibling = [...registry.getProjectServices()][1]!;
     const selectedSibling = registry.getService(sibling.projectConfig.configPath);
     assert.equal(selectedSibling, sibling);
-    const siblingServices = [...registry.getProjectServices(selected.projectConfig.configPath)];
+    const siblingServices = [...registry.getProjectServices()];
     assert.equal(siblingServices[1], selectedSibling);
     assert.equal(siblingServices[0], selected);
-    assert.equal([...registry.getProjectServices(selected.projectConfig.configPath)][0], selected);
-    assert.equal([...registry.getProjectServices(selected.projectConfig.configPath)][1], sibling);
+    assert.equal([...registry.getProjectServices()][0], selected);
+    assert.equal([...registry.getProjectServices()][1], sibling);
 
     const otherRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'flowlens-registry-other-'));
     t.after(() => fs.rmSync(otherRoot, { recursive: true, force: true }));
     fs.cpSync(path.resolve('src/fixtures/workspace'), otherRoot, { recursive: true });
     fs.mkdirSync(path.join(otherRoot, '.git'));
-    const other = registry.getService(path.join(otherRoot, 'core/tsconfig.json'));
-    assert.equal(new ImplementationDiscovery(other.projectConfig.configPath).getNavigableSource(adapterPath), undefined);
-    const otherServices = [...registry.getProjectServices(other.projectConfig.configPath)];
+    const otherRegistry = new LegacyProjectServiceRegistry(otherRoot);
+    t.after(() => otherRegistry.clear());
+    assert.throws(() => registry.getService(path.join(otherRoot, 'core/tsconfig.json')), /outside repository/);
+    const other = otherRegistry.getService(path.join(otherRoot, 'core/tsconfig.json'));
+    assert.equal(new ImplementationDiscovery(other.projectConfig.configPath, otherRegistry).getNavigableSource(adapterPath), undefined);
+    const otherServices = [...otherRegistry.getProjectServices()];
     assert.equal(otherServices.length, 2);
     assert.ok(otherServices.every(service => service.projectConfig.configPath.startsWith(otherRoot + path.sep)));
     assert.notEqual(otherServices[1], sibling);
   });
 
   it('includes explicitly selected custom configs after workspace discovery', () => {
-    assert.equal([...registry.getProjectServices(selected.projectConfig.configPath)].length, 2);
+    assert.equal([...registry.getProjectServices()].length, 2);
     const configPath = path.join(root, 'custom/project.json');
     fs.mkdirSync(path.dirname(configPath));
     fs.writeFileSync(configPath, JSON.stringify({ files: ['index.ts'] }));
     fs.writeFileSync(path.join(root, 'custom/index.ts'), 'export const value = 1;');
     const custom = registry.getService(configPath);
     assert.equal(registry.getService(path.relative(process.cwd(), configPath)), custom);
-    assert.ok([...registry.getProjectServices(selected.projectConfig.configPath)].includes(custom));
-    assert.equal([...registry.getProjectServices(selected.projectConfig.configPath)].length, 3);
+    assert.ok([...registry.getProjectServices()].includes(custom));
+    assert.equal([...registry.getProjectServices()].length, 3);
   });
 
   it('clears discovered workspaces and disposes all services', (t) => {
-    const sibling = [...registry.getProjectServices(selected.projectConfig.configPath)][1]!;
+    const sibling = [...registry.getProjectServices()][1]!;
     const ownedDispose = t.mock.method(sibling.languageService, 'dispose');
     const selectedDispose = t.mock.method(selected.languageService, 'dispose');
     const extraDirectory = path.join(root, 'extra');
     fs.mkdirSync(extraDirectory);
     fs.writeFileSync(path.join(extraDirectory, 'tsconfig.json'), JSON.stringify({ files: ['index.ts'] }));
     fs.writeFileSync(path.join(extraDirectory, 'index.ts'), 'export const value = 1;');
-    assert.equal([...registry.getProjectServices(selected.projectConfig.configPath)].length, 2);
+    assert.equal([...registry.getProjectServices()].length, 2);
     registry.clear();
     registry.clear();
     assert.equal(ownedDispose.mock.callCount(), 1);
     assert.equal(selectedDispose.mock.callCount(), 1);
-    const refreshed = [...registry.getProjectServices(selected.projectConfig.configPath)];
+    const refreshed = [...registry.getProjectServices()];
     assert.equal(refreshed.length, 3);
     assert.ok(refreshed.every(service => service !== sibling && service !== selected));
     assert.ok(refreshed.some(service => service.program.getSourceFile(path.join(extraDirectory, 'index.ts'))));
@@ -115,7 +117,7 @@ describe('LegacyProjectServiceRegistry', () => {
       return originalReadFile(fileName, encoding);
     });
     assert.throws(
-      () => [...registry.getProjectServices(selected.projectConfig.configPath)],
+      () => [...registry.getProjectServices()],
       (error: unknown) => {
         assert.ok(error instanceof Error);
         assert.equal(error.message, `FlowLens: failed to create project service for ${path.join(root, 'infrastructure/tsconfig.json')}`);
@@ -125,7 +127,7 @@ describe('LegacyProjectServiceRegistry', () => {
     );
     assert.equal(failures, 1);
     readFile.mock.restore();
-    const services = [...registry.getProjectServices(selected.projectConfig.configPath)];
+    const services = [...registry.getProjectServices()];
     assert.equal(services.length, 2);
     assert.equal(services[0], selected);
     assert.ok(services[1]!.program.getSourceFile(adapterPath));

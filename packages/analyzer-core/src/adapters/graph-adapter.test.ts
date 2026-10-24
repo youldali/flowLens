@@ -1,5 +1,6 @@
 import legacyTs from 'typescript';
-import { LegacyProjectServiceRegistry } from '../infrastructure/legacy-project-service-registry.js';
+import { RepositoryAnalysisContext } from '../infrastructure/repository-analysis-context.js';
+import { findWorkspaceRoot } from '@flowlens/common/fs';
 import { after } from 'node:test';
 import assert from 'node:assert/strict';
 import * as fs from 'node:fs';
@@ -20,7 +21,8 @@ import { GraphAdapter } from './graph-adapter.js';
 const tsconfigPath = path.resolve("tsconfig.json");
 const entryFilePath = path.resolve("src/fixtures/graph-builder-entry.ts");
 
-const createGraphAdapter = async (): Promise<GraphAdapter> => await GraphAdapter.create(tsconfigPath);
+const context = new RepositoryAnalysisContext(findWorkspaceRoot(tsconfigPath));
+const createGraphAdapter = async (): Promise<GraphAdapter> => await GraphAdapter.create(tsconfigPath, context);
 
 const createClosureNamingTestContext = async () => {
   const sourceText = fs.readFileSync(entryFilePath, "utf8");
@@ -89,7 +91,7 @@ describe("GraphAdapter.extract implementations", () => {
       kind: legacyTs.ScriptElementKind.memberFunctionElement,
       displayParts: [],
     };
-    const languageService = LegacyProjectServiceRegistry.getInstance().getService(tsconfigPath).languageService;
+    const languageService = context.legacyRegistry.getService(tsconfigPath).languageService;
     languageService.getImplementationAtPosition = () => [
       location,
       location,
@@ -447,7 +449,7 @@ describe('GraphAdapter native semantic resolution', () => {
   it('resolves imports, aliases, arrows, methods and nested functions to exact declarations', async () => {
     const root = path.resolve('src/fixtures/native-resolution');
     const entry = path.join(root, 'entry.ts');
-    const adapter = await GraphAdapter.create(path.join(root, 'tsconfig.json'));
+    const adapter = await GraphAdapter.create(path.join(root, 'tsconfig.json'), context);
     assertOk(await adapter.fromFile(entry));
     const graph = adapter.extract();
     const calls = graph.nodes.filter(isCallExpressionNode);
@@ -485,4 +487,4 @@ describe('GraphAdapter native semantic resolution', () => {
   });
 });
 
-after(() => GraphAdapter.clearProjectServices());
+after(() => context.clear());

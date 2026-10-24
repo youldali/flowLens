@@ -15,21 +15,21 @@ const sourceQuerySchema = z.object({
     .pipe(z.number().int().nonnegative()),
 });
 
-export async function serveGraphViewer(graphAdapter: GraphAdapter): Promise<void> {
+export async function serveGraphViewer(graphAdapter: GraphAdapter, cleanup: () => Promise<void>): Promise<void> {
   const frontendDistPath = findFrontendDist();
 
   if (!frontendDistPath) {
     throw new Error('Could not find apps/frontend/dist. Run `pnpm --filter frontend build` before starting the graph viewer.');
   }
 
-  const app = createGraphViewerServer(graphAdapter, frontendDistPath);
+  const app = createGraphViewerServer(graphAdapter, frontendDistPath, cleanup);
   const address = await app.listen({ host: '127.0.0.1', port: 0 });
   console.log(`FlowLens graph viewer: ${address}/`);
 }
 
-export function createGraphViewerServer(graphAdapter: GraphAdapter, frontendDistPath: string) {
+export function createGraphViewerServer(graphAdapter: GraphAdapter, frontendDistPath: string, cleanup: () => Promise<void>) {
   const app = Fastify();
-  app.addHook('onClose', () => GraphAdapter.clearProjectServices());
+  app.addHook('onClose', cleanup);
 
   app.get('/graph.json', async (_request, reply) => {
     return reply

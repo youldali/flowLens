@@ -1,19 +1,23 @@
 import * as path from "node:path";
 import * as vscode from "vscode";
 
-import { GraphAdapter } from "@flowlens/analyzer-core/adapter/graph-adapter";
-import { findNearestTsconfig } from "@flowlens/common/fs";
-
 import { FlowLensGraphWebview } from "@infrastructure/webview.js";
 import { getAIProvider } from '@infrastructure/configuration.js';
 import { registerAIKeyCommands } from '@infrastructure/ai-key-commands.js';
 import { createExplainFunction } from '@infrastructure/explain-function.js';
 import { createAIKeyStorage } from '@infrastructure/ai-key-storage.js';
 import { AiKeyService } from '@services/ai-key-service.js';
+import { RepositoryAnalysisService } from '@services/repository-analysis-service.js';
+
+let repositoryAnalysisService: RepositoryAnalysisService | undefined;
 
 const supportedLanguageIds = new Set(["typescript", "typescriptreact"]);
 
 export function activate(context: vscode.ExtensionContext): void {
+  if (repositoryAnalysisService) throw new Error('FlowLens is already active or shutting down');
+
+  const activeRepositoryAnalysisService = new RepositoryAnalysisService();
+  repositoryAnalysisService = activeRepositoryAnalysisService;
   const keyStorage = createAIKeyStorage(context.secrets);
   const aiKeyService = new AiKeyService(keyStorage);
   const explainFunction = createExplainFunction(provider => aiKeyService.getAiApiKey(provider), getAIProvider);
@@ -52,26 +56,18 @@ export function activate(context: vscode.ExtensionContext): void {
       },
       async () => {
         try {
-          const tsconfigPathResult = findNearestTsconfig(path.dirname(filePath));
+          const graphResult = await activeRepositoryAnalysisService.analyze(filePath, offset);
 
-          if (tsconfigPathResult.isErr()) {
-            const message = `FlowLens: Could not find tsconfig.json at or above ${path.dirname(filePath)}.`;
+          if (graphResult.isErr()) {
+            const message = graphResult.error.reason === 'tsconfig-not-found'
+              ? `FlowLens: Could not find tsconfig.json at or above ${path.dirname(filePath)}.`
+              : `FlowLens: Could not generate graph (${graphResult.error.reason}).`;
             console.error(message, payload);
             vscode.window.showErrorMessage(message);
             return;
           }
 
-          const graphAdapter = await GraphAdapter.create(tsconfigPathResult.value);
-          const buildResult = await graphAdapter.fromFilePosition(filePath, offset);
-
-          if (buildResult.isErr()) {
-            const message = `FlowLens: Could not generate graph (${buildResult.error.reason}).`;
-            console.error(message, payload);
-            vscode.window.showErrorMessage(message);
-            return;
-          }
-
-          const graph = graphAdapter.extract();
+          const graph = graphResult.value;
 
           console.log("FlowLens generated graph", { ...payload, graph });
           await graphWebview.showGraph(graph);
@@ -91,7 +87,12 @@ export function activate(context: vscode.ExtensionContext): void {
 }
 
 export async function deactivate(): Promise<void> {
-  await GraphAdapter.clearProjectServices();
+  const activeRepositoryAnalysisService = repositoryAnalysisService;
+  await activeRepositoryAnalysisService?.dispose();
+
+  if (repositoryAnalysisService === activeRepositoryAnalysisService) {
+    repositoryAnalysisService = undefined;
+  }
 }
 
 function getErrorMessage(error: unknown): string {
