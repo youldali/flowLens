@@ -1,9 +1,11 @@
-import legacyTs from 'typescript';
-import { RepositoryAnalysisContext } from '../infrastructure/repository-analysis-context.js';
+import { pathToFileURL } from 'node:url';
+import { TypeScriptCompilationRegistry } from '#infrastructure/typescript-compilation-registry';
 import { findWorkspaceRoot } from '@flowlens/common/fs';
 import { after } from 'node:test';
 import assert from 'node:assert/strict';
 import * as fs from 'node:fs';
+import { cp, mkdir, mkdtemp, rm } from 'node:fs/promises';
+import * as os from 'node:os';
 import * as path from 'node:path';
 import { before, describe, it } from 'node:test';
 import * as ts from '../fixtures/native-compiler.js';
@@ -21,8 +23,8 @@ import { GraphAdapter } from './graph-adapter.js';
 const tsconfigPath = path.resolve("tsconfig.json");
 const entryFilePath = path.resolve("src/fixtures/graph-builder-entry.ts");
 
-const context = new RepositoryAnalysisContext(findWorkspaceRoot(tsconfigPath));
-const createGraphAdapter = async (): Promise<GraphAdapter> => await GraphAdapter.create(tsconfigPath, context);
+const compilationRegistry = new TypeScriptCompilationRegistry(findWorkspaceRoot(tsconfigPath));
+const createGraphAdapter = async (): Promise<GraphAdapter> => await GraphAdapter.create(tsconfigPath, compilationRegistry);
 
 const createClosureNamingTestContext = async () => {
   const sourceText = fs.readFileSync(entryFilePath, "utf8");
@@ -80,34 +82,32 @@ describe("GraphAdapter.extract implementations", () => {
     }
   });
 
-  it("deduplicates eager results and skips locations without navigable source", async () => {
+  it("deduplicates eager results and skips locations without navigable source", async t => {
     const adapter = await createGraphAdapter();
     const filePath = path.resolve("src/fixtures/implementation-entry.ts");
     const source = fs.readFileSync(filePath, "utf8");
     const offset = source.indexOf("run(): number", source.indexOf("class ClassRunner"));
-    const location: legacyTs.ImplementationLocation = {
-      fileName: filePath,
-      textSpan: { start: offset, length: 3 },
-      kind: legacyTs.ScriptElementKind.memberFunctionElement,
-      displayParts: [],
+    const coordinates = ts.createSourceFile(filePath, source).getLineAndCharacterOfPosition(offset);
+    const location = {
+      uri: pathToFileURL(filePath).href,
+      range: { start: coordinates, end: { ...coordinates, character: coordinates.character + 3 } },
     };
-    const languageService = context.legacyRegistry.getService(tsconfigPath).languageService;
-    languageService.getImplementationAtPosition = () => [
-      location,
-      location,
-      { ...location, fileName: path.resolve("src/fixtures/missing.ts") },
-    ];
+    const server = await compilationRegistry.getServer();
+    t.mock.method(server, 'findImplementations', async () => [
+      location, location,
+      { ...location, uri: pathToFileURL(path.resolve("src/fixtures/missing.ts")).href },
+    ]);
 
     assertOk(await adapter.fromFile(filePath));
     const run = adapter.extract().nodes.filter(isCallableTypeMemberDeclarationNode)
       .find((node) => node.name === "run");
     assert.ok(run?.kind === "callableTypeMemberDeclaration");
     assert.deepEqual(run.implementations.map((entry) => entry.name), ["run"]);
-    const sourceResult = adapter.getNavigableSource(filePath);
+    const sourceResult = await adapter.getNavigableSource(filePath);
     assertOk(sourceResult);
     assert.equal(sourceResult.value, source);
 
-    const missingSourceResult = adapter.getNavigableSource(path.resolve("src/fixtures/missing.ts"));
+    const missingSourceResult = await adapter.getNavigableSource(path.resolve("src/fixtures/missing.ts"));
     assertErr(missingSourceResult);
     assert.deepEqual(missingSourceResult.error, { reason: 'source-file-not-found' });
   });
@@ -176,14 +176,14 @@ describe("GraphAdapter.fromFile", () => {
 
 describe("GraphAdapter.fromFilePosition", () => {
   describe("anonymous function labels and identity", () => {
-    let context: Awaited<ReturnType<typeof createClosureNamingTestContext>>;
+    let compilationRegistry: Awaited<ReturnType<typeof createClosureNamingTestContext>>;
 
     before(async () => {
-      context = await createClosureNamingTestContext();
+      compilationRegistry = await createClosureNamingTestContext();
     });
 
     it("keeps function nodes stable between full and focused graphs", async () => {
-      const { focusedGraph, fullFunctionNodes, functionIds } = context;
+      const { focusedGraph, fullFunctionNodes, functionIds } = compilationRegistry;
       const focusedFunctionNodes = functionIds.map((id) =>
         focusedGraph.nodes.find((node) => node.id === id));
 
@@ -199,7 +199,7 @@ describe("GraphAdapter.fromFilePosition", () => {
     });
 
     it("keeps focused graph edge identities stable", async () => {
-      const { focusedGraph, fullGraph, functionIds } = context;
+      const { focusedGraph, fullGraph, functionIds } = compilationRegistry;
       const fullEdgeIds = new Set(fullGraph.edges.map((edge) => edge.id));
       const focusedInternalEdges = focusedGraph.edges.filter((edge) => edge.target !== functionIds[0]);
 
@@ -207,7 +207,7 @@ describe("GraphAdapter.fromFilePosition", () => {
     });
 
     it("keeps collapse results stable when display labels are absent", async () => {
-      const { focusedGraph } = context;
+      const { focusedGraph } = compilationRegistry;
       const collapsedGraph = collapseResolvedCallExpressionNodes(focusedGraph);
       const legacyGraph = {
         ...focusedGraph,
@@ -223,7 +223,7 @@ describe("GraphAdapter.fromFilePosition", () => {
     });
 
     it("preserves the IIFE label and relationships after collapsing calls", async () => {
-      const { focusedGraph, functionIds } = context;
+      const { focusedGraph, functionIds } = compilationRegistry;
       const collapsedGraph = collapseResolvedCallExpressionNodes(focusedGraph);
       const flowId = functionIds[0];
       const iifeId = functionIds.at(-1);
@@ -239,7 +239,7 @@ describe("GraphAdapter.fromFilePosition", () => {
     });
 
     it("keeps function identity when entering through the nested IIFE", async () => {
-      const { functions, fullFunctionNodes, functionIds } = context;
+      const { functions, fullFunctionNodes, functionIds } = compilationRegistry;
       const iife = functions.at(-1);
       const iifeId = functionIds.at(-1);
       assert.ok(iife);
@@ -449,7 +449,7 @@ describe('GraphAdapter native semantic resolution', () => {
   it('resolves imports, aliases, arrows, methods and nested functions to exact declarations', async () => {
     const root = path.resolve('src/fixtures/native-resolution');
     const entry = path.join(root, 'entry.ts');
-    const adapter = await GraphAdapter.create(path.join(root, 'tsconfig.json'), context);
+    const adapter = await GraphAdapter.create(path.join(root, 'tsconfig.json'), compilationRegistry);
     assertOk(await adapter.fromFile(entry));
     const graph = adapter.extract();
     const calls = graph.nodes.filter(isCallExpressionNode);
@@ -487,4 +487,47 @@ describe('GraphAdapter native semantic resolution', () => {
   });
 });
 
-after(() => context.clear());
+after(() => compilationRegistry.clear());
+
+describe('GraphAdapter repository isolation', () => {
+  it('isolates graph analysis, implementations, and cleanup between repositories', async t => {
+    const directory = await mkdtemp(path.join(os.tmpdir(), 'flowlens-registries-'));
+    const compilationRegistries = ['first', 'second'].map(name => new TypeScriptCompilationRegistry(path.join(directory, name)));
+    t.after(async () => {
+      try {
+        await Promise.all(compilationRegistries.map(compilationRegistry => compilationRegistry.clear()));
+      } finally {
+        await rm(directory, { recursive: true, force: true });
+      }
+    });
+
+    for (const compilationRegistry of compilationRegistries) {
+      await cp(path.resolve('src/fixtures/workspace'), compilationRegistry.root, { recursive: true });
+      await mkdir(path.join(compilationRegistry.root, '.git'));
+    }
+
+    const [first, second] = compilationRegistries as [TypeScriptCompilationRegistry, TypeScriptCompilationRegistry];
+    const analyze = async (compilationRegistry: TypeScriptCompilationRegistry) => {
+      const adapter = await GraphAdapter.create(path.join(compilationRegistry.root, 'core/tsconfig.json'), compilationRegistry);
+      assertOk(await adapter.fromFile(path.join(compilationRegistry.root, 'core/src/use-case.ts')));
+      const implementations = adapter.extract().nodes.filter(isCallableTypeMemberDeclarationNode).flatMap(node => node.implementations);
+      assert.equal(implementations.length, 1);
+      assert.equal(implementations[0]!.filePath, path.join(compilationRegistry.root, 'infrastructure/src/adapter.ts'));
+      assertOk(await adapter.getNavigableSource(implementations[0]!.filePath));
+      return adapter;
+    };
+    await Promise.all(compilationRegistries.map(analyze));
+    const firstCompilation = await first.getCompilation(path.join(first.root, 'core/tsconfig.json'));
+    const secondCompilation = await second.getCompilation(path.join(second.root, 'core/tsconfig.json'));
+    const firstServer = await first.getServer();
+    assert.notEqual(firstServer, await second.getServer());
+    await first.clear();
+    await first.clear();
+    assert.equal(firstCompilation.snapshot.isDisposed(), true);
+    assert.equal(secondCompilation.snapshot.isDisposed(), false);
+    await analyze(second);
+    await analyze(first);
+    assert.notEqual(await first.getServer(), firstServer);
+  });
+
+});

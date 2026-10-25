@@ -1,4 +1,4 @@
-import { RepositoryAnalysisContext } from '@flowlens/analyzer-core/infrastructure/repository-analysis-context';
+import { TypeScriptCompilationRegistry } from '@flowlens/analyzer-core/infrastructure/typescript-compilation-registry';
 import * as path from 'node:path';
 import { GraphAdapter, type FromFilePositionError } from '@flowlens/analyzer-core/adapter/graph-adapter';
 import type { FlowGraph } from '@flowlens/analyzer-core/domain/flow-graph';
@@ -8,9 +8,9 @@ import { err, ok, type Result } from 'neverthrow';
 type RepositoryRoot = string;
 export type AnalysisError = FromFilePositionError | { reason: 'tsconfig-not-found' };
 
-/** Reuses repository contexts and waits for their borrowers before shutdown. */
+/** Reuses repository compilation registries and waits for their borrowers before shutdown. */
 export class RepositoryAnalysisService {
-  private readonly contexts = new Map<RepositoryRoot, RepositoryAnalysisContext>();
+  private readonly compilationRegistries = new Map<RepositoryRoot, TypeScriptCompilationRegistry>();
   private readonly activeAnalyses = new Set<Promise<Result<FlowGraph, AnalysisError>>>();
   private closing: Promise<void> | undefined;
 
@@ -22,10 +22,10 @@ export class RepositoryAnalysisService {
     if (tsconfigPathResult.isErr()) return err({ reason: 'tsconfig-not-found' });
 
     const repositoryRoot = findWorkspaceRoot(tsconfigPathResult.value);
-    const repositoryAnalysisContext = this.contexts.get(repositoryRoot) ?? new RepositoryAnalysisContext(repositoryRoot);
-    this.contexts.set(repositoryRoot, repositoryAnalysisContext);
+    const compilationRegistry = this.compilationRegistries.get(repositoryRoot) ?? new TypeScriptCompilationRegistry(repositoryRoot);
+    this.compilationRegistries.set(repositoryRoot, compilationRegistry);
     const analysisPromise = Promise.resolve().then(async () => {
-      const graphAdapter = await GraphAdapter.create(tsconfigPathResult.value, repositoryAnalysisContext);
+      const graphAdapter = await GraphAdapter.create(tsconfigPathResult.value, compilationRegistry);
       const buildResult = await graphAdapter.fromFilePosition(resolvedFilePath, offset);
 
       return buildResult.isErr() ? err(buildResult.error) : ok(graphAdapter.extract());
@@ -47,11 +47,11 @@ export class RepositoryAnalysisService {
   private async close(): Promise<void> {
     // Analysis failures remain visible to their callers; all borrowers must finish.
     await Promise.allSettled([...this.activeAnalyses]);
-    const contexts = [...this.contexts.values()];
-    this.contexts.clear();
-    const results = await Promise.allSettled(contexts.map(context => context.clear()));
+    const compilationRegistries = [...this.compilationRegistries.values()];
+    this.compilationRegistries.clear();
+    const results = await Promise.allSettled(compilationRegistries.map(compilationRegistry => compilationRegistry.clear()));
     const failures = results.filter(result => result.status === 'rejected');
 
-    if (failures.length) throw new AggregateError(failures.map(result => result.reason), 'Failed to clear repository analysis contexts');
+    if (failures.length) throw new AggregateError(failures.map(result => result.reason), 'Failed to clear repository compilation registries');
   }
 }

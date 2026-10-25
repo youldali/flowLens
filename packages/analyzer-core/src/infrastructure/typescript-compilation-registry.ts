@@ -4,9 +4,9 @@ import type { ParsedCommandLine, Program, Project, Snapshot } from 'typescript-n
 import { excludedDirectories, findTsConfigPaths, isWithinDirectory } from '@flowlens/common/fs';
 import { NativeLanguageServer } from './native-language-server.js';
 
-export interface ProjectService {
+/** Compiler resources for one resolved TypeScript configuration. */
+export interface TypeScriptCompilationContext {
   projectConfig: { configPath: string; parsed: ParsedCommandLine };
-  server: NativeLanguageServer;
   snapshot: Snapshot;
   project: Project;
   program: Program;
@@ -15,10 +15,10 @@ export interface ProjectService {
 type ConfigPath = string;
 
 /** Owns one repository's native server and immutable snapshots until clear(). */
-export class ProjectServiceRegistry {
+export class TypeScriptCompilationRegistry {
   readonly root: string;
   private server: NativeLanguageServer | undefined;
-  private readonly services = new Map<ConfigPath, ProjectService>();
+  private readonly compilations = new Map<ConfigPath, TypeScriptCompilationContext>();
   private discovered = false;
   private pending: Promise<void> = Promise.resolve();
 
@@ -26,7 +26,11 @@ export class ProjectServiceRegistry {
     this.root = path.resolve(root);
   }
 
-  getService(tsconfigPath: string): Promise<ProjectService> {
+  getServer(): Promise<NativeLanguageServer> {
+    return this.serialize(() => this.loadServer());
+  }
+
+  getCompilation(tsconfigPath: string): Promise<TypeScriptCompilationContext> {
     return this.serialize(() => {
       const configPath = path.resolve(tsconfigPath);
 
@@ -34,34 +38,35 @@ export class ProjectServiceRegistry {
         throw new Error(`Configuration ${configPath} is outside repository ${this.root}`);
       }
 
-      return this.loadService(configPath);
+      return this.loadCompilation(configPath);
     });
   }
 
-  getProjectServices(): Promise<readonly ProjectService[]> {
+  getCompilations(): Promise<readonly TypeScriptCompilationContext[]> {
     return this.serialize(async () => {
       if (!this.discovered) {
-        const configs = await this.discoverConfigs(this.root, await this.getServer());
+        const configs = await this.discoverConfigs(this.root, await this.loadServer());
 
         for (const config of configs) {
-          if (config.parsed.fileNames.length) await this.loadService(config.configPath, config.parsed);
+          if (config.parsed.fileNames.length) await this.loadCompilation(config.configPath, config.parsed);
         }
 
         this.discovered = true;
       }
 
-      return [...this.services.values()].sort((a, b) => a.projectConfig.configPath.localeCompare(b.projectConfig.configPath));
+      return [...this.compilations.values()].sort((a, b) => a.projectConfig.configPath.localeCompare(b.projectConfig.configPath));
     });
   }
 
+  /** Call after analyses finish; existing adapters must not be reused afterward. */
   clear(): Promise<void> {
     return this.serialize(async () => {
-      const services = [...this.services.values()];
+      const compilations = [...this.compilations.values()];
       const server = this.server;
-      this.services.clear();
+      this.compilations.clear();
       this.server = undefined;
       this.discovered = false;
-      const results = await Promise.allSettled(services.map(service => service.snapshot.dispose()));
+      const results = await Promise.allSettled(compilations.map(compilationContext => compilationContext.snapshot.dispose()));
       const failures: unknown[] = results.filter(result => result.status === 'rejected').map(result => result.reason);
 
       try {
@@ -70,37 +75,37 @@ export class ProjectServiceRegistry {
         failures.push(error);
       }
 
-      if (failures.length) throw new AggregateError(failures, `Failed to clear native project registry for ${this.root}`);
+      if (failures.length) throw new AggregateError(failures, `Failed to clear TypeScript compilation registry for ${this.root}`);
     });
   }
 
-  private async getServer(): Promise<NativeLanguageServer> {
+  private async loadServer(): Promise<NativeLanguageServer> {
     this.server ??= await NativeLanguageServer.create(this.root);
     return this.server;
   }
 
-  private async loadService(configPath: string, parsed?: ParsedCommandLine): Promise<ProjectService> {
-    const existing = this.services.get(configPath);
+  private async loadCompilation(configPath: string, parsed?: ParsedCommandLine): Promise<TypeScriptCompilationContext> {
+    const existing = this.compilations.get(configPath);
     if (existing) return existing;
     let snapshot: Snapshot | undefined;
 
     try {
-      const server = await this.getServer();
+      const server = await this.loadServer();
       const config = parsed ?? await server.parseConfig(configPath);
       snapshot = await server.getSnapshot({ openProjects: [configPath], ensurePrograms: true });
       const project = snapshot.getConfiguredProject(configPath);
       if (!project) throw new Error(`Native compiler did not load configured project ${configPath}`);
-      const service = { projectConfig: { configPath, parsed: config }, server, snapshot, project, program: project.program };
-      this.services.set(configPath, service);
-      return service;
+      const compilationContext = { projectConfig: { configPath, parsed: config }, snapshot, project, program: project.program };
+      this.compilations.set(configPath, compilationContext);
+      return compilationContext;
     } catch (error) {
       await snapshot?.dispose();
-      throw new Error(`FlowLens: failed to create native project service for ${configPath}`, { cause: error });
+      throw new Error(`FlowLens: failed to create native compilation context for ${configPath}`, { cause: error });
     }
   }
 
   private async discoverConfigs(root: string, server: NativeLanguageServer) {
-    const configs: ProjectService['projectConfig'][] = [];
+    const configs: TypeScriptCompilationContext['projectConfig'][] = [];
     const candidates = findTsConfigPaths(root);
     const visited = new Set<ConfigPath>();
     const outputDirectories = new Set<string>();

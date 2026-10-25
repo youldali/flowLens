@@ -7,8 +7,7 @@ import { Queue } from '@flowlens/common/queue';
 import * as NodeModule from '../domain/node.js';
 import * as TsNodeModule from './ts-node/index.js';
 import * as EdgeModule from '../domain/edge.js';
-import type { ProjectService } from '../infrastructure/project-service-registry.js';
-import type { RepositoryAnalysisContext } from '../infrastructure/repository-analysis-context.js';
+import type { TypeScriptCompilationContext, TypeScriptCompilationRegistry } from '#infrastructure/typescript-compilation-registry';
 import { ImplementationDiscovery } from '../infrastructure/implementation-discovery.js';
 
 import type { FlowGraph } from '../domain/flow-graph.js';
@@ -37,16 +36,16 @@ export class GraphAdapter {
   private readonly implementationDiscovery: ImplementationDiscovery;
   private readonly nodeAdapter: NodeAdapter;
 
-  static async create(tsconfigPath: string, context: RepositoryAnalysisContext): Promise<GraphAdapter> {
-    const projectService = await context.nativeRegistry.getService(tsconfigPath);
-    return new GraphAdapter(tsconfigPath, projectService, context);
+  static async create(tsconfigPath: string, compilationRegistry: TypeScriptCompilationRegistry): Promise<GraphAdapter> {
+    const compilationContext = await compilationRegistry.getCompilation(tsconfigPath);
+    return new GraphAdapter(tsconfigPath, compilationContext, compilationRegistry);
   }
 
-  private constructor(tsconfigPath: string, projectService: ProjectService, context: RepositoryAnalysisContext) {
-    this.rootDir = path.dirname(projectService.projectConfig.configPath)
-    this.program = projectService.program;
-    this.implementationDiscovery = new ImplementationDiscovery(tsconfigPath, context.legacyRegistry);
-    this.nodeAdapter = new NodeAdapter(projectService.project.checker, this.program, this.implementationDiscovery, this.rootDir);
+  private constructor(tsconfigPath: string, compilationContext: TypeScriptCompilationContext, compilationRegistry: TypeScriptCompilationRegistry) {
+    this.rootDir = path.dirname(compilationContext.projectConfig.configPath)
+    this.program = compilationContext.program;
+    this.implementationDiscovery = new ImplementationDiscovery(tsconfigPath, compilationRegistry);
+    this.nodeAdapter = new NodeAdapter(compilationContext.project.checker, this.program, this.implementationDiscovery, this.rootDir);
   }
 
   async fromFile(entryFilePath: string): Promise<Result<void, SourceFileNotFoundError>> {
@@ -218,8 +217,8 @@ export class GraphAdapter {
     }
   }
 
-  getNavigableSource(filePath: string): Result<string, SourceFileNotFoundError> {
-    const sourceFile = this.implementationDiscovery.getNavigableSource(filePath);
+  async getNavigableSource(filePath: string): Promise<Result<string, SourceFileNotFoundError>> {
+    const sourceFile = await this.implementationDiscovery.getNavigableSource(filePath);
     return sourceFile ? ok(sourceFile.text) : err({ reason: 'source-file-not-found' });
   }
 }

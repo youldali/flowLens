@@ -15,7 +15,7 @@ const createNodeAdapter = (
   checker: ts.TypeChecker = createTypeChecker(),
   program: ts.Program = createProgram(),
 ): NodeAdapter => {
-  return new NodeAdapter(checker, program, { findImplementations: () => [] });
+  return new NodeAdapter(checker, program, { findImplementations: async () => [] });
 };
 
 describe("NodeAdapter", () => {

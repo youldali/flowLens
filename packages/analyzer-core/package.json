@@ -55,16 +55,29 @@
       "types": "./dist/src/adapters/graph-adapter.d.ts",
       "default": "./dist/src/adapters/graph-adapter.js"
     },
-    "./infrastructure/repository-analysis-context": {
-      "types": "./dist/src/infrastructure/repository-analysis-context.d.ts",
-      "default": "./dist/src/infrastructure/repository-analysis-context.js"
+    "./infrastructure/typescript-compilation-registry": {
+      "types": "./dist/src/infrastructure/typescript-compilation-registry.d.ts",
+      "default": "./dist/src/infrastructure/typescript-compilation-registry.js"
+    }
+  },
+  "imports": {
+    "#infrastructure/*": {
+      "development": "./src/infrastructure/*.ts",
+      "default": "./dist/src/infrastructure/*.js"
+    },
+    "#fixtures/*": {
+      "development": "./src/fixtures/*.ts",
+      "default": "./dist/src/fixtures/*.js"
+    },
+    "#domain/*": {
+      "development": "./src/domain/*.ts",
+      "default": "./dist/src/domain/*.js"
     }
   },
   "dependencies": {
     "@flowlens/common": "workspace:*",
     "@flowlens/test-utils": "workspace:*",
     "neverthrow": "^8.2.0",
-    "typescript": "^6.0.3",
     "typescript-native": "npm:typescript@7.1.0-beta",
     "vscode-jsonrpc": "8.2.1",
     "zod": "^4.1.13"

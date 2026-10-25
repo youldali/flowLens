@@ -48,7 +48,7 @@ export function createGraphViewerServer(graphAdapter: GraphAdapter, frontendDist
     }
 
     const { filePath, offset } = queryResult.data;
-    const sourceResult = graphAdapter.getNavigableSource(filePath);
+    const sourceResult = await graphAdapter.getNavigableSource(filePath);
 
     if (sourceResult.isErr()) {
       return reply.code(404).send({ reason: 'source-not-found' });

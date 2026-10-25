@@ -79,7 +79,7 @@ export class NodeAdapter {
       fileName: path.basename(sourceFile.fileName),
       kind: 'callableTypeMemberDeclaration',
       sourceOrigin: await this.getSourceFileOrigin(sourceFile),
-      implementations: this.implementationDiscovery.findImplementations(sourceFile.fileName, node.name.getStart(sourceFile)),
+      implementations: await this.implementationDiscovery.findImplementations(sourceFile.fileName, node.name.getStart(sourceFile)),
       ...(jsdoc ? { jsdoc } : {}),
     };
     this.callableTypeMemberNodesCache.set(id, graphNode);

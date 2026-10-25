@@ -5,13 +5,7 @@ import { pathToFileURL } from 'node:url';
 import { createMessageConnection, StreamMessageReader, StreamMessageWriter, type MessageConnection } from 'vscode-jsonrpc/node.js';
 import type { API, LanguageServerSnapshotChanges } from 'typescript-native/async';
 
-export interface ImplementationLocation {
-  uri: string;
-  range: {
-    start: { line: number; character: number };
-    end: { line: number; character: number };
-  };
-}
+import type { ImplementationLocation } from '#domain/implementation';
 
 /** Owns one native server and its compiler API connection, sharing document state. */
 export class NativeLanguageServer {

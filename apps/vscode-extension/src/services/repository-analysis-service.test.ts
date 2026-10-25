@@ -4,7 +4,7 @@ import * as os from 'node:os';
 import * as path from 'node:path';
 import { afterEach, beforeEach, describe, it } from 'node:test';
 import { GraphAdapter } from '@flowlens/analyzer-core/adapter/graph-adapter';
-import { RepositoryAnalysisContext } from '@flowlens/analyzer-core/infrastructure/repository-analysis-context';
+import { TypeScriptCompilationRegistry } from '@flowlens/analyzer-core/infrastructure/typescript-compilation-registry';
 import { assertErr, assertOk } from '@flowlens/common/testing';
 import { RepositoryAnalysisService } from './repository-analysis-service.js';
 
@@ -25,7 +25,7 @@ describe('RepositoryAnalysisService', () => {
 
   afterEach(() => rm(directory, { recursive: true, force: true }));
 
-  it('builds function graphs, reuses repository contexts, and isolates repositories', async t => {
+  it('builds function graphs, reuses repository compilation registries, and isolates repositories', async t => {
     const repositoryAnalysisService = new RepositoryAnalysisService();
     t.after(() => repositoryAnalysisService.dispose());
     const createGraphAdapter = t.mock.method(GraphAdapter, 'create');
@@ -45,10 +45,10 @@ describe('RepositoryAnalysisService', () => {
     }
 
     assertOk(await repositoryAnalysisService.analyze(firstFilePath, 20));
-    const contexts = createGraphAdapter.mock.calls.map(call => call.arguments[1]);
-    assert.equal(contexts[0], contexts[1]);
-    assert.equal(contexts[0], contexts[3]);
-    assert.notEqual(contexts[0], contexts[2]);
+    const compilationRegistries = createGraphAdapter.mock.calls.map(call => call.arguments[1]);
+    assert.equal(compilationRegistries[0], compilationRegistries[1]);
+    assert.equal(compilationRegistries[0], compilationRegistries[3]);
+    assert.notEqual(compilationRegistries[0], compilationRegistries[2]);
     const missingNode = await repositoryAnalysisService.analyze(firstFilePath, 1_000_000);
     assertErr(missingNode);
     assert.equal(missingNode.error.reason, 'node-not-found');
@@ -80,7 +80,7 @@ describe('RepositoryAnalysisService', () => {
       await analysisGate.promise;
       throw compilerError;
     });
-    t.mock.method(RepositoryAnalysisContext.prototype, 'clear', async function (this: RepositoryAnalysisContext) {
+    t.mock.method(TypeScriptCompilationRegistry.prototype, 'clear', async function (this: TypeScriptCompilationRegistry) {
       clearedRoots.push(this.root);
       if (this.root === repositoryRoots[0]) throw cleanupError;
     });

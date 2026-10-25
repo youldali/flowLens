@@ -15,6 +15,11 @@ Use these project style preferences when editing FlowLens code.
 - Use `@domain/...`, `@infrastructure/...`, and `@common/...` instead of relative paths such as `../domain/...` or `../../common/...`, including in re-exports.
 - Keep aliases local to the package and ensure its TypeScript and build/runtime tooling resolve them correctly.
 
+## Shared Generic Functions
+
+- Before writing a generic helper or inline callback, check `packages/common/src` for an existing reusable function, especially `packages/common/src/utils.ts`.
+- Reuse those functions through the package exports. For example, import `identity` from `@flowlens/common/utils` instead of writing `value => value`.
+
 ## Error Handling
 
 Follow a Rust-inspired distinction between failures that prevent correct operation and expected outcomes.

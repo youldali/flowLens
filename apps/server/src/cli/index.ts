@@ -2,7 +2,7 @@
 import * as path from 'node:path';
 
 import { GraphAdapter } from '@flowlens/analyzer-core/adapter/graph-adapter';
-import { RepositoryAnalysisContext } from '@flowlens/analyzer-core/infrastructure/repository-analysis-context';
+import { TypeScriptCompilationRegistry } from '@flowlens/analyzer-core/infrastructure/typescript-compilation-registry';
 import { findNearestTsconfig, findWorkspaceRoot } from '@flowlens/common/fs';
 import { serveGraphViewer } from './server.js';
 
@@ -25,10 +25,10 @@ if (args.length !== 1) {
     throw new Error(`Could not find tsconfig.json at or above ${path.dirname(entryFilePath)}`);
   }
 
-  const repositoryAnalysisContext = new RepositoryAnalysisContext(findWorkspaceRoot(tsconfigPathResult.value));
+  const compilationRegistry = new TypeScriptCompilationRegistry(findWorkspaceRoot(tsconfigPathResult.value));
 
   try {
-    const graphAdapter = await GraphAdapter.create(tsconfigPathResult.value, repositoryAnalysisContext);
+    const graphAdapter = await GraphAdapter.create(tsconfigPathResult.value, compilationRegistry);
 
     const buildResult = await graphAdapter.fromFile(entryFilePath);
 
@@ -39,10 +39,10 @@ if (args.length !== 1) {
     const graph = graphAdapter.extract();
     console.log(graph);
 
-    await serveGraphViewer(graphAdapter, () => repositoryAnalysisContext.clear());
+    await serveGraphViewer(graphAdapter, () => compilationRegistry.clear());
   } catch (error) {
     try {
-      await repositoryAnalysisContext.clear();
+      await compilationRegistry.clear();
     } catch (cleanupError) {
       throw new AggregateError([error, cleanupError], 'Graph viewer startup and repository cleanup failed');
     }

@@ -1,6 +1,5 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
-import ts from 'typescript';
 
 import { findNodeInGraphById, isEmpty, isFlowGraph } from './flow-graph.js';
 import { create as createEdge } from '../fixtures/edge.js';

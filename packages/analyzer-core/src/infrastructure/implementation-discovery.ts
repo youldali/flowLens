@@ -1,98 +1,74 @@
 import * as path from 'node:path';
-import type * as ts from 'typescript';
+import { fileURLToPath } from 'node:url';
+import type { SourceFile } from 'typescript-native/ast';
 import { err, ok, type Result } from 'neverthrow';
-import { identity } from '@flowlens/common/utils';
 import { normalizePath } from '@flowlens/common/fs';
+import { identity } from '@flowlens/common/utils';
 import { isNavigable } from './source-navigation.js';
-import type { ImplementationEntry } from '../domain/implementation.js';
-import type { LegacyProjectServiceRegistry, ProjectService } from './legacy-project-service-registry.js';
+import { buildImplementation, type ImplementationEntry } from '#domain/implementation';
+import type { TypeScriptCompilationRegistry, TypeScriptCompilationContext } from './typescript-compilation-registry.js';
 
-export function findImplementationsInProjectService(
-  projectService: ProjectService,
-  typeDeclarationFileName: string,
-  position: number,
-): ImplementationEntry[] {
-  const { languageService, program } = projectService;
-  const implementationEntries: ImplementationEntry[] = [];
-
-  for (const location of languageService.getImplementationAtPosition(typeDeclarationFileName, position) ?? []) {
-    const source = program.getSourceFile(location.fileName);
-    if (!source) continue;
-    const filePath = normalizePath(source.fileName);
-    const { start, length } = location.textSpan;
-    const coordinates = source.getLineAndCharacterOfPosition(start);
-
-    implementationEntries.push({
-      name: source.text.slice(start, start + length) || path.basename(filePath),
-      filePath,
-      line: coordinates.line + 1,
-      column: coordinates.character + 1,
-      offset: start,
-    });
-  }
-
-  return implementationEntries;
-}
+type DeclarationLocation = string;
 
 export class ImplementationDiscovery {
   private readonly tsconfigPath: string;
-  private readonly implementationsFound = new Map<string, ImplementationEntry[]>();
+  private readonly implementationsFound = new Map<DeclarationLocation, ImplementationEntry[]>();
 
-  constructor(tsconfigPath: string, private readonly projectServiceRegistry: LegacyProjectServiceRegistry) {
+  constructor(tsconfigPath: string, private readonly compilationRegistry: TypeScriptCompilationRegistry) {
     this.tsconfigPath = path.resolve(tsconfigPath);
   }
 
-  findImplementations(fileName: string, position: number): ImplementationEntry[] {
-    return this.findImplementationsFromCache(fileName, position)
-      .match(
-        identity,
-        () => {
-          const result = this.findImplementationsFromProjectServices(fileName, position);
+  async findImplementations(fileName: string, position: number): Promise<ImplementationEntry[]> {
+    const filePath = path.resolve(fileName);
+    const cacheKey = `${normalizePath(filePath)}:${position}`;
 
-          this.implementationsFound.set(this.buildCacheKey(fileName, position), result);
-          return result;
-        },
-      );
+    return this.findImplementationsInCache(cacheKey).match(
+      identity,
+      () => this.searchImplementations(filePath, position, cacheKey),
+    );
   }
 
-  getNavigableSource(filePath: string): ts.SourceFile | undefined {
-    for (const { program } of this.projectServiceRegistry.getProjectServices()) {
-      const source = program.getSourceFile(path.resolve(filePath));
-      if (source && isNavigable(this.tsconfigPath, source)) return source;
-    }
-    return undefined;
+  async getNavigableSource(filePath: string): Promise<SourceFile | undefined> {
+    const compilations = await this.compilationRegistry.getCompilations();
+    const source = await findSource(compilations, path.resolve(filePath));
+    return source && isNavigable(this.tsconfigPath, source) ? source : undefined;
   }
 
-  private findImplementationsFromProjectServices(
-    typeDeclarationFileName: string,
-    position: number,
-  ): ImplementationEntry[] {
-    const implementationEntries = new Map<string, ImplementationEntry>();
-
-    for (const projectService of this.projectServiceRegistry.getProjectServices()) {
-      const { program } = projectService;
-
-      if (!program.getSourceFile(typeDeclarationFileName)) continue;
-
-      for (const implementationEntry of findImplementationsInProjectService(projectService, typeDeclarationFileName, position)) {
-        const { filePath, offset } = implementationEntry;
-        const source = program.getSourceFile(filePath);
-
-        if (!source || !isNavigable(this.tsconfigPath, source)) continue;
-        implementationEntries.set(`${filePath}:${offset}`, implementationEntry);
-      }
-    }
-
-    return [...implementationEntries.values()].sort((a, b) => a.filePath.localeCompare(b.filePath) || a.offset - b.offset || a.name.localeCompare(b.name));
-  }
-
-  private buildCacheKey(fileName: string, position: number): string {
-    return `${normalizePath(fileName)}:${position}`;
-  }
-
-  private findImplementationsFromCache(fileName: string, position: number): Result<ImplementationEntry[], 'not-found'> {
-    const cacheKey = this.buildCacheKey(fileName, position);
+  private findImplementationsInCache(cacheKey: DeclarationLocation): Result<ImplementationEntry[], 'cache-miss'> {
     const cached = this.implementationsFound.get(cacheKey);
-    return cached ? ok(cached) : err('not-found');
+
+    return cached === undefined ? err('cache-miss') : ok(cached);
   }
+
+  private async searchImplementations(filePath: string, position: number, cacheKey: DeclarationLocation): Promise<ImplementationEntry[]> {
+    // Loading every workspace project makes sibling implementations visible to LSP.
+    const compilationContexts = await this.compilationRegistry.getCompilations();
+    const source = await findSource(compilationContexts, filePath);
+    if (!source) return [];
+    const coordinates = source.getLineAndCharacterOfPosition(position);
+    const server = await this.compilationRegistry.getServer();
+    const locations = await server.findImplementations(filePath, coordinates.line, coordinates.character);
+    const entries = new Map<string, ImplementationEntry>();
+
+    for (const location of locations) {
+      const implementationSource = await findSource(compilationContexts, fileURLToPath(location.uri));
+      if (!implementationSource || !isNavigable(this.tsconfigPath, implementationSource)) continue;
+      const implementation = buildImplementation(implementationSource, location);
+
+      entries.set(`${implementation.filePath}:${implementation.offset}`, implementation);
+    }
+
+    const result = [...entries.values()].sort((a, b) => a.filePath.localeCompare(b.filePath) || a.offset - b.offset || a.name.localeCompare(b.name));
+    this.implementationsFound.set(cacheKey, result);
+    return result;
+  }
+}
+
+async function findSource(compilations: readonly TypeScriptCompilationContext[], filePath: string): Promise<SourceFile | undefined> {
+  for (const { program } of compilations) {
+    const source = await program.getSourceFile(filePath);
+    if (source) return source;
+  }
+
+  return undefined;
 }
