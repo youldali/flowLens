@@ -1,3 +1,4 @@
+import type { FilePath } from '@flowlens/common/fs';
 import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process';
 import { createRequire } from 'node:module';
 import * as path from 'node:path';
@@ -7,16 +8,18 @@ import type { API, LanguageServerSnapshotChanges } from 'typescript-native/async
 
 import type { ImplementationLocation } from '#domain/implementation';
 
+export class InvalidTypeScriptConfigError extends Error {}
+
 /** Owns one native server and its compiler API connection, sharing document state. */
 export class NativeLanguageServer {
   private readonly child: ChildProcessWithoutNullStreams;
   private readonly connection: MessageConnection;
-  private readonly versions = new Map<string, number>();
   private api: API<true> | undefined;
   private closed = false;
+  private disposal: Promise<void> | undefined;
   private stderr = '';
 
-  private constructor(root: string) {
+  private constructor(root: FilePath) {
     const resolvePackage = createRequire(import.meta.url);
     const require = createRequire(resolvePackage.resolve('typescript-native/package.json'));
     const platformPackage = require.resolve(`@typescript/typescript-${process.platform}-${process.arch}/package.json`);
@@ -34,7 +37,7 @@ export class NativeLanguageServer {
     this.connection.listen();
   }
 
-  static async create(root: string): Promise<NativeLanguageServer> {
+  static async create(root: FilePath): Promise<NativeLanguageServer> {
     const { API } = await import('typescript-native/async');
     const server = new NativeLanguageServer(root);
 
@@ -56,40 +59,21 @@ export class NativeLanguageServer {
     }
   }
 
-  async updateFile(file: string, text: string): Promise<void> {
-    this.ensureOpen();
-    const uri = pathToFileURL(file).href;
-    const previous = this.versions.get(uri);
-    const version = (previous ?? 0) + 1;
-
-    if (previous === undefined) {
-      await this.connection.sendNotification('textDocument/didOpen', {
-        textDocument: { uri, languageId: file.endsWith('.tsx') ? 'typescriptreact' : 'typescript', version, text },
-      });
-    } else {
-      await this.connection.sendNotification('textDocument/didChange', {
-        textDocument: { uri, version }, contentChanges: [{ text }],
-      });
-    }
-
-    this.versions.set(uri, version);
-  }
-
-  async findImplementations(file: string, line: number, character: number): Promise<ImplementationLocation[]> {
+  async findImplementations(file: FilePath, line: number, character: number): Promise<ImplementationLocation[]> {
     const locations = await this.request<ImplementationLocation[] | null>('textDocument/implementation', {
       textDocument: { uri: pathToFileURL(file).href }, position: { line, character },
     });
     return locations ?? [];
   }
 
-  async parseConfig(file: string) {
+  async parseConfig(file: FilePath) {
     this.ensureOpen();
     if (!this.api) throw new Error('Native TypeScript API is not initialized');
     const parsed = await this.api.parseConfigFile(file);
     const errors = parsed.errors.filter(error => error.code !== 18003);
     if (errors.length) {
       const { formatDiagnostics } = await import('typescript-native/async');
-      throw new Error(formatDiagnostics(errors, this.api));
+      throw new InvalidTypeScriptConfigError(formatDiagnostics(errors, this.api));
     }
     return parsed;
   }
@@ -100,8 +84,12 @@ export class NativeLanguageServer {
     return this.api.getCurrentLanguageServerSnapshot(changes);
   }
 
-  async dispose(): Promise<void> {
-    if (this.closed) return;
+  dispose(): Promise<void> {
+    this.disposal ??= this.close();
+    return this.disposal;
+  }
+
+  private async close(): Promise<void> {
 
     try {
       await this.api?.close();
@@ -115,7 +103,7 @@ export class NativeLanguageServer {
   }
 
   private async request<T>(method: string, params?: object): Promise<T> {
-    this.ensureOpen();
+    if (method !== 'shutdown') this.ensureOpen();
     let timer: ReturnType<typeof setTimeout> | undefined;
 
     try {
@@ -133,6 +121,6 @@ export class NativeLanguageServer {
   }
 
   private ensureOpen(): void {
-    if (this.closed) throw new Error('Native TypeScript server is disposed');
+    if (this.closed || this.disposal) throw new Error('Native TypeScript server is disposed');
   }
 }

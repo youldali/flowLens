@@ -1,7 +1,6 @@
 import classNames from 'classnames'
 import { useTranslation } from '#common/hooks/useTranslation.ts'
 import { QuerySuspense } from '#common/QuerySuspense.tsx'
-import { openCliSource } from '#code-analysis-context/graph-visualization/apis/openCliSource.ts'
 import { useFetchGraph } from '#code-analysis-context/graph-visualization/apis/fetchGraph.ts'
 import { GraphProvider } from '#code-analysis-context/graph-visualization/context/index.ts'
 import { GraphViewContent } from './GraphViewContent'
@@ -27,7 +26,7 @@ export function FromCli() {
         )}
       >
         {(session) => (
-          <GraphProvider graphId={session.graphId} graph={session.graph} onOpenSource={openCliSource}>
+          <GraphProvider graphId={session.graphId} graph={session.graph}>
             <GraphViewContent />
           </GraphProvider>
         )}

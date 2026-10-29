@@ -1,13 +1,13 @@
 import * as path from 'node:path';
 import * as ts from 'typescript-native/ast';
-import type { Program } from 'typescript-native/async';
+import type { Program, Project } from 'typescript-native/async';
 import { err, ok, type Result } from 'neverthrow';
-import { normalizePath } from '@flowlens/common/fs';
+import { normalizePath, type FilePath } from '@flowlens/common/fs';
 import { Queue } from '@flowlens/common/queue';
 import * as NodeModule from '../domain/node.js';
 import * as TsNodeModule from './ts-node/index.js';
 import * as EdgeModule from '../domain/edge.js';
-import type { TypeScriptCompilationContext, TypeScriptCompilationRegistry } from '#infrastructure/typescript-compilation-registry';
+import type { ProjectNotFoundError, TypeScriptCompilationRegistry } from '#infrastructure/typescript-compilation-registry';
 import { ImplementationDiscovery } from '../infrastructure/implementation-discovery.js';
 
 import type { FlowGraph } from '../domain/flow-graph.js';
@@ -32,23 +32,33 @@ export class GraphAdapter {
   private readonly edges: Map<EdgeModule.EdgeId, EdgeModule.Edge> = new Map()
   private readonly visitedNodes = new Set<ts.Node>();
   private readonly nodeQueue = new Queue<QueueItem>();
-  private readonly rootDir: string;
+  private readonly rootDir: FilePath;
   private readonly implementationDiscovery: ImplementationDiscovery;
   private readonly nodeAdapter: NodeAdapter;
 
-  static async create(tsconfigPath: string, compilationRegistry: TypeScriptCompilationRegistry): Promise<GraphAdapter> {
-    const compilationContext = await compilationRegistry.getCompilation(tsconfigPath);
-    return new GraphAdapter(tsconfigPath, compilationContext, compilationRegistry);
+  static async create(filePath: FilePath, compilationRegistry: TypeScriptCompilationRegistry): Promise<Result<GraphAdapter, ProjectNotFoundError>> {
+    const projectResult = await compilationRegistry.getProjectForFile(filePath);
+    return projectResult.map(project => {
+      if (!project.configFileName) throw new Error(`Configured project for ${filePath} has no configuration path`);
+      return new GraphAdapter(project.configFileName, project, compilationRegistry);
+    });
   }
 
-  private constructor(tsconfigPath: string, compilationContext: TypeScriptCompilationContext, compilationRegistry: TypeScriptCompilationRegistry) {
-    this.rootDir = path.dirname(compilationContext.projectConfig.configPath)
-    this.program = compilationContext.program;
+  private constructor(tsconfigPath: FilePath, project: Project, compilationRegistry: TypeScriptCompilationRegistry) {
+    this.rootDir = path.dirname(path.resolve(tsconfigPath))
+    this.program = project.program;
     this.implementationDiscovery = new ImplementationDiscovery(tsconfigPath, compilationRegistry);
-    this.nodeAdapter = new NodeAdapter(compilationContext.project.checker, this.program, this.implementationDiscovery, this.rootDir);
+    this.nodeAdapter = new NodeAdapter(project.checker, this.program, this.implementationDiscovery, this.rootDir);
   }
 
-  async fromFile(entryFilePath: string): Promise<Result<void, SourceFileNotFoundError>> {
+  async analyze(filePath: FilePath, offset?: number): Promise<Result<FlowGraph, FromFilePositionError>> {
+    const graphBuildResult = offset === undefined ? await this.fromFile(filePath) : await this.fromFilePosition(filePath, offset);
+    if (graphBuildResult.isErr()) return err(graphBuildResult.error);
+
+    return ok(this.extract());
+  }
+
+  async fromFile(entryFilePath: FilePath): Promise<Result<void, SourceFileNotFoundError>> {
     const sourceFileResult = await this.getSourceFileByPath(entryFilePath);
 
     if (sourceFileResult.isErr()) {
@@ -60,7 +70,7 @@ export class GraphAdapter {
   }
 
   async fromFilePosition(
-    sourceFile: { fileName: string } | string,
+    sourceFile: { fileName: FilePath } | FilePath,
     position: number,
   ): Promise<Result<void, FromFilePositionError>> {
     const sourceFileResult = await this.getSourceFileByPath(
@@ -185,7 +195,7 @@ export class GraphAdapter {
     }
   }
   
-  private async getSourceFileByPath(filePath: string): Promise<Result<ts.SourceFile, SourceFileNotFoundError>> {
+  private async getSourceFileByPath(filePath: FilePath): Promise<Result<ts.SourceFile, SourceFileNotFoundError>> {
     const sourceFile = await this.program.getSourceFile(path.resolve(filePath));
 
     return sourceFile ? ok(sourceFile) : err({ reason: 'source-file-not-found' });
@@ -215,10 +225,5 @@ export class GraphAdapter {
       nodes: Array.from(this.nodes.values()),
       edges: Array.from(this.edges.values()),
     }
-  }
-
-  async getNavigableSource(filePath: string): Promise<Result<string, SourceFileNotFoundError>> {
-    const sourceFile = await this.implementationDiscovery.getNavigableSource(filePath);
-    return sourceFile ? ok(sourceFile.text) : err({ reason: 'source-file-not-found' });
   }
 }

@@ -58,6 +58,10 @@
     "./infrastructure/typescript-compilation-registry": {
       "types": "./dist/src/infrastructure/typescript-compilation-registry.d.ts",
       "default": "./dist/src/infrastructure/typescript-compilation-registry.js"
+    },
+    "./services/workspace-analysis-service": {
+      "types": "./dist/src/services/workspace-analysis-service.d.ts",
+      "default": "./dist/src/services/workspace-analysis-service.js"
     }
   },
   "imports": {
@@ -72,6 +76,10 @@
     "#domain/*": {
       "development": "./src/domain/*.ts",
       "default": "./dist/src/domain/*.js"
+    },
+    "#adapters/*": {
+      "development": "./src/adapters/*.ts",
+      "default": "./dist/src/adapters/*.js"
     }
   },
   "dependencies": {

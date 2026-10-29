@@ -4,15 +4,16 @@ Cleanup status and remaining opportunities identified during review of the [Type
 
 ## Completed: remove the temporary repository context
 
-Implementation discovery and source navigation now use the native compiler. Both `LegacyProjectServiceRegistry` and the temporary `RepositoryAnalysisContext` wrapper have been removed.
+Implementation discovery now uses the native compiler. Source navigation is handled by VS Code. Both `LegacyProjectServiceRegistry` and the temporary `RepositoryAnalysisContext` wrapper have been removed.
 
-`TypeScriptCompilationRegistry` directly owns the repository root, shared server, compilation cache, snapshots, and cleanup. `GraphAdapter.create(configPath, compilationRegistry)` borrows it directly. The registry is exported at `@flowlens/analyzer-core/infrastructure/typescript-compilation-registry`; the old context export has been removed.
+`TypeScriptCompilationRegistry.create(root)` creates a registry and native server for one analysis. The registry owns its repository root, compilation cache, snapshots, and cleanup. `GraphAdapter.create(configPath, compilationRegistry)` borrows it directly. The registry is exported at `@flowlens/analyzer-core/infrastructure/typescript-compilation-registry`; the old context export has been removed.
 
-- The CLI owns one registry and passes its cleanup callback to the viewer server.
-- The extension's `RepositoryAnalysisService` reuses registries by repository root, tracks active analyses, and waits for them before clearing resources on shutdown.
-- Repository-isolation coverage now lives in the graph-adapter tests. Server and extension tests also cover independent cleanup, registry reuse, and shutdown ordering.
+- The shared analyzer-core `WorkspaceAnalysisService`, used by the extension and CLI, creates a fresh registry per analysis, loads workspace compilations, runs an instance of `GraphAdapter`, and awaits cleanup before returning.
+- Concurrent requests, including those for the same workspace, use independent registries and native servers. Registry operations are sequenced by their owner, without internal queues.
+- Service shutdown rejects new requests and waits for accepted analyses through cleanup. Analysis and cleanup failures are reported to the analysis caller, with both failures preserved when necessary.
+- Service, registry, server, and extension tests cover fresh resources, repository isolation, terminal cleanup, shutdown ordering, and retained graph revisions.
 
-Call `clear()` only after active analyses finish. Existing adapters must not be reused afterward; the registry can create fresh resources for subsequent analysis.
+Call registry `clear()` only after its analysis finishes. Cleanup is terminal and idempotent; further resource access rejects. Start another analysis with a new registry. Returned `FlowGraph` records remain usable after cleanup; borrowed compiler handles do not.
 
 ## Remove the manual LSP layer if TypeScript exposes implementation discovery
 

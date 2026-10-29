@@ -1,24 +1,25 @@
 import * as path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import type { Project } from 'typescript-native/async';
 import type { SourceFile } from 'typescript-native/ast';
 import { err, ok, type Result } from 'neverthrow';
-import { normalizePath } from '@flowlens/common/fs';
+import { normalizePath, type FilePath } from '@flowlens/common/fs';
 import { identity } from '@flowlens/common/utils';
 import { isNavigable } from './source-navigation.js';
 import { buildImplementation, type ImplementationEntry } from '#domain/implementation';
-import type { TypeScriptCompilationRegistry, TypeScriptCompilationContext } from './typescript-compilation-registry.js';
+import type { TypeScriptCompilationRegistry } from './typescript-compilation-registry.js';
 
 type DeclarationLocation = string;
 
 export class ImplementationDiscovery {
-  private readonly tsconfigPath: string;
+  private readonly tsconfigPath: FilePath;
   private readonly implementationsFound = new Map<DeclarationLocation, ImplementationEntry[]>();
 
-  constructor(tsconfigPath: string, private readonly compilationRegistry: TypeScriptCompilationRegistry) {
+  constructor(tsconfigPath: FilePath, private readonly compilationRegistry: TypeScriptCompilationRegistry) {
     this.tsconfigPath = path.resolve(tsconfigPath);
   }
 
-  async findImplementations(fileName: string, position: number): Promise<ImplementationEntry[]> {
+  async findImplementations(fileName: FilePath, position: number): Promise<ImplementationEntry[]> {
     const filePath = path.resolve(fileName);
     const cacheKey = `${normalizePath(filePath)}:${position}`;
 
@@ -28,22 +29,16 @@ export class ImplementationDiscovery {
     );
   }
 
-  async getNavigableSource(filePath: string): Promise<SourceFile | undefined> {
-    const compilations = await this.compilationRegistry.getCompilations();
-    const source = await findSource(compilations, path.resolve(filePath));
-    return source && isNavigable(this.tsconfigPath, source) ? source : undefined;
-  }
-
   private findImplementationsInCache(cacheKey: DeclarationLocation): Result<ImplementationEntry[], 'cache-miss'> {
     const cached = this.implementationsFound.get(cacheKey);
 
     return cached === undefined ? err('cache-miss') : ok(cached);
   }
 
-  private async searchImplementations(filePath: string, position: number, cacheKey: DeclarationLocation): Promise<ImplementationEntry[]> {
+  private async searchImplementations(filePath: FilePath, position: number, cacheKey: DeclarationLocation): Promise<ImplementationEntry[]> {
     // Loading every workspace project makes sibling implementations visible to LSP.
-    const compilationContexts = await this.compilationRegistry.getCompilations();
-    const source = await findSource(compilationContexts, filePath);
+    const projects = await this.compilationRegistry.getProjects();
+    const source = await findSource(projects, filePath);
     if (!source) return [];
     const coordinates = source.getLineAndCharacterOfPosition(position);
     const server = await this.compilationRegistry.getServer();
@@ -51,7 +46,7 @@ export class ImplementationDiscovery {
     const entries = new Map<string, ImplementationEntry>();
 
     for (const location of locations) {
-      const implementationSource = await findSource(compilationContexts, fileURLToPath(location.uri));
+      const implementationSource = await findSource(projects, fileURLToPath(location.uri));
       if (!implementationSource || !isNavigable(this.tsconfigPath, implementationSource)) continue;
       const implementation = buildImplementation(implementationSource, location);
 
@@ -64,8 +59,8 @@ export class ImplementationDiscovery {
   }
 }
 
-async function findSource(compilations: readonly TypeScriptCompilationContext[], filePath: string): Promise<SourceFile | undefined> {
-  for (const { program } of compilations) {
+async function findSource(projects: readonly Project[], filePath: FilePath): Promise<SourceFile | undefined> {
+  for (const { program } of projects) {
     const source = await program.getSourceFile(filePath);
     if (source) return source;
   }

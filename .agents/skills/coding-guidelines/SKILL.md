@@ -102,23 +102,28 @@ for (const location of locations) {
 return implementationEntries;
 ```
 
-## Variable Declaration Spacing
+## Semantic Grouping and Declaration Spacing
 
-- Keep consecutive single-line variable declarations together, then add a blank line before the subsequent statements that use them.
-- Apply this within function bodies and nested blocks, as in `findImplementationsInProjectService` in `packages/analyzer-core/src/project-service.ts`:
+- Within function bodies and nested blocks, group statements by purpose and separate different concerns with a blank line.
+- Keep related single-line declarations and their immediate validation or error checks together. Do not automatically insert a blank line between declarations and the statements that use them.
+- Separate an unrelated guard, such as a shutdown check, from the lookup and validation that follow it.
+- Keep resource lookup, creation, and registration together, then add a blank line before starting the work that uses that resource. A state update belongs with the setup it completes.
+- Likewise, keep capturing resources and clearing their registry together, then separate disposal with a blank line. Keep disposal results, failure collection, and the immediate error check together.
+- Keep the loop spacing convention above.
 
 ```ts
-const filePath = normalizePath(source.fileName);
-const { start, length } = location.textSpan;
-const coordinates = source.getLineAndCharacterOfPosition(start);
+if (this.closing) throw new Error('Repository analysis service is shutting down');
 
-implementationEntries.push({
-  name: source.text.slice(start, start + length) || path.basename(filePath),
-  filePath,
-  line: coordinates.line + 1,
-  column: coordinates.character + 1,
-  offset: start,
-});
+const resolvedFilePath = path.resolve(filePath);
+const tsconfigPathResult = findNearestTsconfig(path.dirname(resolvedFilePath));
+if (tsconfigPathResult.isErr()) return err({ reason: 'tsconfig-not-found' });
+
+const repositoryRoot = findWorkspaceRoot(tsconfigPathResult.value);
+const compilationRegistry = this.compilationRegistries.get(repositoryRoot) ?? new TypeScriptCompilationRegistry(repositoryRoot);
+this.compilationRegistries.set(repositoryRoot, compilationRegistry);
+
+const analysisPromise = Promise.resolve().then(() =>
+  GraphAdapter.analyze(tsconfigPathResult.value, compilationRegistry, resolvedFilePath, offset));
 ```
 
 ## Map and Set Type Aliases

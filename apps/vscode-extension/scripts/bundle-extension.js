@@ -2,7 +2,7 @@ import * as esbuild from "esbuild";
 
 await esbuild.build({
   bundle: true,
-  entryPoints: ["src/extension.ts"],
+  entryPoints: ["src/extension/index.ts"],
   external: ["vscode", "typescript-native/async"],
   banner: { js: 'const flowlensModuleUrl = require("node:url").pathToFileURL(__filename).href;' },
   define: { 'import.meta.url': 'flowlensModuleUrl' },

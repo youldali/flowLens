@@ -4,7 +4,7 @@ import * as os from 'node:os';
 import * as path from 'node:path';
 import { afterEach, beforeEach, describe, it } from 'node:test';
 
-import { findNearestTsconfig, findTsConfigPaths, findWorkspaceRoot, isWithinDirectory, isWithinWorkspace } from './index.js';
+import { findNearestTsconfig, findTsConfigFiles, findTsConfigReferences, collectWorkspaceTsConfigs, findWorkspaceRoot, isWithinDirectory, isWithinWorkspace } from './index.js';
 import { assertErr, assertOk } from '../testing/index.js';
 
 describe("findNearestTsconfig", () => {
@@ -103,6 +103,26 @@ describe('findWorkspaceRoot', () => {
     assert.equal(findWorkspaceRoot(configPath), nested);
   });
 
+  for (const configName of ['tsconfig.json', 'tsconfig.app.json']) {
+    it(`finds a standalone root from a source file using ${configName}`, () => {
+      const project = path.join(root, 'project');
+      const sourceDirectory = path.join(project, 'src/nested');
+      fs.mkdirSync(sourceDirectory, { recursive: true });
+      fs.writeFileSync(path.join(project, configName), '{}');
+      fs.writeFileSync(path.join(root, 'tsconfig.json'), '{}');
+
+      assert.equal(findWorkspaceRoot(path.join(sourceDirectory, 'entry.ts')), project);
+      fs.mkdirSync(path.join(root, '.git'));
+      assert.equal(findWorkspaceRoot(path.join(sourceDirectory, 'entry.ts')), root);
+    });
+  }
+
+  it('falls back to the source directory when no marker or configuration exists', () => {
+    const sourceDirectory = path.join(root, 'src');
+    fs.mkdirSync(sourceDirectory);
+    assert.equal(findWorkspaceRoot(path.join(sourceDirectory, 'entry.ts')), sourceDirectory);
+  });
+
   it('reports malformed package manifests with their path and cause', () => {
     const manifestPath = path.join(root, 'package.json');
 
@@ -141,7 +161,7 @@ describe('findWorkspaceRoot', () => {
   }
 });
 
-describe('findTsConfigPaths', () => {
+describe('findTsConfigFiles', () => {
   it('finds nested tsconfig variants and skips excluded directories and unrelated files', (t) => {
     const root = fs.mkdtempSync(path.join(os.tmpdir(), 'flowlens-tsconfigs-'));
     t.after(() => fs.rmSync(root, { recursive: true, force: true }));
@@ -161,7 +181,109 @@ describe('findTsConfigPaths', () => {
     });
     fs.mkdirSync(path.join(root, 'empty/tsconfig.json'), { recursive: true });
 
-    assert.deepEqual(findTsConfigPaths(root).sort(), expected.map(relative => path.join(root, relative)).sort());
+    assert.deepEqual(findTsConfigFiles(root).sort(), expected.map(relative => path.join(root, relative)).sort());
+  });
+});
+
+describe('findTsConfigReferences', () => {
+  let root: string;
+  let configPath: string;
+
+  beforeEach(() => {
+    root = fs.mkdtempSync(path.join(os.tmpdir(), 'flowlens-config-references-'));
+    configPath = path.join(root, 'tsconfig.json');
+  });
+
+  afterEach(() => fs.rmSync(root, { recursive: true, force: true }));
+
+  it('resolves direct directory and custom-file references in JSONC without traversing them', () => {
+    fs.mkdirSync(path.join(root, 'shared'));
+    fs.writeFileSync(path.join(root, 'shared/tsconfig.json'), '{"references":[{"path":"../missing"}]}');
+    fs.writeFileSync(path.join(root, 'project.json'), '{}');
+    fs.writeFileSync(configPath, '\uFEFF' + `{
+      // Relative references resolve from the config, not the working directory.
+      "references": [
+        { "path": "./shared", },
+        /* Custom config filenames are preserved. */
+        { "path": "./project.json" },
+      ],
+    }`);
+
+    assert.deepEqual(findTsConfigReferences(path.relative(process.cwd(), configPath)), [
+      path.join(root, 'shared/tsconfig.json'),
+      path.join(root, 'project.json'),
+    ]);
+  });
+
+  it('returns no references when absent or empty without following extends', () => {
+    fs.writeFileSync(path.join(root, 'base.json'), '{"references":[{"path":"./missing"}]}');
+    fs.writeFileSync(configPath, '{"extends":"./base.json"}');
+    assert.deepEqual(findTsConfigReferences(configPath), []);
+    fs.writeFileSync(configPath, '{"references":[]}');
+    assert.deepEqual(findTsConfigReferences(configPath), []);
+  });
+
+  it('reports read, parse, invalid-reference and reference-resolution failures with context', () => {
+    const assertFailure = () => assert.throws(() => findTsConfigReferences(configPath), (error: Error) => {
+      assert.ok(error.message.includes(configPath));
+      assert.ok(error.cause instanceof Error);
+      return true;
+    });
+    assertFailure();
+
+    for (const contents of ['{', 'null', '{"references":{}}', '{"references":[{}]}', '{"references":[{"path":42}]}', '{"references":[{"path":"./missing"}]}']) {
+      fs.writeFileSync(configPath, contents);
+      assertFailure();
+    }
+  });
+});
+
+describe('collectWorkspaceTsConfigs', () => {
+  it('collects transitive custom references once and skips excluded and outside configs', t => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), 'flowlens-workspace-configs-'));
+    t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+    const workspace = path.join(root, 'workspace');
+    const configs = {
+      'workspace/tsconfig.json': { references: [
+        { path: './custom/first.json' }, { path: './custom/first.json' },
+        { path: './nested/tsconfig.json' }, { path: '../outside.json' },
+        { path: './node_modules/package/project.json' }, { path: './dist/project.json' },
+      ] },
+      'workspace/nested/tsconfig.json': {},
+      'workspace/custom/first.json': { references: [{ path: './second.json' }] },
+      'workspace/custom/second.json': { references: [{ path: '../tsconfig.json' }] },
+      'workspace/generated/tsconfig.json': {},
+    };
+
+    for (const [relativePath, config] of Object.entries(configs)) {
+      const configPath = path.join(root, relativePath);
+      fs.mkdirSync(path.dirname(configPath), { recursive: true });
+      fs.writeFileSync(configPath, JSON.stringify(config));
+    }
+
+    for (const relativePath of ['outside.json', 'workspace/node_modules/package/project.json', 'workspace/dist/project.json']) {
+      const configPath = path.join(root, relativePath);
+      fs.mkdirSync(path.dirname(configPath), { recursive: true });
+      fs.writeFileSync(configPath, '{');
+    }
+
+    assert.deepEqual(collectWorkspaceTsConfigs(path.relative(process.cwd(), workspace)).sort(),
+      Object.keys(configs).map(relativePath => path.join(root, relativePath)).sort());
+  });
+
+  it('returns an empty list without configs and propagates reference parsing failures', t => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), 'flowlens-workspace-config-errors-'));
+    t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+    assert.deepEqual(collectWorkspaceTsConfigs(root), []);
+    fs.writeFileSync(path.join(root, 'tsconfig.json'), '{"references":[{"path":"./project.json"}]}');
+    const referencedConfig = path.join(root, 'project.json');
+    fs.writeFileSync(referencedConfig, '{');
+
+    assert.throws(() => collectWorkspaceTsConfigs(root), (error: Error) => {
+      assert.ok(error.message.includes(referencedConfig));
+      assert.ok(error.cause instanceof SyntaxError);
+      return true;
+    });
   });
 });
 

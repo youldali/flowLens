@@ -3,68 +3,52 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { GraphAdapter } from '@flowlens/analyzer-core/adapter/graph-adapter';
+import type { FlowGraph } from '@flowlens/analyzer-core/domain/flow-graph';
 import Fastify, { type FastifyReply } from 'fastify';
-import { z } from 'zod';
 
-const sourceQuerySchema = z.object({
-  filePath: z.string().min(1),
-  offset: z.string()
-    .regex(/^\d+$/)
-    .transform(Number)
-    .pipe(z.number().int().nonnegative()),
-});
-
-export async function serveGraphViewer(graphAdapter: GraphAdapter, cleanup: () => Promise<void>): Promise<void> {
+export async function serveGraphViewer(analyze: () => Promise<FlowGraph>, cleanup: () => Promise<void>): Promise<void> {
   const frontendDistPath = findFrontendDist();
 
   if (!frontendDistPath) {
     throw new Error('Could not find apps/frontend/dist. Run `pnpm --filter frontend build` before starting the graph viewer.');
   }
 
-  const app = createGraphViewerServer(graphAdapter, frontendDistPath, cleanup);
-  const address = await app.listen({ host: '127.0.0.1', port: 0 });
-  console.log(`FlowLens graph viewer: ${address}/`);
+  const app = createGraphViewerServer(analyze, frontendDistPath, cleanup);
+  const shutdown = () => {
+    void app.close().catch(error => {
+      console.error('FlowLens: failed to close graph viewer', error);
+      process.exitCode = 1;
+    });
+  };
+  process.once('SIGINT', shutdown);
+  process.once('SIGTERM', shutdown);
+  app.addHook('onClose', async () => {
+    process.removeListener('SIGINT', shutdown);
+    process.removeListener('SIGTERM', shutdown);
+  });
+  try {
+    const address = await app.listen({ host: '127.0.0.1', port: 0 });
+    console.log(`FlowLens graph viewer: ${address}/`);
+  } catch (error) {
+    try {
+      await app.close();
+    } catch (cleanupError) {
+      throw new AggregateError([error, cleanupError], 'Graph viewer startup and cleanup failed');
+    }
+    throw error;
+  }
 }
 
-export function createGraphViewerServer(graphAdapter: GraphAdapter, frontendDistPath: string, cleanup: () => Promise<void>) {
+export function createGraphViewerServer(analyze: () => Promise<FlowGraph>, frontendDistPath: string, cleanup: () => Promise<void>) {
   const app = Fastify();
   app.addHook('onClose', cleanup);
 
   app.get('/graph.json', async (_request, reply) => {
+    const graph = await analyze();
+    const graphId = randomUUID();
     return reply
       .header('cache-control', 'no-store')
-      .send({ graphId: randomUUID(), graph: graphAdapter.extract() });
-  });
-
-  app.get('/source', async (request, reply) => {
-    const queryResult = sourceQuerySchema.safeParse(request.query);
-
-    if (!queryResult.success) {
-      return reply.code(400).send({
-        reason: 'invalid-request',
-        error: queryResult.error.issues,
-      });
-    }
-
-    const { filePath, offset } = queryResult.data;
-    const sourceResult = await graphAdapter.getNavigableSource(filePath);
-
-    if (sourceResult.isErr()) {
-      return reply.code(404).send({ reason: 'source-not-found' });
-    }
-
-    if (offset > sourceResult.value.length) {
-      return reply.code(400).send({
-        reason: 'invalid-offset',
-        error: 'the offset is out of the file bounds',
-      });
-    }
-
-    return reply
-      .type('text/html; charset=utf-8')
-      .header('content-security-policy', "default-src 'none'; style-src 'unsafe-inline'")
-      .send(renderSourcePage(filePath, sourceResult.value, offset));
+      .send({ graphId, graph });
   });
 
   app.get('/*', async (request, reply) => {
@@ -78,29 +62,6 @@ export function createGraphViewerServer(graphAdapter: GraphAdapter, frontendDist
   });
 
   return app;
-}
-
-/**
- * Converts a source file into a standalone HTML page that:
- * - Determines which line contains the requested character offset.
- * - Escapes the file path and source code to prevent HTML injection.
- * - Wraps every source line in a span.
- * - Highlights the line containing the offset.
- * - Gives the remaining lines numbered IDs such as L1 and L2.
- * - Includes the styling needed to display the highlighted source.
- */
-function renderSourcePage(filePath: string, source: string, offset: number): string {
-  const before = source.slice(0, offset);
-  const line = before.split('\n').length;
-  const escapedSource = escapeHtml(source);
-  const lines = escapedSource.split('\n').map((text, index) =>
-    `<span id="${index + 1 === line ? 'selected' : 'L' + (index + 1)}"${index + 1 === line ? ' class="selected"' : ''}>${text || ' '}</span>`).join('\n');
-
-  return `<!doctype html><html><head><meta charset="utf-8"><title>${escapeHtml(filePath)}</title><style>body{font:14px monospace;margin:16px;background:#171b22;color:#eee}pre{line-height:1.5}pre span{display:block}.selected{background:#38465c}</style></head><body><h1>${escapeHtml(filePath)}</h1><pre>${lines}</pre></body></html>`;
-}
-
-function escapeHtml(text: string): string {
-  return text.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;').replaceAll("'", '&#39;');
 }
 
 async function sendStaticFile(reply: FastifyReply, filePath: string): Promise<FastifyReply> {

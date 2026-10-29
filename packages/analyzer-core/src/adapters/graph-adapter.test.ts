@@ -23,8 +23,17 @@ import { GraphAdapter } from './graph-adapter.js';
 const tsconfigPath = path.resolve("tsconfig.json");
 const entryFilePath = path.resolve("src/fixtures/graph-builder-entry.ts");
 
-const compilationRegistry = new TypeScriptCompilationRegistry(findWorkspaceRoot(tsconfigPath));
-const createGraphAdapter = async (): Promise<GraphAdapter> => await GraphAdapter.create(tsconfigPath, compilationRegistry);
+let compilationRegistry: TypeScriptCompilationRegistry;
+before(async () => {
+  const resultCreationResult = await TypeScriptCompilationRegistry.create(findWorkspaceRoot(tsconfigPath));
+  assertOk(resultCreationResult);
+  compilationRegistry = resultCreationResult.value;
+});
+const createGraphAdapter = async (): Promise<GraphAdapter> => {
+  const result = await GraphAdapter.create(entryFilePath, compilationRegistry);
+  assertOk(result);
+  return result.value;
+};
 
 const createClosureNamingTestContext = async () => {
   const sourceText = fs.readFileSync(entryFilePath, "utf8");
@@ -103,13 +112,7 @@ describe("GraphAdapter.extract implementations", () => {
       .find((node) => node.name === "run");
     assert.ok(run?.kind === "callableTypeMemberDeclaration");
     assert.deepEqual(run.implementations.map((entry) => entry.name), ["run"]);
-    const sourceResult = await adapter.getNavigableSource(filePath);
-    assertOk(sourceResult);
-    assert.equal(sourceResult.value, source);
 
-    const missingSourceResult = await adapter.getNavigableSource(path.resolve("src/fixtures/missing.ts"));
-    assertErr(missingSourceResult);
-    assert.deepEqual(missingSourceResult.error, { reason: 'source-file-not-found' });
   });
 });
 
@@ -449,7 +452,9 @@ describe('GraphAdapter native semantic resolution', () => {
   it('resolves imports, aliases, arrows, methods and nested functions to exact declarations', async () => {
     const root = path.resolve('src/fixtures/native-resolution');
     const entry = path.join(root, 'entry.ts');
-    const adapter = await GraphAdapter.create(path.join(root, 'tsconfig.json'), compilationRegistry);
+    const adapterResult = await GraphAdapter.create(entry, compilationRegistry);
+    assertOk(adapterResult);
+    const adapter = adapterResult.value;
     assertOk(await adapter.fromFile(entry));
     const graph = adapter.extract();
     const calls = graph.nodes.filter(isCallExpressionNode);
@@ -492,7 +497,7 @@ after(() => compilationRegistry.clear());
 describe('GraphAdapter repository isolation', () => {
   it('isolates graph analysis, implementations, and cleanup between repositories', async t => {
     const directory = await mkdtemp(path.join(os.tmpdir(), 'flowlens-registries-'));
-    const compilationRegistries = ['first', 'second'].map(name => new TypeScriptCompilationRegistry(path.join(directory, name)));
+    const compilationRegistries: TypeScriptCompilationRegistry[] = [];
     t.after(async () => {
       try {
         await Promise.all(compilationRegistries.map(compilationRegistry => compilationRegistry.clear()));
@@ -501,33 +506,60 @@ describe('GraphAdapter repository isolation', () => {
       }
     });
 
-    for (const compilationRegistry of compilationRegistries) {
-      await cp(path.resolve('src/fixtures/workspace'), compilationRegistry.root, { recursive: true });
-      await mkdir(path.join(compilationRegistry.root, '.git'));
+    for (const workspaceName of ['first', 'second']) {
+      const workspaceRoot = path.join(directory, workspaceName);
+      await cp(path.resolve('src/fixtures/workspace'), workspaceRoot, { recursive: true });
+      await mkdir(path.join(workspaceRoot, '.git'));
+      const resultCreationResult = await TypeScriptCompilationRegistry.create(workspaceRoot);
+      assertOk(resultCreationResult);
+      compilationRegistries.push(resultCreationResult.value);
     }
 
     const [first, second] = compilationRegistries as [TypeScriptCompilationRegistry, TypeScriptCompilationRegistry];
     const analyze = async (compilationRegistry: TypeScriptCompilationRegistry) => {
-      const adapter = await GraphAdapter.create(path.join(compilationRegistry.root, 'core/tsconfig.json'), compilationRegistry);
+      const adapterResult = await GraphAdapter.create(path.join(compilationRegistry.root, 'core/src/use-case.ts'), compilationRegistry);
+      assertOk(adapterResult);
+      const adapter = adapterResult.value;
       assertOk(await adapter.fromFile(path.join(compilationRegistry.root, 'core/src/use-case.ts')));
       const implementations = adapter.extract().nodes.filter(isCallableTypeMemberDeclarationNode).flatMap(node => node.implementations);
       assert.equal(implementations.length, 1);
       assert.equal(implementations[0]!.filePath, path.join(compilationRegistry.root, 'infrastructure/src/adapter.ts'));
-      assertOk(await adapter.getNavigableSource(implementations[0]!.filePath));
       return adapter;
     };
     await Promise.all(compilationRegistries.map(analyze));
-    const firstCompilation = await first.getCompilation(path.join(first.root, 'core/tsconfig.json'));
-    const secondCompilation = await second.getCompilation(path.join(second.root, 'core/tsconfig.json'));
+    const firstCompilationResult = await first.getProject(path.join(first.root, 'core/tsconfig.json'));
+    assertOk(firstCompilationResult);
+    const firstCompilation = firstCompilationResult.value;
+    const secondCompilationResult = await second.getProject(path.join(second.root, 'core/tsconfig.json'));
+    assertOk(secondCompilationResult);
+    const secondCompilation = secondCompilationResult.value;
     const firstServer = await first.getServer();
     assert.notEqual(firstServer, await second.getServer());
     await first.clear();
     await first.clear();
-    assert.equal(firstCompilation.snapshot.isDisposed(), true);
-    assert.equal(secondCompilation.snapshot.isDisposed(), false);
+    await assert.rejects(firstCompilation.program.getSourceFile('unused.ts'), /Client is closed/);
+    assert.ok(await secondCompilation.program.getSourceFile(path.join(secondCompilation.currentDirectory, 'src/ports.ts')));
     await analyze(second);
-    await analyze(first);
-    assert.notEqual(await first.getServer(), firstServer);
+    await assert.rejects(analyze(first), /cleared/);
   });
 
+});
+
+describe('analyze', () => {
+  it('returns a detached graph that survives compiler cleanup', async t => {
+    const analysisRegistryCreationResult = await TypeScriptCompilationRegistry.create(findWorkspaceRoot(tsconfigPath));
+    assertOk(analysisRegistryCreationResult);
+    const analysisRegistry = analysisRegistryCreationResult.value;
+    t.after(() => analysisRegistry.clear());
+    const graphAdapterResult = await GraphAdapter.create(entryFilePath, analysisRegistry);
+    assertOk(graphAdapterResult);
+    const graphAdapter = graphAdapterResult.value;
+    await analysisRegistry.getProjects();
+    const analysisResult = await graphAdapter.analyze(entryFilePath);
+    assertOk(analysisResult);
+
+    await analysisRegistry.clear();
+    assert.ok(analysisResult.value.nodes.some(node => node.filePath === entryFilePath));
+    assert.doesNotThrow(() => JSON.stringify(analysisResult.value));
+  });
 });

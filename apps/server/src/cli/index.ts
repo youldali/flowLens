@@ -1,9 +1,7 @@
 #!/usr/bin/env node
 import * as path from 'node:path';
 
-import { GraphAdapter } from '@flowlens/analyzer-core/adapter/graph-adapter';
-import { TypeScriptCompilationRegistry } from '@flowlens/analyzer-core/infrastructure/typescript-compilation-registry';
-import { findNearestTsconfig, findWorkspaceRoot } from '@flowlens/common/fs';
+import { WorkspaceAnalysisService } from '@flowlens/analyzer-core/services/workspace-analysis-service';
 import { serveGraphViewer } from './server.js';
 
 const args = process.argv.slice(2);
@@ -19,32 +17,22 @@ if (args.length !== 1) {
   const entryFile = args[0]!;
   const invocationDir = process.env.INIT_CWD ?? process.cwd();
   const entryFilePath = path.resolve(invocationDir, entryFile);
-  const tsconfigPathResult = findNearestTsconfig(path.dirname(entryFilePath));
-
-  if (tsconfigPathResult.isErr()) {
-    throw new Error(`Could not find tsconfig.json at or above ${path.dirname(entryFilePath)}`);
-  }
-
-  const compilationRegistry = new TypeScriptCompilationRegistry(findWorkspaceRoot(tsconfigPathResult.value));
+  const workspaceAnalysisService = new WorkspaceAnalysisService();
 
   try {
-    const graphAdapter = await GraphAdapter.create(tsconfigPathResult.value, compilationRegistry);
-
-    const buildResult = await graphAdapter.fromFile(entryFilePath);
-
-    if (buildResult.isErr()) {
-      throw new Error(`Could not build graph: ${buildResult.error.reason}`);
-    }
-
-    const graph = graphAdapter.extract();
-    console.log(graph);
-
-    await serveGraphViewer(graphAdapter, () => compilationRegistry.clear());
+    const analyze = async () => {
+      const result = await workspaceAnalysisService.analyze(entryFilePath);
+      if (result.isErr()) throw new Error(`Could not build graph: ${result.error.reason}`);
+      return result.value;
+    };
+    // Validate the entry before starting the viewer; subsequent requests analyze current disk state.
+    console.log(await analyze());
+    await serveGraphViewer(analyze, () => workspaceAnalysisService.dispose());
   } catch (error) {
     try {
-      await compilationRegistry.clear();
+      await workspaceAnalysisService.dispose();
     } catch (cleanupError) {
-      throw new AggregateError([error, cleanupError], 'Graph viewer startup and repository cleanup failed');
+      throw new AggregateError([error, cleanupError], 'Graph viewer startup and workspace cleanup failed');
     }
 
     throw error;

@@ -1,147 +1,155 @@
 import * as path from 'node:path';
-import { stat } from 'node:fs/promises';
-import type { ParsedCommandLine, Program, Project, Snapshot } from 'typescript-native/async';
-import { excludedDirectories, findTsConfigPaths, isWithinDirectory } from '@flowlens/common/fs';
-import { NativeLanguageServer } from './native-language-server.js';
+import type { Project, Snapshot } from 'typescript-native/async';
+import { collectWorkspaceTsConfigs, isWithinDirectory, type FilePath } from '@flowlens/common/fs';
+import { err, ok, type Result } from 'neverthrow';
+import { InvalidTypeScriptConfigError, NativeLanguageServer } from '#infrastructure/native-language-server';
 
-/** Compiler resources for one resolved TypeScript configuration. */
-export interface TypeScriptCompilationContext {
-  projectConfig: { configPath: string; parsed: ParsedCommandLine };
-  snapshot: Snapshot;
-  project: Project;
-  program: Program;
-}
+export type ProjectNotFoundError = { reason: 'project-not-found'; filePath: FilePath };
 
-type ConfigPath = string;
+export type CompilationError =
+  | { reason: 'tsconfig-not-found' }
+  | { reason: 'config-outside-workspace'; configPath: FilePath }
+  | { reason: 'config-not-in-snapshot'; configPath: FilePath }
+  | { reason: 'invalid-config'; configPath: FilePath; cause: InvalidTypeScriptConfigError };
 
-/** Owns one repository's native server and immutable snapshots until clear(). */
+/** Owns one analysis's native server and shared snapshot. Its owner sequences access before clear(). */
 export class TypeScriptCompilationRegistry {
-  readonly root: string;
-  private server: NativeLanguageServer | undefined;
-  private readonly compilations = new Map<ConfigPath, TypeScriptCompilationContext>();
-  private discovered = false;
-  private pending: Promise<void> = Promise.resolve();
+  private clearing: Promise<void> | undefined;
 
-  constructor(root: string) {
-    this.root = path.resolve(root);
-  }
-
-  getServer(): Promise<NativeLanguageServer> {
-    return this.serialize(() => this.loadServer());
-  }
-
-  getCompilation(tsconfigPath: string): Promise<TypeScriptCompilationContext> {
-    return this.serialize(() => {
-      const configPath = path.resolve(tsconfigPath);
-
-      if (!isWithinDirectory(this.root, configPath)) {
-        throw new Error(`Configuration ${configPath} is outside repository ${this.root}`);
-      }
-
-      return this.loadCompilation(configPath);
-    });
-  }
-
-  getCompilations(): Promise<readonly TypeScriptCompilationContext[]> {
-    return this.serialize(async () => {
-      if (!this.discovered) {
-        const configs = await this.discoverConfigs(this.root, await this.loadServer());
-
-        for (const config of configs) {
-          if (config.parsed.fileNames.length) await this.loadCompilation(config.configPath, config.parsed);
-        }
-
-        this.discovered = true;
-      }
-
-      return [...this.compilations.values()].sort((a, b) => a.projectConfig.configPath.localeCompare(b.projectConfig.configPath));
-    });
-  }
-
-  /** Call after analyses finish; existing adapters must not be reused afterward. */
-  clear(): Promise<void> {
-    return this.serialize(async () => {
-      const compilations = [...this.compilations.values()];
-      const server = this.server;
-      this.compilations.clear();
-      this.server = undefined;
-      this.discovered = false;
-      const results = await Promise.allSettled(compilations.map(compilationContext => compilationContext.snapshot.dispose()));
-      const failures: unknown[] = results.filter(result => result.status === 'rejected').map(result => result.reason);
-
-      try {
-        await server?.dispose();
-      } catch (error) {
-        failures.push(error);
-      }
-
-      if (failures.length) throw new AggregateError(failures, `Failed to clear TypeScript compilation registry for ${this.root}`);
-    });
-  }
-
-  private async loadServer(): Promise<NativeLanguageServer> {
-    this.server ??= await NativeLanguageServer.create(this.root);
-    return this.server;
-  }
-
-  private async loadCompilation(configPath: string, parsed?: ParsedCommandLine): Promise<TypeScriptCompilationContext> {
-    const existing = this.compilations.get(configPath);
-    if (existing) return existing;
+  static async create(root: FilePath): Promise<Result<TypeScriptCompilationRegistry, CompilationError>> {
+    const workspaceRoot = path.resolve(root);
+    const nativeLanguageServer = await NativeLanguageServer.create(workspaceRoot);
     let snapshot: Snapshot | undefined;
+    let initialized = false;
+    let initializationFailure: unknown;
 
     try {
-      const server = await this.loadServer();
-      const config = parsed ?? await server.parseConfig(configPath);
-      snapshot = await server.getSnapshot({ openProjects: [configPath], ensurePrograms: true });
-      const project = snapshot.getConfiguredProject(configPath);
-      if (!project) throw new Error(`Native compiler did not load configured project ${configPath}`);
-      const compilationContext = { projectConfig: { configPath, parsed: config }, snapshot, project, program: project.program };
-      this.compilations.set(configPath, compilationContext);
-      return compilationContext;
+      const configPaths: FilePath[] = [];
+
+      for (const configPath of collectWorkspaceTsConfigs(workspaceRoot)) {
+        try {
+          const parsedConfig = await nativeLanguageServer.parseConfig(configPath);
+          if (parsedConfig.fileNames.length) configPaths.push(configPath);
+        } catch (error) {
+          if (error instanceof InvalidTypeScriptConfigError) {
+            const configError = { reason: 'invalid-config', configPath, cause: error } as const;
+            initializationFailure = configError;
+            return err(configError);
+          }
+
+          throw new Error(`Failed to parse native workspace project ${configPath}`, { cause: error });
+        }
+      }
+
+      if (!configPaths.length) {
+        const configError = { reason: 'tsconfig-not-found' } as const;
+        initializationFailure = configError;
+        return err(configError);
+      }
+
+      const acquiredSnapshot = await nativeLanguageServer.getSnapshot({ openProjects: configPaths, ensurePrograms: true });
+      snapshot = acquiredSnapshot;
+      const projects = new Map(configPaths.map(configPath => {
+        const project = acquiredSnapshot.getConfiguredProject(configPath);
+        if (!project?.configFileName || path.resolve(project.configFileName) !== configPath) throw new Error(`Native compiler did not load configured project ${configPath}`);
+        return [configPath, project] as const;
+      }));
+      const registry = new TypeScriptCompilationRegistry(workspaceRoot, nativeLanguageServer, acquiredSnapshot, projects);
+      initialized = true;
+      return ok(registry);
     } catch (error) {
-      await snapshot?.dispose();
-      throw new Error(`FlowLens: failed to create native compilation context for ${configPath}`, { cause: error });
-    }
-  }
+      initializationFailure = new Error(`Failed to initialize compilation registry for ${workspaceRoot}`, { cause: error });
+      throw initializationFailure;
+    } finally {
+      if (!initialized) {
+        const cleanupFailures: unknown[] = [];
 
-  private async discoverConfigs(root: string, server: NativeLanguageServer) {
-    const configs: TypeScriptCompilationContext['projectConfig'][] = [];
-    const candidates = findTsConfigPaths(root);
-    const visited = new Set<ConfigPath>();
-    const outputDirectories = new Set<string>();
-    const isOutput = (file: string) => [...outputDirectories].some(output => isWithinDirectory(output, file));
-
-    for (const candidate of candidates) {
-      const configPath = path.resolve(candidate);
-      if (visited.has(configPath) || !isWithinDirectory(root, configPath) || isOutput(configPath)) continue;
-      visited.add(configPath);
-
-      try {
-        const parsed = await server.parseConfig(configPath);
-        configs.push({ configPath, parsed });
-
-        for (const output of [parsed.options.outDir, parsed.options.declarationDir]) {
-          if (output) outputDirectories.add(path.resolve(output));
+        try {
+          await snapshot?.dispose();
+        } catch (error) {
+          cleanupFailures.push(error);
         }
 
-        for (const reference of parsed.projectReferences ?? []) {
-          const referencePath = path.resolve(reference.path);
-          if (path.relative(root, referencePath).split(path.sep).some(part => excludedDirectories.has(part))) continue;
-          const resolved = (await stat(referencePath)).isDirectory() ? path.join(referencePath, 'tsconfig.json') : referencePath;
-          candidates.push(resolved);
+        try {
+          await nativeLanguageServer.dispose();
+        } catch (error) {
+          cleanupFailures.push(error);
         }
-      } catch (error) {
-        throw new Error(`Failed to discover native workspace project ${configPath}`, { cause: error });
+
+        if (cleanupFailures.length) throw new AggregateError([initializationFailure, ...cleanupFailures], 'Registry initialization and cleanup failed');
       }
     }
-
-    return configs.filter(config => !isOutput(config.configPath));
   }
 
-  private serialize<T>(operation: () => Promise<T>): Promise<T> {
-    const result = this.pending.then(operation);
-    // Return the original rejection to the caller, while allowing later operations to retry.
-    this.pending = result.then(() => undefined, () => undefined);
-    return result;
+  private constructor(
+    readonly root: FilePath,
+    private readonly nativeLanguageServer: NativeLanguageServer,
+    private readonly snapshot: Snapshot,
+    private readonly compilations: Map<FilePath, Project>,
+  ) {}
+
+  async getServer(): Promise<NativeLanguageServer> {
+    this.ensureOpen();
+    return this.nativeLanguageServer;
+  }
+
+  async getProject(tsconfigPath: FilePath): Promise<Result<Project, CompilationError>> {
+    this.ensureOpen();
+
+    const configPath = path.resolve(tsconfigPath);
+    if (!isWithinDirectory(this.root, configPath)) {
+      return err({ reason: 'config-outside-workspace', configPath });
+    }
+
+    const project = this.compilations.get(configPath);
+    return project ? ok(project) : err({ reason: 'config-not-in-snapshot', configPath });
+  }
+
+  async getProjectForFile(filePath: FilePath): Promise<Result<Project, ProjectNotFoundError>> {
+    this.ensureOpen();
+
+    const resolvedFilePath = path.resolve(filePath);
+    if (!isWithinDirectory(this.root, resolvedFilePath)) return err({ reason: 'project-not-found', filePath: resolvedFilePath });
+    const project = await this.snapshot.getDefaultProjectForFile(resolvedFilePath);
+    return project?.configFileName && this.compilations.get(path.resolve(project.configFileName)) === project
+      ? ok(project)
+      : err({ reason: 'project-not-found', filePath: resolvedFilePath });
+  }
+
+  async getProjects(): Promise<readonly Project[]> {
+    this.ensureOpen();
+
+    return [...this.compilations.entries()].sort(([firstPath], [secondPath]) => firstPath.localeCompare(secondPath))
+      .map(([, project]) => project);
+  }
+
+  /** Terminal cleanup; the owner must finish all resource access before calling this. */
+  clear(): Promise<void> {
+    this.clearing ??= Promise.resolve().then(() => this.clearResources());
+    return this.clearing;
+  }
+
+  private async clearResources(): Promise<void> {
+    this.compilations.clear();
+
+    const disposalFailures: unknown[] = [];
+
+    try {
+      await this.snapshot.dispose();
+    } catch (error) {
+      disposalFailures.push(error);
+    }
+
+    try {
+      await this.nativeLanguageServer.dispose();
+    } catch (error) {
+      disposalFailures.push(error);
+    }
+
+    if (disposalFailures.length) throw new AggregateError(disposalFailures, `Failed to clear TypeScript compilation registry for ${this.root}`);
+  }
+
+  private ensureOpen(): void {
+    if (this.clearing) throw new Error('TypeScript compilation registry is cleared');
   }
 }

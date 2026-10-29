@@ -46,6 +46,8 @@ export const commands = {
   registerCommand: (_id: string, _handler: (...args: unknown[]) => unknown) => ({ dispose() {} }),
 };
 export const window = {
+  activeTextEditor: undefined as import('vscode').TextEditor | undefined,
+  withProgress: async <T>(_options: unknown, task: () => Promise<T>): Promise<T> => task(),
   createQuickPick: <T extends import('vscode').QuickPickItem>() => new MockQuickPick<T>(),
   showInputBox: async (_options: import('vscode').InputBoxOptions): Promise<string | undefined> => undefined,
   showInformationMessage: async (_message: string): Promise<string | undefined> => undefined,
@@ -61,7 +63,14 @@ export const Uri = { file: (fsPath: string) => ({ fsPath }) };
 export const ViewColumn = { Beside: 2 };
 
 export const ConfigurationTarget = { Global: 1, Workspace: 2, WorkspaceFolder: 3 };
+export const ProgressLocation = { Notification: 15 };
 export const workspace = {
+  textDocuments: [] as import('vscode').TextDocument[],
+  onDidChangeTextDocument: (_handler: () => void) => ({ dispose() {} }),
+  onDidCloseTextDocument: (_handler: () => void) => ({ dispose() {} }),
+  onDidCreateFiles: (_handler: () => void) => ({ dispose() {} }),
+  onDidDeleteFiles: (_handler: () => void) => ({ dispose() {} }),
+  onDidRenameFiles: (_handler: () => void) => ({ dispose() {} }),
   getConfiguration: (_section: string) => ({
     get: (_key: string, defaultValue: unknown): unknown => defaultValue,
     update: async (_key: string, _value: unknown, _target: number): Promise<void> => {},
