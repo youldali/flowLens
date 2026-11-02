@@ -84,8 +84,8 @@ export function findTsConfigReferences(tsconfigPath: FilePath): FilePath[] {
   }
 }
 
-/** Finds workspace configs and their transitive references, excluding paths outside the workspace. */
-export function collectWorkspaceTsConfigs(root: FilePath): FilePath[] {
+/** Finds workspace configs and their transitive references, excluding outside paths and matching filenames. */
+export function collectWorkspaceTsConfigs(root: FilePath, options: { excludeFileNamePattern?: RegExp } = {}): FilePath[] {
   const workspaceRoot = path.resolve(root);
   const candidatePaths = findTsConfigFiles(workspaceRoot);
   const configPaths = new Set<FilePath>();
@@ -93,6 +93,7 @@ export function collectWorkspaceTsConfigs(root: FilePath): FilePath[] {
   for (const candidatePath of candidatePaths) {
     const configPath = path.resolve(candidatePath);
     if (configPaths.has(configPath) || !isWithinDirectory(workspaceRoot, configPath)) continue;
+    if (options.excludeFileNamePattern && path.basename(configPath).search(options.excludeFileNamePattern) !== -1) continue;
     if (path.relative(workspaceRoot, path.dirname(configPath)).split(path.sep).some(directory => excludedDirectories.has(directory))) continue;
     configPaths.add(configPath);
     candidatePaths.push(...findTsConfigReferences(configPath));

@@ -94,7 +94,7 @@ describe('TypeScriptCompilationRegistry', () => {
     await registry.clear();
     await assert.rejects(registry.getProjectForFile(sourcePath), /cleared/);
 
-    await writeFile(path.join(root, 'core/tsconfig.test.json'), JSON.stringify({ extends: './tsconfig.json', files: ['src/ports.ts'] }));
+    await writeFile(path.join(root, 'core/tsconfig.extra.json'), JSON.stringify({ extends: './tsconfig.json', files: ['src/ports.ts'] }));
     await recreateRegistry();
     const overlappingSnapshot = await acquireSnapshot.mock.calls[1]!.result;
     assert.ok(overlappingSnapshot);
@@ -104,6 +104,17 @@ describe('TypeScriptCompilationRegistry', () => {
     assertOk(overlappingResult);
     assert.equal(overlappingResult.value, overlappingDefault);
     assert.equal(acquireSnapshot.mock.callCount(), 2);
+  });
+
+  it('excludes test configs from registered projects', async () => {
+    const testConfig = path.join(root, 'core/tsconfig.test.json');
+    await writeFile(testConfig, JSON.stringify({ extends: './tsconfig.json', files: ['src/ports.ts'] }));
+    await recreateRegistry();
+
+    const result = await registry.getProject(testConfig);
+    assertErr(result);
+    assert.equal(result.error.reason, 'config-not-in-snapshot');
+    assert.equal((await registry.getProjects()).length, 2);
   });
 
   it('includes a referenced custom configuration in the shared snapshot and honors extends', async () => {

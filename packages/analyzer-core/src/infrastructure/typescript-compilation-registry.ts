@@ -4,6 +4,8 @@ import { collectWorkspaceTsConfigs, isWithinDirectory, type FilePath } from '@fl
 import { err, ok, type Result } from 'neverthrow';
 import { InvalidTypeScriptConfigError, NativeLanguageServer } from '#infrastructure/native-language-server';
 
+const excludedTsconfigFileNamePattern = /^tsconfig\.test\.json$/;
+
 export type ProjectNotFoundError = { reason: 'project-not-found'; filePath: FilePath };
 
 export type CompilationError =
@@ -26,7 +28,7 @@ export class TypeScriptCompilationRegistry {
     try {
       const configPaths: FilePath[] = [];
 
-      for (const configPath of collectWorkspaceTsConfigs(workspaceRoot)) {
+      for (const configPath of collectWorkspaceTsConfigs(workspaceRoot, { excludeFileNamePattern: excludedTsconfigFileNamePattern })) {
         try {
           const parsedConfig = await nativeLanguageServer.parseConfig(configPath);
           if (parsedConfig.fileNames.length) configPaths.push(configPath);

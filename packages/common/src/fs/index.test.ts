@@ -239,6 +239,24 @@ describe('findTsConfigReferences', () => {
 });
 
 describe('collectWorkspaceTsConfigs', () => {
+  it('optionally excludes discovered and referenced config filenames before reading them', t => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), 'flowlens-excluded-configs-'));
+    t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+    const configPath = path.join(root, 'tsconfig.json');
+    const testConfigPath = path.join(root, 'tsconfig.test.json');
+    const nestedConfigPath = path.join(root, 'nested/tsconfig.test.json');
+    fs.mkdirSync(path.dirname(nestedConfigPath));
+    fs.writeFileSync(configPath, JSON.stringify({ references: [{ path: './nested/tsconfig.test.json' }] }));
+    fs.writeFileSync(testConfigPath, '{}');
+    fs.writeFileSync(nestedConfigPath, '{}');
+
+    assert.deepEqual(collectWorkspaceTsConfigs(root).sort(), [configPath, testConfigPath, nestedConfigPath].sort());
+
+    fs.writeFileSync(testConfigPath, '{');
+    fs.writeFileSync(nestedConfigPath, '{');
+    assert.deepEqual(collectWorkspaceTsConfigs(root, { excludeFileNamePattern: /^tsconfig\.test\.json$/g }), [configPath]);
+  });
+
   it('collects transitive custom references once and skips excluded and outside configs', t => {
     const root = fs.mkdtempSync(path.join(os.tmpdir(), 'flowlens-workspace-configs-'));
     t.after(() => fs.rmSync(root, { recursive: true, force: true }));
