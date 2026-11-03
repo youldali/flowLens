@@ -1,4 +1,5 @@
 import { err, ok, type Result } from 'neverthrow';
+import { ResultFlow } from '@youldali/result-flow';
 import * as vscode from 'vscode';
 import { aiProviderSchema, type AIProvider } from '@flowlens/code-insights/domain/ai-provider';
 import { getAIProvider, updateAIProvider } from '@infrastructure/configuration.js';
@@ -29,17 +30,15 @@ export function registerAIKeyCommands(aiKeyService: AiKeyService): vscode.Dispos
 
 async function configureAIProvider(aiKeyService: AiKeyService): Promise<SetAiApiKeyResult> {
   try {
-    const provider = await selectAIProvider(getAIProvider());
+    return await ResultFlow.gen<'saved', SetAiApiKeyError>(async function* () {
+      const provider = yield* await selectAIProvider(getAIProvider());
+      const key = yield* await promptAIKey(provider);
 
-    if (provider.isErr()) return err(provider.error);
-    const key = await promptAIKey(provider.value);
-
-    if (key.isErr()) return err(key.error);
-
-    await aiKeyService.setAiApiKey(provider.value, key.value);
-    await updateAIProvider(provider.value);
-    await vscode.window.showInformationMessage(`FlowLens: AI provider configured for ${provider.value}.`);
-    return ok('saved');
+      await aiKeyService.setAiApiKey(provider, key);
+      await updateAIProvider(provider);
+      await vscode.window.showInformationMessage(`FlowLens: AI provider configured for ${provider}.`);
+      return 'saved';
+    }).run();
   } catch (cause) {
     await vscode.window.showErrorMessage('FlowLens: Could not configure the AI provider.');
     return err({ reason: 'configuration-failed', cause });

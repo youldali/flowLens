@@ -2,6 +2,7 @@ import * as path from 'node:path';
 import type { Project, Snapshot } from 'typescript-native/async';
 import { collectWorkspaceTsConfigs, isWithinDirectory, type FilePath } from '@flowlens/common/fs';
 import { err, ok, type Result } from 'neverthrow';
+import { ResultFlow } from '@youldali/result-flow';
 import { InvalidTypeScriptConfigError, NativeLanguageServer } from '#infrastructure/native-language-server';
 
 const excludedTsconfigFileNamePattern = /^tsconfig\.test\.json$/;
@@ -26,39 +27,36 @@ export class TypeScriptCompilationRegistry {
     let initializationFailure: unknown;
 
     try {
-      const configPaths: FilePath[] = [];
+      const initializationResult = await ResultFlow.gen<TypeScriptCompilationRegistry, CompilationError>(async function* () {
+        const configPaths: FilePath[] = [];
 
-      for (const configPath of collectWorkspaceTsConfigs(workspaceRoot, { excludeFileNamePattern: excludedTsconfigFileNamePattern })) {
-        try {
-          const parsedConfig = await nativeLanguageServer.parseConfig(configPath);
-          if (parsedConfig.fileNames.length) configPaths.push(configPath);
-        } catch (error) {
-          if (error instanceof InvalidTypeScriptConfigError) {
-            const configError = { reason: 'invalid-config', configPath, cause: error } as const;
-            initializationFailure = configError;
-            return err(configError);
+        for (const configPath of collectWorkspaceTsConfigs(workspaceRoot, { excludeFileNamePattern: excludedTsconfigFileNamePattern })) {
+          try {
+            const parsedConfig = await nativeLanguageServer.parseConfig(configPath);
+            if (parsedConfig.fileNames.length) configPaths.push(configPath);
+          } catch (error) {
+            if (error instanceof InvalidTypeScriptConfigError) {
+              return yield* err({ reason: 'invalid-config', configPath, cause: error } as const);
+            }
+
+            throw new Error(`Failed to parse native workspace project ${configPath}`, { cause: error });
           }
-
-          throw new Error(`Failed to parse native workspace project ${configPath}`, { cause: error });
         }
-      }
 
-      if (!configPaths.length) {
-        const configError = { reason: 'tsconfig-not-found' } as const;
-        initializationFailure = configError;
-        return err(configError);
-      }
+        if (!configPaths.length) return yield* err({ reason: 'tsconfig-not-found' } as const);
 
-      const acquiredSnapshot = await nativeLanguageServer.getSnapshot({ openProjects: configPaths, ensurePrograms: true });
-      snapshot = acquiredSnapshot;
-      const projects = new Map(configPaths.map(configPath => {
-        const project = acquiredSnapshot.getConfiguredProject(configPath);
-        if (!project?.configFileName || path.resolve(project.configFileName) !== configPath) throw new Error(`Native compiler did not load configured project ${configPath}`);
-        return [configPath, project] as const;
-      }));
-      const registry = new TypeScriptCompilationRegistry(workspaceRoot, nativeLanguageServer, acquiredSnapshot, projects);
-      initialized = true;
-      return ok(registry);
+        const acquiredSnapshot = await nativeLanguageServer.getSnapshot({ openProjects: configPaths, ensurePrograms: true });
+        snapshot = acquiredSnapshot;
+        const projects = new Map(configPaths.map(configPath => {
+          const project = acquiredSnapshot.getConfiguredProject(configPath);
+          if (!project?.configFileName || path.resolve(project.configFileName) !== configPath) throw new Error(`Native compiler did not load configured project ${configPath}`);
+          return [configPath, project] as const;
+        }));
+        return new TypeScriptCompilationRegistry(workspaceRoot, nativeLanguageServer, acquiredSnapshot, projects);
+      }).run();
+      initialized = initializationResult.isOk();
+      if (initializationResult.isErr()) initializationFailure = initializationResult.error;
+      return initializationResult;
     } catch (error) {
       initializationFailure = new Error(`Failed to initialize compilation registry for ${workspaceRoot}`, { cause: error });
       throw initializationFailure;

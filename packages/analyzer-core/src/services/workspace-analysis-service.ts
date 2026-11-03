@@ -3,7 +3,8 @@ import { TypeScriptCompilationRegistry, type CompilationError, type ProjectNotFo
 import * as path from 'node:path';
 import { GraphAdapter, type FromFilePositionError } from '#adapters/graph-adapter';
 import { findWorkspaceRoot, type FilePath } from '@flowlens/common/fs';
-import { err, type Result } from 'neverthrow';
+import type { Result } from 'neverthrow';
+import { ResultFlow } from '@youldali/result-flow';
 
 export type AnalysisError = FromFilePositionError | CompilationError | ProjectNotFoundError;
 
@@ -38,25 +39,24 @@ export class WorkspaceAnalysisService {
     offset?: number,
   ): Promise<Result<FlowGraph, AnalysisError>> {
     return Promise.resolve().then(async () => {
-      const registryResult = await TypeScriptCompilationRegistry.create(workspaceRoot);
-      if (registryResult.isErr()) return err(registryResult.error);
-      const compilationRegistry = registryResult.value;
+      let compilationRegistry: TypeScriptCompilationRegistry | undefined;
       let analysisFailure: { error: unknown } | undefined;
 
       try {
-        const graphAdapterResult = await GraphAdapter.create(filePath, compilationRegistry);
-        if (graphAdapterResult.isErr()) {
-          analysisFailure = { error: graphAdapterResult.error };
-          return err(graphAdapterResult.error);
-        }
+        const analysisResult = await ResultFlow.gen<FlowGraph, AnalysisError>(async function* () {
+          compilationRegistry = yield* await TypeScriptCompilationRegistry.create(workspaceRoot);
+          const graphAdapter = yield* await GraphAdapter.create(filePath, compilationRegistry);
+          return yield* await graphAdapter.analyze(filePath, offset);
+        }).run();
 
-        return await graphAdapterResult.value.analyze(filePath, offset);
+        if (analysisResult.isErr()) analysisFailure = { error: analysisResult.error };
+        return analysisResult;
       } catch (error) {
         analysisFailure = { error };
         throw error;
       } finally {
         try {
-          await compilationRegistry.clear();
+          await compilationRegistry?.clear();
         } catch (cleanupError) {
           if (analysisFailure) throw new AggregateError([analysisFailure.error, cleanupError], 'Analysis and compiler cleanup failed');
           throw cleanupError;

@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import { err, ok } from 'neverthrow';
-import { assertErr } from '@flowlens/common/testing';
+import { assertErr, assertOk } from '@flowlens/common/testing';
 import { createFunctionDeclarationNode } from '@flowlens/analyzer-core/fixtures/node';
 import type { AIProvider } from '@flowlens/code-insights/domain/ai-provider';
 import { createExplainFunction } from './explain-function.js';
@@ -17,7 +17,9 @@ describe('createExplainFunction', () => {
       calls.push(options);
       return async received => { assert.equal(received, node); return result; };
     });
-    assert.equal(await explain(node), result);
+    const explanationResult = await explain(node);
+    assertOk(explanationResult);
+    assert.equal(explanationResult.value, result.value);
     keys.set('openai', 'replacement');
     await explain(node);
     provider = 'anthropic';
@@ -34,7 +36,9 @@ describe('createExplainFunction', () => {
     assert.equal(calls.length, 3);
     const failure = err({ reason: 'api-error' as const, cause: undefined, statusCode: 401 });
     const failing = createExplainFunction(async () => 'key', () => provider, () => async () => failure);
-    assert.equal(await failing(node), failure);
+    const failureResult = await failing(node);
+    assertErr(failureResult);
+    assert.equal(failureResult.error, failure.error);
   });
 
   it('avoids generation for missing keys and sanitizes retrieval failures', async () => {

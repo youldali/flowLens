@@ -2,6 +2,7 @@ import * as path from 'node:path';
 import * as ts from 'typescript-native/ast';
 import type { Program, Project } from 'typescript-native/async';
 import { err, ok, type Result } from 'neverthrow';
+import { ResultFlow } from '@youldali/result-flow';
 import { normalizePath, type FilePath } from '@flowlens/common/fs';
 import { Queue } from '@flowlens/common/queue';
 import * as NodeModule from '../domain/node.js';
@@ -52,49 +53,42 @@ export class GraphAdapter {
   }
 
   async analyze(filePath: FilePath, offset?: number): Promise<Result<FlowGraph, FromFilePositionError>> {
-    const graphBuildResult = offset === undefined ? await this.fromFile(filePath) : await this.fromFilePosition(filePath, offset);
-    if (graphBuildResult.isErr()) return err(graphBuildResult.error);
+    const graphAdapter = this;
+    return ResultFlow.gen<FlowGraph, FromFilePositionError>(async function* () {
+      if (offset === undefined) {
+        yield* await graphAdapter.fromFile(filePath);
+      } else {
+        yield* graphAdapter.fromFilePosition(filePath, offset);
+      }
 
-    return ok(this.extract());
+      return graphAdapter.extract();
+    }).run();
   }
 
   async fromFile(entryFilePath: FilePath): Promise<Result<void, SourceFileNotFoundError>> {
-    const sourceFileResult = await this.getSourceFileByPath(entryFilePath);
-
-    if (sourceFileResult.isErr()) {
-      return err(sourceFileResult.error);
-    }
-
-    await this.build(sourceFileResult.value);
-    return ok(undefined);
+    const graphAdapter = this;
+    return ResultFlow.gen<void, SourceFileNotFoundError>(async function* () {
+      const sourceFile = yield* await graphAdapter.getSourceFileByPath(entryFilePath);
+      await graphAdapter.build(sourceFile);
+    }).run();
   }
 
-  async fromFilePosition(
+  fromFilePosition(
     sourceFile: { fileName: FilePath } | FilePath,
     position: number,
-  ): Promise<Result<void, FromFilePositionError>> {
-    const sourceFileResult = await this.getSourceFileByPath(
-      typeof sourceFile === 'string' ? sourceFile : sourceFile.fileName,
-    );
+  ): ResultFlow<void, FromFilePositionError> {
+    const graphAdapter = this;
+    return ResultFlow.gen<void, FromFilePositionError>(async function* () {
+      const resolvedSourceFile = yield* await graphAdapter.getSourceFileByPath(
+        typeof sourceFile === 'string' ? sourceFile : sourceFile.fileName,
+      );
+      const node = yield* TsNodeModule.findNodeAtPosition(resolvedSourceFile, position)
+        .mapErr(() => ({ reason: 'node-not-found' } as const));
+      const enclosingFunction = yield* TsNodeModule.findEnclosingFunction(node)
+        .mapErr(() => ({ reason: 'enclosing-function-not-found' } as const));
 
-    if (sourceFileResult.isErr()) {
-      return err(sourceFileResult.error);
-    }
-
-    const nodeResult = TsNodeModule.findNodeAtPosition(sourceFileResult.value, position);
-
-    if (nodeResult.isErr()) {
-      return err({ reason: 'node-not-found' });
-    }
-
-    const enclosingFunctionResult = TsNodeModule.findEnclosingFunction(nodeResult.value);
-
-    if (enclosingFunctionResult.isErr()) {
-      return err({ reason: 'enclosing-function-not-found' });
-    }
-
-    await this.build(enclosingFunctionResult.value, sourceFileResult.value);
-    return ok(undefined);
+      await graphAdapter.build(enclosingFunction, resolvedSourceFile);
+    });
   }
 
   private async build(startNode: ts.Node, parentNode?: ts.Node): Promise<void> {

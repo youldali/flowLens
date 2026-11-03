@@ -274,6 +274,66 @@ describe('TypeScriptCompilationRegistry', () => {
   });
 });
 
+describe('create', () => {
+  let root: string;
+
+  beforeEach(async () => {
+    root = await mkdtemp(path.join(os.tmpdir(), 'flowlens-registry-creation-'));
+  });
+
+  afterEach(async () => {
+    await rm(root, { recursive: true, force: true });
+  });
+
+  it('returns missing configuration and disposes the server without acquiring a snapshot', async t => {
+    const dispose = t.mock.method(NativeLanguageServer.prototype, 'dispose');
+    const getSnapshot = t.mock.method(NativeLanguageServer.prototype, 'getSnapshot');
+
+    const result = await TypeScriptCompilationRegistry.create(root);
+
+    assertErr(result);
+    assert.deepEqual(result.error, { reason: 'tsconfig-not-found' });
+    assert.equal(dispose.mock.callCount(), 1);
+    assert.equal(getSnapshot.mock.callCount(), 0);
+  });
+
+  it('stops parsing at an invalid configuration and disposes the server', async t => {
+    const brokenConfig = path.join(root, 'tsconfig.a.json');
+    await writeFile(brokenConfig, JSON.stringify({ compilerOptions: { target: 'not-a-target' } }));
+    await writeFile(path.join(root, 'tsconfig.b.json'), JSON.stringify({ files: ['entry.ts'] }));
+    await writeFile(path.join(root, 'entry.ts'), 'export const value = 1;');
+    const parseConfig = t.mock.method(NativeLanguageServer.prototype, 'parseConfig');
+    const dispose = t.mock.method(NativeLanguageServer.prototype, 'dispose');
+    const getSnapshot = t.mock.method(NativeLanguageServer.prototype, 'getSnapshot');
+
+    const result = await TypeScriptCompilationRegistry.create(root);
+
+    assertErr(result);
+    assert.equal(result.error.reason, 'invalid-config');
+    assert.ok('configPath' in result.error);
+    assert.equal(result.error.configPath, brokenConfig);
+    assert.equal(parseConfig.mock.callCount(), 1);
+    assert.equal(dispose.mock.callCount(), 1);
+    assert.equal(getSnapshot.mock.callCount(), 0);
+  });
+
+  it('preserves a typed initialization failure when server cleanup fails', async t => {
+    const cleanupError = new Error('server cleanup failed');
+    const disposeServer = NativeLanguageServer.prototype.dispose;
+    const dispose = t.mock.method(NativeLanguageServer.prototype, 'dispose', async function (this: NativeLanguageServer) {
+      await disposeServer.call(this);
+      throw cleanupError;
+    });
+
+    await assert.rejects(TypeScriptCompilationRegistry.create(root), error => {
+      assert.ok(error instanceof AggregateError);
+      assert.deepEqual(error.errors, [{ reason: 'tsconfig-not-found' }, cleanupError]);
+      return true;
+    });
+    assert.equal(dispose.mock.callCount(), 1);
+  });
+});
+
 describe('clear', () => {
   it('disposes the shared snapshot once and attempts server disposal and retains failures on repeated calls', async t => {
     const workspaceRoot = path.resolve('src/fixtures/workspace');

@@ -53,7 +53,7 @@ const createClosureNamingTestContext = async () => {
   const fullGraphAdapter = await createGraphAdapter();
   const focusedGraphAdapter = await createGraphAdapter();
   assertOk(await fullGraphAdapter.fromFile(entryFilePath));
-  assertOk(await focusedGraphAdapter.fromFilePosition(entryFilePath, declaration.getStart()));
+  assertOk(await focusedGraphAdapter.fromFilePosition(entryFilePath, declaration.getStart()).run());
 
   const fullGraph = fullGraphAdapter.extract();
 
@@ -178,6 +178,23 @@ describe("GraphAdapter.fromFile", () => {
 });
 
 describe("GraphAdapter.fromFilePosition", () => {
+  it("defers source lookup and graph building until the flow runs", async t => {
+    const graphAdapter = await createGraphAdapter();
+    const project = await compilationRegistry.getProjectForFile(entryFilePath);
+    assertOk(project);
+    const getSourceFile = t.mock.method(project.value.program, 'getSourceFile');
+    const sourceText = fs.readFileSync(entryFilePath, 'utf8');
+    const flow = graphAdapter.fromFilePosition(entryFilePath, sourceText.indexOf('value ='));
+
+    await Promise.resolve();
+    assert.equal(getSourceFile.mock.callCount(), 0);
+    assert.deepEqual(graphAdapter.extract(), { nodes: [], edges: [] });
+
+    assertOk(await flow.run());
+    assert.ok(getSourceFile.mock.callCount() > 0);
+    assert.ok(graphAdapter.extract().nodes.length > 0);
+  });
+
   describe("anonymous function labels and identity", () => {
     let compilationRegistry: Awaited<ReturnType<typeof createClosureNamingTestContext>>;
 
@@ -248,7 +265,7 @@ describe("GraphAdapter.fromFilePosition", () => {
       assert.ok(iife);
 
       const nestedGraphAdapter = await createGraphAdapter();
-      assertOk(await nestedGraphAdapter.fromFilePosition(entryFilePath, iife.getStart()));
+      assertOk(await nestedGraphAdapter.fromFilePosition(entryFilePath, iife.getStart()).run());
 
       const nestedIife = nestedGraphAdapter.extract().nodes.find((node) => node.id === iifeId);
       assert.deepEqual(nestedIife, fullFunctionNodes.at(-1));
@@ -260,7 +277,7 @@ describe("GraphAdapter.fromFilePosition", () => {
     const sourceText = fs.readFileSync(entryFilePath, "utf8");
     const position = sourceText.indexOf("value =");
 
-    const result = await graphAdapter.fromFilePosition(entryFilePath, position);
+    const result = await graphAdapter.fromFilePosition(entryFilePath, position).run();
 
     assertOk(result);
 
@@ -288,7 +305,7 @@ describe("GraphAdapter.fromFilePosition", () => {
     );
     const position = sourceText.indexOf("value =");
 
-    const result = await graphAdapter.fromFilePosition(sourceFile, position);
+    const result = await graphAdapter.fromFilePosition(sourceFile, position).run();
 
     assertOk(result);
 
@@ -304,7 +321,7 @@ describe("GraphAdapter.fromFilePosition", () => {
     const sourceText = fs.readFileSync(entryFilePath, "utf8");
     const position = sourceText.indexOf("return value;", sourceText.indexOf("class FlowService"));
 
-    const result = await graphAdapter.fromFilePosition(entryFilePath, position);
+    const result = await graphAdapter.fromFilePosition(entryFilePath, position).run();
 
     assertOk(result);
 
@@ -321,7 +338,7 @@ describe("GraphAdapter.fromFilePosition", () => {
     const sourceText = fs.readFileSync(entryFilePath, "utf8");
     const position = sourceText.indexOf("flowContract.property");
 
-    const result = await graphAdapter.fromFilePosition(entryFilePath, position);
+    const result = await graphAdapter.fromFilePosition(entryFilePath, position).run();
 
     assertOk(result);
 
@@ -368,7 +385,7 @@ describe("GraphAdapter.fromFilePosition", () => {
     const sourceText = fs.readFileSync(entryFilePath, "utf8");
     const position = sourceText.indexOf("values.map");
 
-    const result = await graphAdapter.fromFilePosition(entryFilePath, position);
+    const result = await graphAdapter.fromFilePosition(entryFilePath, position).run();
 
     assertOk(result);
 
@@ -385,7 +402,7 @@ describe("GraphAdapter.fromFilePosition", () => {
     const sourceText = fs.readFileSync(entryFilePath, "utf8");
     const position = sourceText.indexOf("Object.fromEntries");
 
-    const result = await graphAdapter.fromFilePosition(entryFilePath, position);
+    const result = await graphAdapter.fromFilePosition(entryFilePath, position).run();
 
     assertOk(result);
 
@@ -400,7 +417,7 @@ describe("GraphAdapter.fromFilePosition", () => {
     const sourceText = fs.readFileSync(entryFilePath, "utf8");
     const position = sourceText.indexOf("fs.existsSync");
 
-    const result = await graphAdapter.fromFilePosition(entryFilePath, position);
+    const result = await graphAdapter.fromFilePosition(entryFilePath, position).run();
 
     assertOk(result);
 
@@ -420,7 +437,7 @@ describe("GraphAdapter.fromFilePosition", () => {
       ts.ScriptKind.TS,
     );
 
-    const result = await graphAdapter.fromFilePosition(sourceFile, 0);
+    const result = await graphAdapter.fromFilePosition(sourceFile, 0).run();
 
     assertErr(result);
     assert.deepEqual(result.error, { reason: "source-file-not-found" });
@@ -430,7 +447,7 @@ describe("GraphAdapter.fromFilePosition", () => {
     const graphAdapter = await createGraphAdapter();
     const sourceText = fs.readFileSync(entryFilePath, "utf8");
 
-    const result = await graphAdapter.fromFilePosition(entryFilePath, sourceText.length);
+    const result = await graphAdapter.fromFilePosition(entryFilePath, sourceText.length).run();
 
     assertErr(result);
     assert.deepEqual(result.error, { reason: "node-not-found" });
@@ -441,7 +458,7 @@ describe("GraphAdapter.fromFilePosition", () => {
     const sourceText = fs.readFileSync(entryFilePath, "utf8");
     const position = sourceText.indexOf("topLevelValue");
 
-    const result = await graphAdapter.fromFilePosition(entryFilePath, position);
+    const result = await graphAdapter.fromFilePosition(entryFilePath, position).run();
 
     assertErr(result);
     assert.deepEqual(result.error, { reason: "enclosing-function-not-found" });

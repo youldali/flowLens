@@ -203,6 +203,34 @@ describe('analyze', () => {
     }
   });
 
+  it('preserves typed adapter and graph failures when cleanup also fails', async t => {
+    for (const failureStage of ['adapter', 'graph'] as const) {
+      await t.test(failureStage, async t => {
+        const service = new WorkspaceAnalysisService();
+        t.after(() => service.dispose());
+        const filePath = path.join(workspaceRoots[0]!, failureStage === 'adapter' ? 'unowned.ts' : 'entry.ts');
+        const analysisError = failureStage === 'adapter'
+          ? { reason: 'project-not-found', filePath }
+          : { reason: 'node-not-found' };
+        const cleanupError = new Error('cleanup failed');
+        const clearRegistry = TypeScriptCompilationRegistry.prototype.clear;
+        const cleanup = t.mock.method(TypeScriptCompilationRegistry.prototype, 'clear', async function (this: TypeScriptCompilationRegistry) {
+          await clearRegistry.call(this);
+          throw cleanupError;
+        });
+        const analyze = t.mock.method(GraphAdapter.prototype, 'analyze');
+
+        await assert.rejects(service.analyze(filePath, 1_000_000), error => {
+          assert.ok(error instanceof AggregateError);
+          assert.deepEqual(error.errors, [analysisError, cleanupError]);
+          return true;
+        });
+        assert.equal(cleanup.mock.callCount(), 1);
+        assert.equal(analyze.mock.callCount(), failureStage === 'adapter' ? 0 : 1);
+      });
+    }
+  });
+
   it('refreshes saved source and dependency changes on subsequent analyses', async t => {
     const service = new WorkspaceAnalysisService();
     t.after(() => service.dispose());
