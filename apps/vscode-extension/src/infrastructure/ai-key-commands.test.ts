@@ -210,10 +210,10 @@ describe('executeSetAiApiKeyCommand', () => {
 
     for (const result of [ok('saved' as const), err({ reason: 'cancelled' as const, cause: undefined }), failure]) {
       response = result;
-      assert.equal(await executeSetAiApiKeyCommand(), result);
+      assert.deepEqual(await executeSetAiApiKeyCommand().run(), result);
     }
 
-    const result = await executeSetAiApiKeyCommand();
+    const result = await executeSetAiApiKeyCommand().run();
     assertErr(result);
     assert.equal(result.error.cause, cause);
   });
@@ -221,7 +221,7 @@ describe('executeSetAiApiKeyCommand', () => {
   it('returns an error with the original cause when command execution rejects', async context => {
     const cause = { message: 'private command details' };
     context.mock.method(commands, 'executeCommand', async () => { throw cause; });
-    const result = await executeSetAiApiKeyCommand();
+    const result = await executeSetAiApiKeyCommand().run();
 
     assertErr(result);
     assert.equal(result.error.cause, cause);
@@ -230,7 +230,7 @@ describe('executeSetAiApiKeyCommand', () => {
 
   it('reports a missing command result as an explicit failure', async context => {
     context.mock.method(commands, 'executeCommand', async () => undefined);
-    const result = await executeSetAiApiKeyCommand();
+    const result = await executeSetAiApiKeyCommand().run();
 
     assertErr(result);
     assert.deepEqual(result.error, { reason: 'missing-command-result', cause: undefined });

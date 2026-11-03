@@ -67,7 +67,7 @@ export class FlowLensGraphWebview {
     panel.webview.onDidReceiveMessage(async (message: unknown) => {
       if (this.panel !== panel) return;
       if (isConfigureAiEvent(message)) {
-        const result = await executeSetAiApiKeyCommand();
+        const result = await executeSetAiApiKeyCommand().run();
         const outcome = result.match(identity, error => {
           if (error.reason === 'cancelled') return 'cancelled' as const;
 

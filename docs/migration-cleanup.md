@@ -6,7 +6,7 @@ Cleanup status and remaining opportunities identified during review of the [Type
 
 Implementation discovery now uses the native compiler. Source navigation is handled by VS Code. Both `LegacyProjectServiceRegistry` and the temporary `RepositoryAnalysisContext` wrapper have been removed.
 
-`TypeScriptCompilationRegistry.create(root)` creates a registry and native server for one analysis. The registry owns its repository root, compilation cache, snapshots, and cleanup. `GraphAdapter.create(configPath, compilationRegistry)` borrows it directly. The registry is exported at `@flowlens/analyzer-core/infrastructure/typescript-compilation-registry`; the old context export has been removed.
+`TypeScriptCompilationRegistry.create(root)` returns a lazy `ResultFlow`; calling `.run()` creates a registry and native server for one analysis. The registry owns its repository root, compilation cache, snapshots, and cleanup. `GraphAdapter.create(configPath, compilationRegistry)` borrows it directly. The registry is exported at `@flowlens/analyzer-core/infrastructure/typescript-compilation-registry`; the old context export has been removed.
 
 - The shared analyzer-core `WorkspaceAnalysisService`, used by the extension and CLI, creates a fresh registry per analysis, loads workspace compilations, runs an instance of `GraphAdapter`, and awaits cleanup before returning.
 - Concurrent requests, including those for the same workspace, use independent registries and native servers. Registry operations are sequenced by their owner, without internal queues.

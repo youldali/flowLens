@@ -1,3 +1,4 @@
+import { ResultFlow } from '@youldali/result-flow';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import { err, ok } from 'neverthrow';
@@ -15,28 +16,28 @@ describe('createExplainFunction', () => {
     const node = createFunctionDeclarationNode();
     const explain = createExplainFunction(async selected => keys.get(selected), () => provider, options => {
       calls.push(options);
-      return async received => { assert.equal(received, node); return result; };
+      return received => ResultFlow.gen(async function* () { assert.equal(received, node); return yield* result; });
     });
-    const explanationResult = await explain(node);
+    const explanationResult = await explain(node).run();
     assertOk(explanationResult);
     assert.equal(explanationResult.value, result.value);
     keys.set('openai', 'replacement');
-    await explain(node);
+    await explain(node).run();
     provider = 'anthropic';
-    await explain(node);
+    await explain(node).run();
     assert.deepEqual(calls, [
       { provider: 'openai', apiKey: 'first' },
       { provider: 'openai', apiKey: 'replacement' },
       { provider: 'anthropic', apiKey: 'second' },
     ]);
     keys.delete(provider);
-    const missing = await explain(node);
+    const missing = await explain(node).run();
     assertErr(missing);
     assert.equal(missing.error.reason, 'missing-api-token');
     assert.equal(calls.length, 3);
     const failure = err({ reason: 'api-error' as const, cause: undefined, statusCode: 401 });
-    const failing = createExplainFunction(async () => 'key', () => provider, () => async () => failure);
-    const failureResult = await failing(node);
+    const failing = createExplainFunction(async () => 'key', () => provider, () => () => ResultFlow.from(failure));
+    const failureResult = await failing(node).run();
     assertErr(failureResult);
     assert.equal(failureResult.error, failure.error);
   });
@@ -44,7 +45,7 @@ describe('createExplainFunction', () => {
   it('avoids generation for missing keys and sanitizes retrieval failures', async () => {
     for (const get of [async () => undefined, async () => { throw new Error('sensitive-key'); }]) {
       const explain = createExplainFunction(get, () => 'openai', () => assert.fail('Must not generate'));
-      const result = await explain(createFunctionDeclarationNode());
+      const result = await explain(createFunctionDeclarationNode()).run();
       assertErr(result);
       assert.ok(['missing-api-token', 'generation-failed'].includes(result.error.reason));
       assert.equal(String(result.error.cause).includes('sensitive-key'), false);

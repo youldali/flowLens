@@ -13,19 +13,25 @@ export class WorkspaceAnalysisService {
   private readonly activeAnalyses = new Set<Promise<Result<FlowGraph, AnalysisError>>>();
   private closing: Promise<void> | undefined;
 
-  async analyze(filePath: FilePath, offset?: number): Promise<Result<FlowGraph, AnalysisError>> {
-    if (this.closing) throw new Error('Workspace analysis service is shutting down');
+  analyze(filePath: FilePath, offset?: number): ResultFlow<FlowGraph, AnalysisError> {
+    const service = this;
+    return ResultFlow.gen<FlowGraph, AnalysisError>(async function* () {
+      if (service.closing) throw new Error('Workspace analysis service is shutting down');
 
-    const resolvedFilePath = path.resolve(filePath);
-    const workspaceRoot = findWorkspaceRoot(resolvedFilePath);
-    const analysisPromise = this.createAnalysisPromise(workspaceRoot, resolvedFilePath, offset);
-    this.activeAnalyses.add(analysisPromise);
+      const resolvedFilePath = path.resolve(filePath);
+      const workspaceRoot = findWorkspaceRoot(resolvedFilePath);
+      const analysisPromise = Promise.resolve().then(() => service.createAnalysisFlow(workspaceRoot, resolvedFilePath, offset).run());
+      service.activeAnalyses.add(analysisPromise);
+      let analysisResult: Result<FlowGraph, AnalysisError>;
 
-    try {
-      return await analysisPromise;
-    } finally {
-      this.activeAnalyses.delete(analysisPromise);
-    }
+      try {
+        analysisResult = await analysisPromise;
+      } finally {
+        service.activeAnalyses.delete(analysisPromise);
+      }
+
+      return yield* analysisResult;
+    });
   }
 
   dispose(): Promise<void> {
@@ -33,24 +39,25 @@ export class WorkspaceAnalysisService {
     return this.closing;
   }
 
-  private createAnalysisPromise(
+  private createAnalysisFlow(
     workspaceRoot: FilePath,
     filePath: FilePath,
     offset?: number,
-  ): Promise<Result<FlowGraph, AnalysisError>> {
-    return Promise.resolve().then(async () => {
+  ): ResultFlow<FlowGraph, AnalysisError> {
+    return ResultFlow.gen<FlowGraph, AnalysisError>(async function* () {
       let compilationRegistry: TypeScriptCompilationRegistry | undefined;
       let analysisFailure: { error: unknown } | undefined;
+      let analysisResult: Result<FlowGraph, AnalysisError>;
 
       try {
-        const analysisResult = await ResultFlow.gen<FlowGraph, AnalysisError>(async function* () {
-          compilationRegistry = yield* await TypeScriptCompilationRegistry.create(workspaceRoot);
-          const graphAdapter = yield* await GraphAdapter.create(filePath, compilationRegistry);
-          return yield* await graphAdapter.analyze(filePath, offset);
+        // Materialize the result so generator short-circuiting cannot skip cleanup.
+        analysisResult = await ResultFlow.gen<FlowGraph, AnalysisError>(async function* () {
+          compilationRegistry = yield* TypeScriptCompilationRegistry.create(workspaceRoot);
+          const graphAdapter = yield* GraphAdapter.create(filePath, compilationRegistry);
+          return yield* graphAdapter.analyze(filePath, offset);
         }).run();
 
         if (analysisResult.isErr()) analysisFailure = { error: analysisResult.error };
-        return analysisResult;
       } catch (error) {
         analysisFailure = { error };
         throw error;
@@ -62,6 +69,8 @@ export class WorkspaceAnalysisService {
           throw cleanupError;
         }
       }
+
+      return yield* analysisResult;
     });
   }
 

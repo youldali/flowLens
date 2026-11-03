@@ -103,7 +103,7 @@ therefore need to run outside a sandbox that prohibits socket creation.
 
 ### Repository-scoped analysis ownership
 
-`await TypeScriptCompilationRegistry.create(root)` returns a
+`await TypeScriptCompilationRegistry.create(root).run()` returns a
 result containing a fresh registry and native server for one analysis. It discovers only its resolved repository root,
 and direct configuration requests outside that root are rejected. The shared
 snapshot is acquired during creation and remains available until terminal cleanup.
@@ -130,7 +130,8 @@ and idempotent; another analysis requires a new registry.
 ### Native graph construction (migration step 2)
 
 `GraphAdapter.create(filePath, compilationRegistry)`, `fromFile`, and `fromFilePosition` are
-asynchronous. The CLI and extension await them. Graph extraction remains
+lazy `ResultFlow` operations. Compose them with `yield*` or execute them with
+`await flow.run()` at the CLI and extension boundaries. Graph extraction remains
 synchronous and produces plain domain records; no native AST, symbol, or
 signature handles enter the serialized graph. Native source locations,
 function naming, call containment, standard-library classification, and
@@ -196,7 +197,7 @@ capability blocker was found in the scenarios tested here.
 
 ### Callers and lifecycle (migration step 4)
 
-`WorkspaceAnalysisService.analyze(file, offset?)` is the application boundary.
+`WorkspaceAnalysisService.analyze(file, offset?)` returns a lazy `ResultFlow`. Call `.run()` at the application boundary.
 It finds the workspace root from the source file, creates a fresh registry with
 all discovered projects in one snapshot, calls `GraphAdapter.create(file, registry)`,
 then calls the adapter's instance method `analyze(file, offset?)`.

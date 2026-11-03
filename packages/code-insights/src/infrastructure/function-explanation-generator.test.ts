@@ -28,7 +28,7 @@ describe('createFunctionExplainer', () => {
 
     for (const value of [explanation, createExplanation({ behavior: [], uncertainties: [] })]) {
       text = JSON.stringify(value);
-      const result = await explain(node);
+      const result = await explain(node).run();
 
       assertOk(result);
       assert.deepEqual(result.value, value);
@@ -36,7 +36,7 @@ describe('createFunctionExplainer', () => {
 
     for (const invalid of ['not JSON', JSON.stringify(missingPurpose), JSON.stringify({ ...explanation, behavior: [42] }), JSON.stringify({ ...explanation, extra: true })]) {
       text = invalid;
-      const result = await explain(node);
+      const result = await explain(node).run();
 
       assertErr(result);
       assert.equal(result.error.reason, 'invalid-output');
@@ -59,7 +59,7 @@ describe('createFunctionExplainer', () => {
         });
       });
       const explain = createFunctionExplainer({ provider, apiKey: 'flowlens-placeholder-api-key' });
-      const result = await explain(createFunctionDeclarationNode());
+      const result = await explain(createFunctionDeclarationNode()).run();
 
       assertErr(result);
       assert.equal(result.error.reason, 'api-error');

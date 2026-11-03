@@ -1,9 +1,10 @@
+import { ResultFlow } from '@youldali/result-flow';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import { createFunctionDeclarationNode, createFileNode } from '@flowlens/analyzer-core/fixtures/node';
 import { createVsCodeEvent } from '@flowlens/registries/vscode-events';
 import { GraphController } from './graph-controller.js';
-import { err, ok } from 'neverthrow';
+import { err } from 'neverthrow';
 
 const node = createFunctionDeclarationNode();
 const file = createFileNode();
@@ -23,10 +24,10 @@ describe('GraphController', () => {
 
   it('explains the requested node and preserves request identifiers', async () => {
     const controller = new GraphController(graph, {
-      explainFunction: async received => {
+      explainFunction: received => ResultFlow.gen(async function* () {
         assert.equal(received, node);
-        return ok(explanation);
-      },
+        return explanation;
+      }),
     });
     const request = { graphId: controller.session.graphId, nodeId: node.id, requestId: 'request' };
     const response = await controller.handleEvent(createVsCodeEvent('explain.node', request));
@@ -56,7 +57,7 @@ describe('GraphController', () => {
   it('preserves provider error reasons without exposing error details', async () => {
     for (const reason of ['missing-api-token', 'api-error', 'invalid-output', 'generation-failed'] as const) {
       const controller = new GraphController(graph, {
-        explainFunction: async () => err({ reason, cause: new Error('secret'), statusCode: 401 }),
+        explainFunction: () => ResultFlow.from(err({ reason, cause: new Error('secret'), statusCode: 401 })),
       });
       const request = { graphId: controller.session.graphId, nodeId: node.id, requestId: 'request' };
       const response = await controller.handleEvent(createVsCodeEvent('explain.node', request));
@@ -71,9 +72,9 @@ describe('GraphController', () => {
 
   it('ignores malformed and unrelated events', async () => {
     const controller = new GraphController(graph, {
-      explainFunction: async () => {
+      explainFunction: () => ResultFlow.gen(async function* () {
         assert.fail('Ignored events must not generate explanations');
-      },
+      }),
     });
 
     for (const message of [null, { type: 'explain.node', payload: {} }, createVsCodeEvent('view.ready', {})]) {

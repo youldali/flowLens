@@ -18,7 +18,7 @@ describe('TypeScriptCompilationRegistry', () => {
     await cp(path.resolve('src/fixtures/workspace'), root, { recursive: true });
     await mkdir(path.join(root, '.git'));
     config = path.join(root, 'core/tsconfig.json');
-    const registryCreationResult = await TypeScriptCompilationRegistry.create(root);
+    const registryCreationResult = await TypeScriptCompilationRegistry.create(root).run();
     assertOk(registryCreationResult);
     registry = registryCreationResult.value;
   });
@@ -30,7 +30,7 @@ describe('TypeScriptCompilationRegistry', () => {
 
   async function recreateRegistry(): Promise<void> {
     await registry.clear();
-    const result = await TypeScriptCompilationRegistry.create(root);
+    const result = await TypeScriptCompilationRegistry.create(root).run();
     assertOk(result);
     registry = result.value;
   }
@@ -41,10 +41,10 @@ describe('TypeScriptCompilationRegistry', () => {
     assert.equal(acquireSnapshot.mock.callCount(), 1);
     const [server, duplicateServer] = await Promise.all([registry.getServer(), registry.getServer()]);
     assert.equal(server, duplicateServer);
-    const selectedResult = await registry.getProject(config);
+    const selectedResult = registry.getProject(config);
     assertOk(selectedResult);
     const selected = selectedResult.value;
-    const duplicateResult = await registry.getProject(config);
+    const duplicateResult = registry.getProject(config);
     assertOk(duplicateResult);
     const duplicate = duplicateResult.value;
     assert.equal(selected, duplicate);
@@ -53,7 +53,7 @@ describe('TypeScriptCompilationRegistry', () => {
     assert.equal(compilations[0], selected);
     const sibling = compilations[1]!;
     assert.equal(await registry.getServer(), server);
-    const siblingResult = await registry.getProject(sibling.configFileName!);
+    const siblingResult = registry.getProject(sibling.configFileName!);
     assertOk(siblingResult);
     assert.equal(siblingResult.value, sibling);
     assert.equal(selected.program.getCompilerOptions().target, ScriptTarget.ES2022);
@@ -78,21 +78,21 @@ describe('TypeScriptCompilationRegistry', () => {
     const snapshot = await acquireSnapshot.mock.calls[0]!.result;
     assert.ok(snapshot);
     const sourcePath = path.join(root, 'core/src/ports.ts');
-    const core = await registry.getProject(config);
+    const core = registry.getProject(config);
     assertOk(core);
-    const selected = await registry.getProjectForFile(sourcePath);
+    const selected = await registry.getProjectForFile(sourcePath).run();
     assertOk(selected);
     assert.equal(selected.value, core.value);
     assert.equal(selected.value, await snapshot.getDefaultProjectForFile(sourcePath));
 
     const missingPath = path.join(root, 'unowned.ts');
-    const missing = await registry.getProjectForFile(missingPath);
+    const missing = await registry.getProjectForFile(missingPath).run();
     assertErr(missing);
     assert.deepEqual(missing.error, { reason: 'project-not-found', filePath: missingPath });
-    assertErr(await registry.getProjectForFile(path.join(root, '../outside.ts')));
+    assertErr(await registry.getProjectForFile(path.join(root, '../outside.ts')).run());
     assert.equal(acquireSnapshot.mock.callCount(), 1);
     await registry.clear();
-    await assert.rejects(registry.getProjectForFile(sourcePath), /cleared/);
+    await assert.rejects(registry.getProjectForFile(sourcePath).run(), /cleared/);
 
     await writeFile(path.join(root, 'core/tsconfig.extra.json'), JSON.stringify({ extends: './tsconfig.json', files: ['src/ports.ts'] }));
     await recreateRegistry();
@@ -100,7 +100,7 @@ describe('TypeScriptCompilationRegistry', () => {
     assert.ok(overlappingSnapshot);
     const overlappingDefault = await overlappingSnapshot.getDefaultProjectForFile(sourcePath);
     assert.ok(overlappingDefault);
-    const overlappingResult = await registry.getProjectForFile(sourcePath);
+    const overlappingResult = await registry.getProjectForFile(sourcePath).run();
     assertOk(overlappingResult);
     assert.equal(overlappingResult.value, overlappingDefault);
     assert.equal(acquireSnapshot.mock.callCount(), 2);
@@ -111,7 +111,7 @@ describe('TypeScriptCompilationRegistry', () => {
     await writeFile(testConfig, JSON.stringify({ extends: './tsconfig.json', files: ['src/ports.ts'] }));
     await recreateRegistry();
 
-    const result = await registry.getProject(testConfig);
+    const result = registry.getProject(testConfig);
     assertErr(result);
     assert.equal(result.error.reason, 'config-not-in-snapshot');
     assert.equal((await registry.getProjects()).length, 2);
@@ -125,13 +125,13 @@ describe('TypeScriptCompilationRegistry', () => {
     await writeFile(path.join(root, 'custom/entry.ts'), 'export const value = 1;');
     await writeFile(path.join(root, 'tsconfig.json'), JSON.stringify({ files: [], references: [{ path: './custom/project.json' }] }));
     await recreateRegistry();
-    const projectResult = await registry.getProject(custom);
+    const projectResult = registry.getProject(custom);
     assertOk(projectResult);
     const project = projectResult.value;
     assert.equal(project.program.getCompilerOptions().strict, true);
     assert.equal(project.program.getCompilerOptions().target, ScriptTarget.ES2022);
     assert.ok(await project.program.getSourceFile(path.join(root, 'custom/entry.ts')));
-    const relativeResult = await registry.getProject(path.relative(process.cwd(), custom));
+    const relativeResult = registry.getProject(path.relative(process.cwd(), custom));
     assertOk(relativeResult);
     assert.equal(relativeResult.value, project);
     assert.ok((await registry.getProjects()).includes(project));
@@ -142,17 +142,17 @@ describe('TypeScriptCompilationRegistry', () => {
     t.after(() => rm(other, { recursive: true, force: true }));
     await cp(path.resolve('src/fixtures/workspace'), other, { recursive: true });
     await mkdir(path.join(other, '.git'));
-    const selectedResult = await registry.getProject(config);
+    const selectedResult = registry.getProject(config);
     assertOk(selectedResult);
     const selected = selectedResult.value;
-    const otherRegistryCreationResult = await TypeScriptCompilationRegistry.create(other);
+    const otherRegistryCreationResult = await TypeScriptCompilationRegistry.create(other).run();
     assertOk(otherRegistryCreationResult);
     const otherRegistry = otherRegistryCreationResult.value;
     t.after(() => otherRegistry.clear());
-    const secondResult = await otherRegistry.getProject(path.join(other, 'core/tsconfig.json'));
+    const secondResult = otherRegistry.getProject(path.join(other, 'core/tsconfig.json'));
     assertOk(secondResult);
     const second = secondResult.value;
-    const outsideResult = await registry.getProject(path.join(other, 'core/tsconfig.json'));
+    const outsideResult = registry.getProject(path.join(other, 'core/tsconfig.json'));
     assertErr(outsideResult);
     assert.deepEqual(outsideResult.error, { reason: 'config-outside-workspace', configPath: path.join(other, 'core/tsconfig.json') });
     const server = await registry.getServer();
@@ -162,17 +162,17 @@ describe('TypeScriptCompilationRegistry', () => {
     const clearing = registry.clear();
     assert.equal(registry.clear(), clearing);
     await assert.rejects(registry.getServer(), /cleared/);
-    await assert.rejects(registry.getProject(config), /cleared/);
+    assert.throws(() => registry.getProject(config), /cleared/);
     await assert.rejects(registry.getProjects(), /cleared/);
     await clearing;
     assert.equal(dispose.mock.callCount(), 1);
     await assert.rejects(selected.program.getSourceFile(config), /Client is closed/);
     assert.ok(await second.program.getSourceFile(path.join(other, 'core/src/ports.ts')));
     await assert.rejects(server.getSnapshot(), /disposed/);
-    const registryCreationResult = await TypeScriptCompilationRegistry.create(root);
+    const registryCreationResult = await TypeScriptCompilationRegistry.create(root).run();
     assertOk(registryCreationResult);
     registry = registryCreationResult.value;
-    const refreshedResult = await registry.getProject(config);
+    const refreshedResult = registry.getProject(config);
     assertOk(refreshedResult);
     const refreshed = refreshedResult.value;
     assert.notEqual(refreshed, selected);
@@ -182,7 +182,7 @@ describe('TypeScriptCompilationRegistry', () => {
   it('reports malformed configs with context and retries without caching failures', async () => {
     const broken = path.join(root, 'tsconfig.broken.json');
     await writeFile(broken, '{ "compilerOptions": { "target": "not-a-target" } }');
-    const brokenResult = await TypeScriptCompilationRegistry.create(root);
+    const brokenResult = await TypeScriptCompilationRegistry.create(root).run();
     assertErr(brokenResult);
     assert.equal(brokenResult.error.reason, 'invalid-config');
     assert.ok('configPath' in brokenResult.error);
@@ -191,7 +191,7 @@ describe('TypeScriptCompilationRegistry', () => {
     assert.match(brokenResult.error.cause.message, /target/);
     await writeFile(broken, JSON.stringify({ files: ['core/src/ports.ts'] }));
     await recreateRegistry();
-    const projectResult = await registry.getProject(broken);
+    const projectResult = registry.getProject(broken);
     assertOk(projectResult);
     const project = projectResult.value;
     assert.ok(await project.program.getSourceFile(path.join(root, 'core/src/ports.ts')));
@@ -201,7 +201,7 @@ describe('TypeScriptCompilationRegistry', () => {
     const transportError = new Error('connection closed');
     t.mock.method(NativeLanguageServer.prototype, 'parseConfig', async () => { throw transportError; });
 
-    await assert.rejects(TypeScriptCompilationRegistry.create(root), error => {
+    await assert.rejects(TypeScriptCompilationRegistry.create(root).run(), error => {
       assert.ok(error instanceof Error);
       assert.ok(error.cause instanceof Error);
       assert.equal(error.cause.cause, transportError);
@@ -239,7 +239,7 @@ describe('TypeScriptCompilationRegistry', () => {
       throw cleanupError;
     });
 
-    await assert.rejects(TypeScriptCompilationRegistry.create(root), error => {
+    await assert.rejects(TypeScriptCompilationRegistry.create(root).run(), error => {
       assert.ok(error instanceof AggregateError);
       assert.equal(error.errors.length, 2);
       assert.ok(error.errors[0] instanceof Error);
@@ -251,7 +251,7 @@ describe('TypeScriptCompilationRegistry', () => {
     assert.equal(snapshot.isDisposed(), true);
     getSnapshot.mock.restore();
     await recreateRegistry();
-    const projectResult = await registry.getProject(config);
+    const projectResult = registry.getProject(config);
     assertOk(projectResult);
     const project = projectResult.value;
     assert.ok(await project.program.getSourceFile(path.join(root, 'core/src/ports.ts')));
@@ -263,11 +263,11 @@ describe('TypeScriptCompilationRegistry', () => {
     await writeFile(path.join(root, 'extra/tsconfig.json'), JSON.stringify({ files: ['entry.ts'] }));
     await writeFile(path.join(root, 'extra/entry.ts'), 'export const extra = 1;');
     assert.equal((await registry.getProjects()).length, 2);
-    const lateProject = await registry.getProject(path.join(root, 'extra/tsconfig.json'));
+    const lateProject = registry.getProject(path.join(root, 'extra/tsconfig.json'));
     assertErr(lateProject);
     assert.deepEqual(lateProject.error, { reason: 'config-not-in-snapshot', configPath: path.join(root, 'extra/tsconfig.json') });
     await registry.clear();
-    const registryCreationResult = await TypeScriptCompilationRegistry.create(root);
+    const registryCreationResult = await TypeScriptCompilationRegistry.create(root).run();
     assertOk(registryCreationResult);
     registry = registryCreationResult.value;
     assert.equal((await registry.getProjects()).length, 3);
@@ -285,11 +285,29 @@ describe('create', () => {
     await rm(root, { recursive: true, force: true });
   });
 
+  it('creates fresh compiler resources only when the flow runs', async t => {
+    await writeFile(path.join(root, 'tsconfig.json'), JSON.stringify({ files: ['entry.ts'] }));
+    await writeFile(path.join(root, 'entry.ts'), 'export const value = 1;');
+    const createServer = t.mock.method(NativeLanguageServer, 'create');
+    const flow = TypeScriptCompilationRegistry.create(root);
+
+    await Promise.resolve();
+    assert.equal(createServer.mock.callCount(), 0);
+    const first = await flow.run();
+    assertOk(first);
+    t.after(() => first.value.clear());
+    const second = await flow.run();
+    assertOk(second);
+    t.after(() => second.value.clear());
+    assert.notEqual(first.value, second.value);
+    assert.equal(createServer.mock.callCount(), 2);
+  });
+
   it('returns missing configuration and disposes the server without acquiring a snapshot', async t => {
     const dispose = t.mock.method(NativeLanguageServer.prototype, 'dispose');
     const getSnapshot = t.mock.method(NativeLanguageServer.prototype, 'getSnapshot');
 
-    const result = await TypeScriptCompilationRegistry.create(root);
+    const result = await TypeScriptCompilationRegistry.create(root).run();
 
     assertErr(result);
     assert.deepEqual(result.error, { reason: 'tsconfig-not-found' });
@@ -306,7 +324,7 @@ describe('create', () => {
     const dispose = t.mock.method(NativeLanguageServer.prototype, 'dispose');
     const getSnapshot = t.mock.method(NativeLanguageServer.prototype, 'getSnapshot');
 
-    const result = await TypeScriptCompilationRegistry.create(root);
+    const result = await TypeScriptCompilationRegistry.create(root).run();
 
     assertErr(result);
     assert.equal(result.error.reason, 'invalid-config');
@@ -325,7 +343,7 @@ describe('create', () => {
       throw cleanupError;
     });
 
-    await assert.rejects(TypeScriptCompilationRegistry.create(root), error => {
+    await assert.rejects(TypeScriptCompilationRegistry.create(root).run(), error => {
       assert.ok(error instanceof AggregateError);
       assert.deepEqual(error.errors, [{ reason: 'tsconfig-not-found' }, cleanupError]);
       return true;
@@ -338,13 +356,13 @@ describe('clear', () => {
   it('disposes the shared snapshot once and attempts server disposal and retains failures on repeated calls', async t => {
     const workspaceRoot = path.resolve('src/fixtures/workspace');
     const acquireSnapshot = t.mock.method(NativeLanguageServer.prototype, 'getSnapshot');
-    const registryCreationResult = await TypeScriptCompilationRegistry.create(workspaceRoot);
+    const registryCreationResult = await TypeScriptCompilationRegistry.create(workspaceRoot).run();
     assertOk(registryCreationResult);
     const registry = registryCreationResult.value;
     const nativeLanguageServer = await registry.getServer();
-    const firstCompilationResult = await registry.getProject(path.join(workspaceRoot, 'core/tsconfig.json'));
+    const firstCompilationResult = registry.getProject(path.join(workspaceRoot, 'core/tsconfig.json'));
     assertOk(firstCompilationResult);
-    const secondCompilationResult = await registry.getProject(path.join(workspaceRoot, 'infrastructure/tsconfig.json'));
+    const secondCompilationResult = registry.getProject(path.join(workspaceRoot, 'infrastructure/tsconfig.json'));
     assertOk(secondCompilationResult);
     assert.equal(acquireSnapshot.mock.callCount(), 1);
     const snapshot = await acquireSnapshot.mock.calls[0]!.result;

@@ -12,6 +12,6 @@ type GenerateGraphOptions = {
 export async function generateGraph({
   filePath, offset, analysisService, onSuccess, onFailure,
 }: GenerateGraphOptions): Promise<void> {
-  const graphResult = await analysisService.analyze(filePath, offset);
+  const graphResult = await analysisService.analyze(filePath, offset).run();
   await graphResult.match(onSuccess, onFailure);
 }

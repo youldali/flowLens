@@ -1,3 +1,4 @@
+import { ResultFlow } from '@youldali/result-flow';
 import assert from 'node:assert/strict';
 import { registerHooks } from 'node:module';
 import { afterEach, describe, it } from 'node:test';
@@ -28,7 +29,7 @@ describe('registerGenerateGraphCommand', () => {
       offsetAt: () => { throw new Error('Dirty source offsets must not be used for analysis'); },
     } as unknown as TextDocument;
     const warnings = t.mock.method(window, 'showWarningMessage');
-    const analyze = t.mock.method(WorkspaceAnalysisService.prototype, 'analyze', async () => ok({ nodes: [], edges: [] }));
+    const analyze = t.mock.method(WorkspaceAnalysisService.prototype, 'analyze', () => ResultFlow.from(ok({ nodes: [], edges: [] })));
     t.mock.method(FlowLensGraphWebview.prototype, 'showGraph', async () => {});
     window.activeTextEditor = { document, selection: { active: {} } } as TextEditor;
     const registration = t.mock.method(commands, 'registerCommand');
@@ -63,13 +64,13 @@ describe('registerGenerateGraphCommand', () => {
     workspace.textDocuments = [document];
     const registration = t.mock.method(commands, 'registerCommand');
     const show = t.mock.method(FlowLensGraphWebview.prototype, 'showGraph', async () => {});
-    type AnalysisResult = Awaited<ReturnType<WorkspaceAnalysisService['analyze']>>;
+    type AnalysisResult = Awaited<ReturnType<ReturnType<WorkspaceAnalysisService['analyze']>['run']>>;
     const pending: PromiseWithResolvers<AnalysisResult>[] = [];
-    const analyze = t.mock.method(WorkspaceAnalysisService.prototype, 'analyze', async () => {
+    const analyze = t.mock.method(WorkspaceAnalysisService.prototype, 'analyze', () => ResultFlow.gen(async function* () {
       const request = Promise.withResolvers<AnalysisResult>();
       pending.push(request);
-      return request.promise;
-    });
+      return yield* await request.promise;
+    }));
     const store = createExtensionStore();
     let extensionActive = true;
     const disposable = registerGenerateGraphCommand({

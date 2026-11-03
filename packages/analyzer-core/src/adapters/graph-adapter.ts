@@ -1,7 +1,6 @@
 import * as path from 'node:path';
 import * as ts from 'typescript-native/ast';
 import type { Program, Project } from 'typescript-native/async';
-import { err, ok, type Result } from 'neverthrow';
 import { ResultFlow } from '@youldali/result-flow';
 import { normalizePath, type FilePath } from '@flowlens/common/fs';
 import { Queue } from '@flowlens/common/queue';
@@ -37,9 +36,9 @@ export class GraphAdapter {
   private readonly implementationDiscovery: ImplementationDiscovery;
   private readonly nodeAdapter: NodeAdapter;
 
-  static async create(filePath: FilePath, compilationRegistry: TypeScriptCompilationRegistry): Promise<Result<GraphAdapter, ProjectNotFoundError>> {
-    const projectResult = await compilationRegistry.getProjectForFile(filePath);
-    return projectResult.map(project => {
+  static create(filePath: FilePath, compilationRegistry: TypeScriptCompilationRegistry): ResultFlow<GraphAdapter, ProjectNotFoundError> {
+    return ResultFlow.gen<GraphAdapter, ProjectNotFoundError>(async function* () {
+      const project = yield* compilationRegistry.getProjectForFile(filePath);
       if (!project.configFileName) throw new Error(`Configured project for ${filePath} has no configuration path`);
       return new GraphAdapter(project.configFileName, project, compilationRegistry);
     });
@@ -52,25 +51,25 @@ export class GraphAdapter {
     this.nodeAdapter = new NodeAdapter(project.checker, this.program, this.implementationDiscovery, this.rootDir);
   }
 
-  async analyze(filePath: FilePath, offset?: number): Promise<Result<FlowGraph, FromFilePositionError>> {
+  analyze(filePath: FilePath, offset?: number): ResultFlow<FlowGraph, FromFilePositionError> {
     const graphAdapter = this;
     return ResultFlow.gen<FlowGraph, FromFilePositionError>(async function* () {
       if (offset === undefined) {
-        yield* await graphAdapter.fromFile(filePath);
+        yield* graphAdapter.fromFile(filePath);
       } else {
         yield* graphAdapter.fromFilePosition(filePath, offset);
       }
 
       return graphAdapter.extract();
-    }).run();
+    });
   }
 
-  async fromFile(entryFilePath: FilePath): Promise<Result<void, SourceFileNotFoundError>> {
+  fromFile(entryFilePath: FilePath): ResultFlow<void, SourceFileNotFoundError> {
     const graphAdapter = this;
     return ResultFlow.gen<void, SourceFileNotFoundError>(async function* () {
-      const sourceFile = yield* await graphAdapter.getSourceFileByPath(entryFilePath);
+      const sourceFile = yield* graphAdapter.getSourceFileByPath(entryFilePath);
       await graphAdapter.build(sourceFile);
-    }).run();
+    });
   }
 
   fromFilePosition(
@@ -79,7 +78,7 @@ export class GraphAdapter {
   ): ResultFlow<void, FromFilePositionError> {
     const graphAdapter = this;
     return ResultFlow.gen<void, FromFilePositionError>(async function* () {
-      const resolvedSourceFile = yield* await graphAdapter.getSourceFileByPath(
+      const resolvedSourceFile = yield* graphAdapter.getSourceFileByPath(
         typeof sourceFile === 'string' ? sourceFile : sourceFile.fileName,
       );
       const node = yield* TsNodeModule.findNodeAtPosition(resolvedSourceFile, position)
@@ -189,10 +188,13 @@ export class GraphAdapter {
     }
   }
   
-  private async getSourceFileByPath(filePath: FilePath): Promise<Result<ts.SourceFile, SourceFileNotFoundError>> {
-    const sourceFile = await this.program.getSourceFile(path.resolve(filePath));
-
-    return sourceFile ? ok(sourceFile) : err({ reason: 'source-file-not-found' });
+  private getSourceFileByPath(filePath: FilePath): ResultFlow<ts.SourceFile, SourceFileNotFoundError> {
+    const program = this.program;
+    return ResultFlow.gen<ts.SourceFile, SourceFileNotFoundError>(async function* ({ fail }) {
+      const sourceFile = await program.getSourceFile(path.resolve(filePath));
+      if (!sourceFile) return fail({ reason: 'source-file-not-found' });
+      return sourceFile;
+    });
   }
 
   private addNode(

@@ -1,3 +1,4 @@
+import { ResultFlow } from '@youldali/result-flow';
 import assert from 'node:assert/strict';
 import { registerHooks } from 'node:module';
 import { afterEach, describe, it } from 'node:test';
@@ -54,8 +55,8 @@ describe('deactivate', () => {
     window.activeTextEditor = { document, selection: { active: {} } } as TextEditor;
     const registration = t.mock.method(commands, 'registerCommand');
     const show = t.mock.method(FlowLensGraphWebview.prototype, 'showGraph', async () => {});
-    const pending = Promise.withResolvers<Awaited<ReturnType<WorkspaceAnalysisService['analyze']>>>();
-    t.mock.method(WorkspaceAnalysisService.prototype, 'analyze', () => pending.promise);
+    const pending = Promise.withResolvers<Awaited<ReturnType<ReturnType<WorkspaceAnalysisService['analyze']>['run']>>>();
+    t.mock.method(WorkspaceAnalysisService.prototype, 'analyze', () => ResultFlow.from(() => pending.promise));
     activate(extensionContext);
     const command = registration.mock.calls.find(call => call.arguments[0] === 'flowlens.generateGraph')!.arguments[1];
     const generating = command();

@@ -13,11 +13,11 @@ import { createGraphViewerServer } from './server.js';
 describe('createGraphViewerServer', () => {
   it('generates a new graph ID per request while preserving graph contents', async (t) => {
     const config = path.resolve('../../packages/analyzer-core/tsconfig.json');
-    const compilationRegistryCreationResult = await TypeScriptCompilationRegistry.create(findWorkspaceRoot(config));
+    const compilationRegistryCreationResult = await TypeScriptCompilationRegistry.create(findWorkspaceRoot(config)).run();
     assertOk(compilationRegistryCreationResult);
     const compilationRegistry = compilationRegistryCreationResult.value;
     t.after(() => compilationRegistry.clear());
-    const adapterResult = await GraphAdapter.create(path.resolve('../../packages/analyzer-core/src/fixtures/graph-builder-entry.ts'), compilationRegistry);
+    const adapterResult = await GraphAdapter.create(path.resolve('../../packages/analyzer-core/src/fixtures/graph-builder-entry.ts'), compilationRegistry).run();
     assertOk(adapterResult);
     const adapter = adapterResult.value;
     const app = createGraphViewerServer(async () => adapter.extract(), path.resolve('../frontend/dist'), () => compilationRegistry.clear());
@@ -41,14 +41,14 @@ describe('createGraphViewerServer', () => {
     t.after(() => fs.rmSync(root, { recursive: true, force: true }));
     fs.cpSync(path.resolve('../../packages/analyzer-core/src/fixtures/workspace'), root, { recursive: true });
     fs.mkdirSync(path.join(root, '.git'));
-    const compilationRegistryCreationResult = await TypeScriptCompilationRegistry.create(root);
+    const compilationRegistryCreationResult = await TypeScriptCompilationRegistry.create(root).run();
     assertOk(compilationRegistryCreationResult);
     const compilationRegistry = compilationRegistryCreationResult.value;
     t.after(() => compilationRegistry.clear());
-    const adapterResult = await GraphAdapter.create(path.join(root, 'core/src/use-case.ts'), compilationRegistry);
+    const adapterResult = await GraphAdapter.create(path.join(root, 'core/src/use-case.ts'), compilationRegistry).run();
     assertOk(adapterResult);
     const adapter = adapterResult.value;
-    assertOk(await adapter.fromFile(path.join(root, 'core/src/use-case.ts')));
+    assertOk(await adapter.fromFile(path.join(root, 'core/src/use-case.ts')).run());
     const app = createGraphViewerServer(async () => adapter.extract(), path.resolve('../frontend/dist'), () => compilationRegistry.clear());
     t.after(() => app.close());
     const graphResponse = await app.inject({ method: 'GET', url: '/graph.json' });
@@ -62,15 +62,15 @@ describe('createGraphViewerServer', () => {
 
   it('serves eager implementation metadata', async (t) => {
     const config = path.resolve('../../packages/analyzer-core/tsconfig.json');
-    const compilationRegistryCreationResult = await TypeScriptCompilationRegistry.create(findWorkspaceRoot(config));
+    const compilationRegistryCreationResult = await TypeScriptCompilationRegistry.create(findWorkspaceRoot(config)).run();
     assertOk(compilationRegistryCreationResult);
     const compilationRegistry = compilationRegistryCreationResult.value;
     t.after(() => compilationRegistry.clear());
-    const adapterResult = await GraphAdapter.create(path.resolve('../../packages/analyzer-core/src/fixtures/graph-builder-entry.ts'), compilationRegistry);
+    const adapterResult = await GraphAdapter.create(path.resolve('../../packages/analyzer-core/src/fixtures/graph-builder-entry.ts'), compilationRegistry).run();
     assertOk(adapterResult);
     const adapter = adapterResult.value;
     const filePath = path.resolve('../../packages/analyzer-core/src/fixtures/implementation-entry.ts');
-    assertOk(await adapter.fromFile(filePath));
+    assertOk(await adapter.fromFile(filePath).run());
     const member = adapter.extract().nodes.find((node) =>
       node.kind === 'callableTypeMemberDeclaration' && node.name === 'run');
     assert.ok(member);
@@ -105,23 +105,23 @@ describe('createGraphViewerServer', () => {
       const workspaceRoot = path.join(directory, workspaceName);
       fs.cpSync(path.resolve('../../packages/analyzer-core/src/fixtures/workspace'), workspaceRoot, { recursive: true });
       fs.mkdirSync(path.join(workspaceRoot, '.git'));
-      const compilationRegistryCreationResult = await TypeScriptCompilationRegistry.create(workspaceRoot);
+      const compilationRegistryCreationResult = await TypeScriptCompilationRegistry.create(workspaceRoot).run();
       assertOk(compilationRegistryCreationResult);
       const compilationRegistry = compilationRegistryCreationResult.value;
       compilationRegistries.push(compilationRegistry);
 
-      const adapterResult = await GraphAdapter.create(path.join(compilationRegistry.root, 'core/src/use-case.ts'), compilationRegistry);
+      const adapterResult = await GraphAdapter.create(path.join(compilationRegistry.root, 'core/src/use-case.ts'), compilationRegistry).run();
       assertOk(adapterResult);
       const adapter = adapterResult.value;
-      assertOk(await adapter.fromFile(path.join(compilationRegistry.root, 'core/src/use-case.ts')));
+      assertOk(await adapter.fromFile(path.join(compilationRegistry.root, 'core/src/use-case.ts')).run());
       apps.push(createGraphViewerServer(async () => adapter.extract(), path.resolve('../frontend/dist'), () => compilationRegistry.clear()));
     }
 
     await Promise.all(apps.map(app => app.ready()));
-    const firstCompilationResult = await compilationRegistries[0]!.getProject(path.join(compilationRegistries[0]!.root, 'core/tsconfig.json'));
+    const firstCompilationResult = compilationRegistries[0]!.getProject(path.join(compilationRegistries[0]!.root, 'core/tsconfig.json'));
     assertOk(firstCompilationResult);
     const firstCompilation = firstCompilationResult.value;
-    const secondCompilationResult = await compilationRegistries[1]!.getProject(path.join(compilationRegistries[1]!.root, 'core/tsconfig.json'));
+    const secondCompilationResult = compilationRegistries[1]!.getProject(path.join(compilationRegistries[1]!.root, 'core/tsconfig.json'));
     assertOk(secondCompilationResult);
     const secondCompilation = secondCompilationResult.value;
     await apps[0]!.close();
@@ -139,7 +139,7 @@ describe('createGraphViewerServer', () => {
     fs.writeFileSync(file, 'export function before() { return 1; }');
     const workspaceAnalysisService = new WorkspaceAnalysisService();
     const app = createGraphViewerServer(async () => {
-      const result = await workspaceAnalysisService.analyze(file);
+      const result = await workspaceAnalysisService.analyze(file).run();
       assertOk(result);
       return result.value;
     }, root, () => workspaceAnalysisService.dispose());
@@ -155,6 +155,6 @@ describe('createGraphViewerServer', () => {
     const sourceResponse = await app.inject('/source?' + new URLSearchParams({ graphId: first.graphId, filePath: file, offset: '0' }));
     assert.equal(sourceResponse.statusCode, 404);
     await app.close();
-    await assert.rejects(workspaceAnalysisService.analyze(file), /shutting down/);
+    await assert.rejects(workspaceAnalysisService.analyze(file).run(), /shutting down/);
   });
 });

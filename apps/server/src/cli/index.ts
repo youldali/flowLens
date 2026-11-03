@@ -21,7 +21,7 @@ if (args.length !== 1) {
 
   try {
     const analyze = async () => {
-      const result = await workspaceAnalysisService.analyze(entryFilePath);
+      const result = await workspaceAnalysisService.analyze(entryFilePath).run();
       if (result.isErr()) throw new Error(`Could not build graph: ${result.error.reason}`);
       return result.value;
     };

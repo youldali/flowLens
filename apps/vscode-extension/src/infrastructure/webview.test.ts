@@ -1,3 +1,4 @@
+import { ResultFlow } from '@youldali/result-flow';
 import assert from 'node:assert/strict';
 import { after, describe, it } from 'node:test';
 import { registerHooks } from 'node:module';
@@ -91,10 +92,10 @@ describe('FlowLensGraphWebview', () => {
 
   it('uses the captured function and original request IDs across graph replacement', async () => {
     const deferred = Promise.withResolvers<typeof explanation>();
-    const { host, panel, session } = await setup(async received => {
+    const { host, panel, session } = await setup(received => ResultFlow.gen(async function* () {
       assert.equal(received, node);
-      return ok(await deferred.promise);
-    });
+      return await deferred.promise;
+    }));
     const request = { graphId: session.graphId, nodeId: node.id, requestId: 'request' };
     const delivery = panel.receive(createVsCodeEvent('explain.node', request));
     await host.showGraph(graph);
@@ -105,7 +106,7 @@ describe('FlowLensGraphWebview', () => {
 
   it('ignores invalid requests and suppresses replies after closure and reopening', async () => {
     const deferred = Promise.withResolvers<typeof explanation>();
-    const { host, panel, session } = await setup(async () => ok(await deferred.promise));
+    const { host, panel, session } = await setup(() => ResultFlow.gen(async function* () { return await deferred.promise; }));
     const count = panel.messages.length;
     await panel.receive({ type: 'explain.node', payload: {} });
     assert.equal(panel.messages.length, count);

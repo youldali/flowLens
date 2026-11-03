@@ -1,3 +1,4 @@
+import { ResultFlow } from '@youldali/result-flow';
 import assert from 'node:assert/strict';
 import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import * as os from 'node:os';
@@ -37,9 +38,9 @@ describe('analyze', () => {
     const firstFilePath = path.join(workspaceRoots[0]!, 'entry.ts');
     const secondFilePath = path.join(workspaceRoots[1]!, 'entry.ts');
     const graphResults = await Promise.all([
-      workspaceAnalysisService.analyze(firstFilePath, 20),
-      workspaceAnalysisService.analyze(firstFilePath, 20),
-      workspaceAnalysisService.analyze(secondFilePath, 20),
+      workspaceAnalysisService.analyze(firstFilePath, 20).run(),
+      workspaceAnalysisService.analyze(firstFilePath, 20).run(),
+      workspaceAnalysisService.analyze(secondFilePath, 20).run(),
     ]);
 
     for (const [index, graphResult] of graphResults.entries()) {
@@ -49,7 +50,7 @@ describe('analyze', () => {
       assert.ok(graphResult.value.nodes.every(node => node.filePath === expectedFilePath));
     }
 
-    assertOk(await workspaceAnalysisService.analyze(firstFilePath, 20));
+    assertOk(await workspaceAnalysisService.analyze(firstFilePath, 20).run());
     const compilationRegistries = createGraphAdapter.mock.calls.map(call => call.arguments[1]);
     const firstRegistries = compilationRegistries.filter(registry => registry.root === workspaceRoots[0]);
     assert.equal(firstRegistries.length, 3);
@@ -63,7 +64,7 @@ describe('analyze', () => {
     }
 
     assert.ok(compilationRegistries.some(registry => registry.root === workspaceRoots[1] && registry !== firstRegistries[0]));
-    const missingNode = await workspaceAnalysisService.analyze(firstFilePath, 1_000_000);
+    const missingNode = await workspaceAnalysisService.analyze(firstFilePath, 1_000_000).run();
     assertErr(missingNode);
     assert.equal(missingNode.error.reason, 'node-not-found');
     assert.equal(clearRegistry.mock.callCount(), 5);
@@ -75,7 +76,7 @@ describe('analyze', () => {
     const filePath = path.join(workspaceRoots[0]!, 'entry.ts');
     const sourceText = 'export function first() { return 1; }\nexport function second() { return 2; }';
     await writeFile(filePath, sourceText);
-    const analysisResult = await workspaceAnalysisService.analyze(filePath);
+    const analysisResult = await workspaceAnalysisService.analyze(filePath).run();
     assertOk(analysisResult);
     const functionNames = analysisResult.value.nodes
       .filter(node => node.kind === 'functionDeclaration').map(node => node.name);
@@ -92,15 +93,15 @@ describe('analyze', () => {
     const workspaceAnalysisService = new WorkspaceAnalysisService();
     t.after(() => workspaceAnalysisService.dispose());
     const compilerError = new Error('compiler failed');
-    const createGraphAdapter = t.mock.method(GraphAdapter, 'create', async () => { throw compilerError; });
+    const createGraphAdapter = t.mock.method(GraphAdapter, 'create', () => ResultFlow.gen(async function* () { throw compilerError; }));
     const emptyDirectory = path.join(directory, 'empty');
     await mkdir(emptyDirectory);
-    const missingConfig = await workspaceAnalysisService.analyze(path.join(emptyDirectory, 'entry.ts'), 0);
+    const missingConfig = await workspaceAnalysisService.analyze(path.join(emptyDirectory, 'entry.ts'), 0).run();
 
     assertErr(missingConfig);
     assert.equal(missingConfig.error.reason, 'tsconfig-not-found');
     assert.equal(createGraphAdapter.mock.callCount(), 0);
-    await assert.rejects(workspaceAnalysisService.analyze(path.join(workspaceRoots[0]!, 'entry.ts'), 20), error => error === compilerError);
+    await assert.rejects(workspaceAnalysisService.analyze(path.join(workspaceRoots[0]!, 'entry.ts'), 20).run(), error => error === compilerError);
   });
 
   it('analyzes a standalone project with only a config variant and reports unowned files', async t => {
@@ -113,13 +114,13 @@ describe('analyze', () => {
     const service = new WorkspaceAnalysisService();
     t.after(() => service.dispose());
 
-    const result = await service.analyze(filePath);
+    const result = await service.analyze(filePath).run();
     assertOk(result);
     assert.ok(result.value.nodes.some(node => node.name === 'entry'));
 
     const excludedFile = path.join(sourceDirectory, 'excluded.ts');
     await writeFile(excludedFile, 'export const excluded = 1;');
-    const excludedResult = await service.analyze(excludedFile);
+    const excludedResult = await service.analyze(excludedFile).run();
     assertErr(excludedResult);
     assert.deepEqual(excludedResult.error, { reason: 'project-not-found', filePath: excludedFile });
   });
@@ -132,7 +133,7 @@ describe('analyze', () => {
     t.after(() => service.dispose());
     const clearRegistry = NativeLanguageServer.prototype.dispose;
     const cleanup = t.mock.method(NativeLanguageServer.prototype, 'dispose');
-    const result = await service.analyze(path.join(workspaceRoot, 'entry.ts'));
+    const result = await service.analyze(path.join(workspaceRoot, 'entry.ts')).run();
 
     assertErr(result);
     assert.equal(result.error.reason, 'invalid-config');
@@ -148,7 +149,7 @@ describe('analyze', () => {
       await clearRegistry.call(this);
       throw cleanupError;
     });
-    await assert.rejects(service.analyze(path.join(workspaceRoot, 'entry.ts')), error => {
+    await assert.rejects(service.analyze(path.join(workspaceRoot, 'entry.ts')).run(), error => {
       assert.ok(error instanceof AggregateError);
       assert.equal(error.errors[0].reason, 'invalid-config');
       assert.equal(error.errors[1], cleanupError);
@@ -163,7 +164,7 @@ describe('analyze', () => {
     t.mock.method(NativeLanguageServer, 'create', async () => { throw initializationError; });
     const createGraphAdapter = t.mock.method(GraphAdapter, 'create');
 
-    await assert.rejects(workspaceAnalysisService.analyze(path.join(workspaceRoots[0]!, 'entry.ts')), error => error === initializationError);
+    await assert.rejects(workspaceAnalysisService.analyze(path.join(workspaceRoots[0]!, 'entry.ts')).run(), error => error === initializationError);
     assert.equal(createGraphAdapter.mock.callCount(), 0);
   });
 
@@ -181,11 +182,11 @@ describe('analyze', () => {
           await clearRegistry.call(this);
           if (failureStage === 'graph' || failureStage === 'cleanup') throw cleanupError;
         });
-        const failAnalysis = async () => { throw analysisError; };
+        const failAnalysis = () => ResultFlow.gen(async function* () { throw analysisError; });
         if (failureStage === 'adapter') t.mock.method(GraphAdapter, 'create', failAnalysis);
         if (failureStage === 'graph') t.mock.method(GraphAdapter.prototype, 'analyze', failAnalysis);
 
-        await assert.rejects(workspaceAnalysisService.analyze(filePath), error => {
+        await assert.rejects(workspaceAnalysisService.analyze(filePath).run(), error => {
           if (failureStage === 'graph') {
             assert.ok(error instanceof AggregateError);
             assert.deepEqual(error.errors, [analysisError, cleanupError]);
@@ -220,7 +221,7 @@ describe('analyze', () => {
         });
         const analyze = t.mock.method(GraphAdapter.prototype, 'analyze');
 
-        await assert.rejects(service.analyze(filePath, 1_000_000), error => {
+        await assert.rejects(service.analyze(filePath, 1_000_000).run(), error => {
           assert.ok(error instanceof AggregateError);
           assert.deepEqual(error.errors, [analysisError, cleanupError]);
           return true;
@@ -241,13 +242,13 @@ describe('analyze', () => {
     await writeFile(dependency, 'export function original() { return 1; }');
     const entryText = "import { original } from './dependency.js'; export function entry() { return original(); }";
     await writeFile(file, entryText);
-    const original = await service.analyze(file, entryText.indexOf('return'));
+    const original = await service.analyze(file, entryText.indexOf('return')).run();
     assertOk(original);
     assert.ok(original.value.nodes.some(node => node.name === 'original' && node.kind === 'functionDeclaration'));
     const changedText = entryText.replaceAll('original', 'changed');
     await writeFile(file, changedText);
     await writeFile(dependency, 'export function changed() { return 2; }');
-    const changed = await service.analyze(file, changedText.indexOf('return'));
+    const changed = await service.analyze(file, changedText.indexOf('return')).run();
     assertOk(changed);
     assert.ok(changed.value.nodes.some(node => node.name === 'changed' && node.kind === 'functionDeclaration'));
     assert.ok(!changed.value.nodes.some(node => node.name === 'original'));
@@ -262,7 +263,7 @@ describe('analyze', () => {
     const entry = path.join(root, 'core/src/use-case.ts');
     const implementation = path.join(root, 'infrastructure/src/adapter.ts');
     const analyze = async () => {
-      const result = await workspaceAnalysisService.analyze(entry);
+      const result = await workspaceAnalysisService.analyze(entry).run();
       assertOk(result);
       return result.value;
     };
@@ -290,6 +291,18 @@ describe('analyze', () => {
 });
 
 describe('dispose', () => {
+  it('does not start unused analysis flows and rejects them when run after shutdown', async t => {
+    const createRegistry = t.mock.method(TypeScriptCompilationRegistry, 'create');
+    const service = new WorkspaceAnalysisService();
+    const flow = service.analyze('/unused/entry.ts');
+
+    await Promise.resolve();
+    assert.equal(createRegistry.mock.callCount(), 0);
+    await service.dispose();
+    await assert.rejects(flow.run(), /shutting down/);
+    assert.equal(createRegistry.mock.callCount(), 0);
+  });
+
   it('waits through initialization, analysis, and cleanup while rejecting new work', async t => {
     const workspaceRoot = await mkdtemp(path.join(os.tmpdir(), 'flowlens-shutdown-'));
     await writeFile(path.join(workspaceRoot, 'tsconfig.json'), JSON.stringify({ files: ['entry.ts'] }));
@@ -310,16 +323,19 @@ describe('dispose', () => {
       await rm(workspaceRoot, { recursive: true, force: true });
     });
     const createRegistry = TypeScriptCompilationRegistry.create;
-    t.mock.method(TypeScriptCompilationRegistry, 'create', async (root: string) => {
+    t.mock.method(TypeScriptCompilationRegistry, 'create', (root: string) => ResultFlow.gen(async function* () {
       initializationStarted.resolve();
       await initializationGate.promise;
-      return createRegistry(root);
-    });
+      return yield* createRegistry(root);
+    }));
     const analyzeGraph = GraphAdapter.prototype.analyze;
-    t.mock.method(GraphAdapter.prototype, 'analyze', async function (this: GraphAdapter, entryFilePath: string, offset?: number) {
-      analysisStarted.resolve();
-      await analysisGate.promise;
-      return analyzeGraph.call(this, entryFilePath, offset);
+    t.mock.method(GraphAdapter.prototype, 'analyze', function (this: GraphAdapter, entryFilePath: string, offset?: number) {
+      const graphAdapter = this;
+      return ResultFlow.gen(async function* () {
+        analysisStarted.resolve();
+        await analysisGate.promise;
+        return yield* analyzeGraph.call(graphAdapter, entryFilePath, offset);
+      });
     });
     const clearRegistry = TypeScriptCompilationRegistry.prototype.clear;
     t.mock.method(TypeScriptCompilationRegistry.prototype, 'clear', async function (this: TypeScriptCompilationRegistry) {
@@ -327,13 +343,13 @@ describe('dispose', () => {
       await cleanupGate.promise;
       await clearRegistry.call(this);
     });
-    const analysis = workspaceAnalysisService.analyze(filePath);
+    const analysis = workspaceAnalysisService.analyze(filePath).run();
     await initializationStarted.promise;
     const closing = workspaceAnalysisService.dispose();
     let shutdownCompleted = false;
     void closing.then(() => { shutdownCompleted = true; });
     assert.equal(workspaceAnalysisService.dispose(), closing);
-    await assert.rejects(workspaceAnalysisService.analyze(filePath), /shutting down/);
+    await assert.rejects(workspaceAnalysisService.analyze(filePath).run(), /shutting down/);
     assert.equal(shutdownCompleted, false);
 
     initializationGate.resolve();
@@ -363,17 +379,17 @@ describe('dispose', () => {
     });
     const analysisError = new Error('analysis failed');
     const cleanupError = new Error('cleanup failed');
-    t.mock.method(GraphAdapter.prototype, 'analyze', async () => {
+    t.mock.method(GraphAdapter.prototype, 'analyze', () => ResultFlow.gen(async function* () {
       analysisStarted.resolve();
       await analysisGate.promise;
       throw analysisError;
-    });
+    }));
     const clearRegistry = TypeScriptCompilationRegistry.prototype.clear;
     const cleanup = t.mock.method(TypeScriptCompilationRegistry.prototype, 'clear', async function (this: TypeScriptCompilationRegistry) {
       await clearRegistry.call(this);
       throw cleanupError;
     });
-    const analysisRejection = assert.rejects(workspaceAnalysisService.analyze(filePath), error => {
+    const analysisRejection = assert.rejects(workspaceAnalysisService.analyze(filePath).run(), error => {
       assert.ok(error instanceof AggregateError);
       assert.deepEqual(error.errors, [analysisError, cleanupError]);
       return true;

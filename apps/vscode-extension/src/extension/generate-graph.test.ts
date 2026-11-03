@@ -1,3 +1,4 @@
+import { ResultFlow } from '@youldali/result-flow';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import { err, ok } from 'neverthrow';
@@ -8,7 +9,7 @@ describe('generateGraph', () => {
   it('delivers analysis results to the matching callback and propagates exceptions', async t => {
     const graph = { nodes: [], edges: [] };
     const analysisService = new WorkspaceAnalysisService();
-    const analyze = t.mock.method(analysisService, 'analyze', async () => ok(graph));
+    const analyze = t.mock.method(analysisService, 'analyze', () => ResultFlow.from(ok(graph)));
     const onSuccess = t.mock.fn(async () => {});
     const onFailure = t.mock.fn(async () => {});
     const options = { filePath: '/project/entry.ts', offset: 17, analysisService, onSuccess, onFailure };
@@ -19,16 +20,16 @@ describe('generateGraph', () => {
     assert.equal(onFailure.mock.callCount(), 0);
 
     const error = { reason: 'tsconfig-not-found' } as const;
-    analyze.mock.mockImplementation(async () => err(error));
+    analyze.mock.mockImplementation(() => ResultFlow.from(err(error)));
     await generateGraph(options);
     assert.deepEqual(onFailure.mock.calls[0]!.arguments, [error]);
     assert.equal(onSuccess.mock.callCount(), 1);
 
     const unexpectedError = new Error('Analysis failed');
-    analyze.mock.mockImplementation(async () => { throw unexpectedError; });
+    analyze.mock.mockImplementation(() => ResultFlow.gen<never, never>(async function* () { throw unexpectedError; }));
     await assert.rejects(generateGraph(options), error => error === unexpectedError);
 
-    analyze.mock.mockImplementation(async () => ok(graph));
+    analyze.mock.mockImplementation(() => ResultFlow.from(ok(graph)));
     onSuccess.mock.mockImplementation(async () => { throw unexpectedError; });
     await assert.rejects(generateGraph(options), error => error === unexpectedError);
     assert.equal(onFailure.mock.callCount(), 1);

@@ -19,66 +19,70 @@ export type CompilationError =
 export class TypeScriptCompilationRegistry {
   private clearing: Promise<void> | undefined;
 
-  static async create(root: FilePath): Promise<Result<TypeScriptCompilationRegistry, CompilationError>> {
-    const workspaceRoot = path.resolve(root);
-    const nativeLanguageServer = await NativeLanguageServer.create(workspaceRoot);
-    let snapshot: Snapshot | undefined;
-    let initialized = false;
-    let initializationFailure: unknown;
+  static create(root: FilePath): ResultFlow<TypeScriptCompilationRegistry, CompilationError> {
+    return ResultFlow.gen<TypeScriptCompilationRegistry, CompilationError>(async function* () {
+      const workspaceRoot = path.resolve(root);
+      const nativeLanguageServer = await NativeLanguageServer.create(workspaceRoot);
+      let snapshot: Snapshot | undefined;
+      let initialized = false;
+      let initializationFailure: unknown;
+      let initializationResult: Result<TypeScriptCompilationRegistry, CompilationError>;
 
-    try {
-      const initializationResult = await ResultFlow.gen<TypeScriptCompilationRegistry, CompilationError>(async function* () {
-        const configPaths: FilePath[] = [];
+      try {
+        initializationResult = await ResultFlow.gen<TypeScriptCompilationRegistry, CompilationError>(async function* ({ fail }) {
+          const configPaths: FilePath[] = [];
 
-        for (const configPath of collectWorkspaceTsConfigs(workspaceRoot, { excludeFileNamePattern: excludedTsconfigFileNamePattern })) {
-          try {
-            const parsedConfig = await nativeLanguageServer.parseConfig(configPath);
-            if (parsedConfig.fileNames.length) configPaths.push(configPath);
-          } catch (error) {
-            if (error instanceof InvalidTypeScriptConfigError) {
-              return yield* err({ reason: 'invalid-config', configPath, cause: error } as const);
+          for (const configPath of collectWorkspaceTsConfigs(workspaceRoot, { excludeFileNamePattern: excludedTsconfigFileNamePattern })) {
+            try {
+              const parsedConfig = await nativeLanguageServer.parseConfig(configPath);
+              if (parsedConfig.fileNames.length) configPaths.push(configPath);
+            } catch (error) {
+              if (error instanceof InvalidTypeScriptConfigError) {
+                return fail({ reason: 'invalid-config', configPath, cause: error });
+              }
+
+              throw new Error(`Failed to parse native workspace project ${configPath}`, { cause: error });
             }
-
-            throw new Error(`Failed to parse native workspace project ${configPath}`, { cause: error });
           }
+
+          if (!configPaths.length) return fail({ reason: 'tsconfig-not-found' });
+
+          const acquiredSnapshot = await nativeLanguageServer.getSnapshot({ openProjects: configPaths, ensurePrograms: true });
+          snapshot = acquiredSnapshot;
+          const projects = new Map(configPaths.map(configPath => {
+            const project = acquiredSnapshot.getConfiguredProject(configPath);
+            if (!project?.configFileName || path.resolve(project.configFileName) !== configPath) throw new Error(`Native compiler did not load configured project ${configPath}`);
+            return [configPath, project] as const;
+          }));
+          return new TypeScriptCompilationRegistry(workspaceRoot, nativeLanguageServer, acquiredSnapshot, projects);
+        }).run();
+        initialized = initializationResult.isOk();
+        if (initializationResult.isErr()) initializationFailure = initializationResult.error;
+      } catch (error) {
+        initializationFailure = new Error(`Failed to initialize compilation registry for ${workspaceRoot}`, { cause: error });
+        throw initializationFailure;
+      } finally {
+        if (!initialized) {
+          const cleanupFailures: unknown[] = [];
+
+          try {
+            await snapshot?.dispose();
+          } catch (error) {
+            cleanupFailures.push(error);
+          }
+
+          try {
+            await nativeLanguageServer.dispose();
+          } catch (error) {
+            cleanupFailures.push(error);
+          }
+
+          if (cleanupFailures.length) throw new AggregateError([initializationFailure, ...cleanupFailures], 'Registry initialization and cleanup failed');
         }
-
-        if (!configPaths.length) return yield* err({ reason: 'tsconfig-not-found' } as const);
-
-        const acquiredSnapshot = await nativeLanguageServer.getSnapshot({ openProjects: configPaths, ensurePrograms: true });
-        snapshot = acquiredSnapshot;
-        const projects = new Map(configPaths.map(configPath => {
-          const project = acquiredSnapshot.getConfiguredProject(configPath);
-          if (!project?.configFileName || path.resolve(project.configFileName) !== configPath) throw new Error(`Native compiler did not load configured project ${configPath}`);
-          return [configPath, project] as const;
-        }));
-        return new TypeScriptCompilationRegistry(workspaceRoot, nativeLanguageServer, acquiredSnapshot, projects);
-      }).run();
-      initialized = initializationResult.isOk();
-      if (initializationResult.isErr()) initializationFailure = initializationResult.error;
-      return initializationResult;
-    } catch (error) {
-      initializationFailure = new Error(`Failed to initialize compilation registry for ${workspaceRoot}`, { cause: error });
-      throw initializationFailure;
-    } finally {
-      if (!initialized) {
-        const cleanupFailures: unknown[] = [];
-
-        try {
-          await snapshot?.dispose();
-        } catch (error) {
-          cleanupFailures.push(error);
-        }
-
-        try {
-          await nativeLanguageServer.dispose();
-        } catch (error) {
-          cleanupFailures.push(error);
-        }
-
-        if (cleanupFailures.length) throw new AggregateError([initializationFailure, ...cleanupFailures], 'Registry initialization and cleanup failed');
       }
-    }
+
+      return yield* initializationResult;
+    });
   }
 
   private constructor(
@@ -93,7 +97,7 @@ export class TypeScriptCompilationRegistry {
     return this.nativeLanguageServer;
   }
 
-  async getProject(tsconfigPath: FilePath): Promise<Result<Project, CompilationError>> {
+  getProject(tsconfigPath: FilePath): Result<Project, CompilationError> {
     this.ensureOpen();
 
     const configPath = path.resolve(tsconfigPath);
@@ -105,15 +109,20 @@ export class TypeScriptCompilationRegistry {
     return project ? ok(project) : err({ reason: 'config-not-in-snapshot', configPath });
   }
 
-  async getProjectForFile(filePath: FilePath): Promise<Result<Project, ProjectNotFoundError>> {
-    this.ensureOpen();
+  getProjectForFile(filePath: FilePath): ResultFlow<Project, ProjectNotFoundError> {
+    const registry = this;
+    return ResultFlow.gen<Project, ProjectNotFoundError>(async function* ({ fail }) {
+      registry.ensureOpen();
 
-    const resolvedFilePath = path.resolve(filePath);
-    if (!isWithinDirectory(this.root, resolvedFilePath)) return err({ reason: 'project-not-found', filePath: resolvedFilePath });
-    const project = await this.snapshot.getDefaultProjectForFile(resolvedFilePath);
-    return project?.configFileName && this.compilations.get(path.resolve(project.configFileName)) === project
-      ? ok(project)
-      : err({ reason: 'project-not-found', filePath: resolvedFilePath });
+      const resolvedFilePath = path.resolve(filePath);
+      if (!isWithinDirectory(registry.root, resolvedFilePath)) return fail({ reason: 'project-not-found', filePath: resolvedFilePath });
+      const project = await registry.snapshot.getDefaultProjectForFile(resolvedFilePath);
+      if (!project?.configFileName || registry.compilations.get(path.resolve(project.configFileName)) !== project) {
+        return fail({ reason: 'project-not-found', filePath: resolvedFilePath });
+      }
+
+      return project;
+    });
   }
 
   async getProjects(): Promise<readonly Project[]> {

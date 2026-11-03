@@ -14,7 +14,7 @@ import { err, ok, type Result } from 'neverthrow';
 import { ResultFlow } from '@youldali/result-flow';
 import { createGraphSession } from './graph-session.js';
 
-type ExplainFunction = (node: FunctionDeclarationNode) => Promise<Result<FunctionExplanation, AiApiError>>;
+type ExplainFunction = (node: FunctionDeclarationNode) => ResultFlow<FunctionExplanation, AiApiError>;
 export type GraphControllerOptions = { explainFunction?: ExplainFunction };
 export type GraphEvent = ExplainNodeEvent;
 export type GraphEventResult = ExplainNodeResultEvent | ExplainNodeErrorEvent;
@@ -47,10 +47,10 @@ export class GraphController {
 
   private async explainNode(node: Node, request: ExplainNodeEvent): Promise<GraphEventResult> {
     const options = this.options;
-    return ResultFlow.gen<FunctionExplanation, ExplanationError>(async function* () {
-      if (!isFunctionDeclarationNode(node)) return yield* err({ reason: 'node-not-explainable' } as const);
-      if (!options.explainFunction) return yield* err({ reason: 'missing-api-token' } as const);
-      return yield* await options.explainFunction(node);
+    return ResultFlow.gen<FunctionExplanation, ExplanationError>(async function* ({ fail }) {
+      if (!isFunctionDeclarationNode(node)) return fail({ reason: 'node-not-explainable' });
+      if (!options.explainFunction) return fail({ reason: 'missing-api-token' });
+      return yield* options.explainFunction(node);
     }).runAndMatch<GraphEventResult>({
       ok: explanation => createVsCodeEvent('explain.node.result', { ...request.payload, explanation }),
       err: error => {

@@ -25,12 +25,12 @@ const entryFilePath = path.resolve("src/fixtures/graph-builder-entry.ts");
 
 let compilationRegistry: TypeScriptCompilationRegistry;
 before(async () => {
-  const resultCreationResult = await TypeScriptCompilationRegistry.create(findWorkspaceRoot(tsconfigPath));
+  const resultCreationResult = await TypeScriptCompilationRegistry.create(findWorkspaceRoot(tsconfigPath)).run();
   assertOk(resultCreationResult);
   compilationRegistry = resultCreationResult.value;
 });
 const createGraphAdapter = async (): Promise<GraphAdapter> => {
-  const result = await GraphAdapter.create(entryFilePath, compilationRegistry);
+  const result = await GraphAdapter.create(entryFilePath, compilationRegistry).run();
   assertOk(result);
   return result.value;
 };
@@ -52,7 +52,7 @@ const createClosureNamingTestContext = async () => {
   const functionIds = functions.map(deriveIdFromTsNode);
   const fullGraphAdapter = await createGraphAdapter();
   const focusedGraphAdapter = await createGraphAdapter();
-  assertOk(await fullGraphAdapter.fromFile(entryFilePath));
+  assertOk(await fullGraphAdapter.fromFile(entryFilePath).run());
   assertOk(await focusedGraphAdapter.fromFilePosition(entryFilePath, declaration.getStart()).run());
 
   const fullGraph = fullGraphAdapter.extract();
@@ -70,7 +70,7 @@ describe("GraphAdapter.extract implementations", () => {
   it("includes class methods and object literal properties in callable type members", async () => {
     const adapter = await createGraphAdapter();
     const filePath = path.resolve("src/fixtures/implementation-entry.ts");
-    assertOk(await adapter.fromFile(filePath));
+    assertOk(await adapter.fromFile(filePath).run());
     const members = adapter.extract().nodes.filter(isCallableTypeMemberDeclarationNode);
 
     const run = members.find((node) => node.name === "run");
@@ -107,7 +107,7 @@ describe("GraphAdapter.extract implementations", () => {
       { ...location, uri: pathToFileURL(path.resolve("src/fixtures/missing.ts")).href },
     ]);
 
-    assertOk(await adapter.fromFile(filePath));
+    assertOk(await adapter.fromFile(filePath).run());
     const run = adapter.extract().nodes.filter(isCallableTypeMemberDeclarationNode)
       .find((node) => node.name === "run");
     assert.ok(run?.kind === "callableTypeMemberDeclaration");
@@ -146,7 +146,7 @@ describe("GraphAdapter.fromFile", () => {
   it("builds a graph from a source file path", async () => {
     const graphAdapter = await createGraphAdapter();
 
-    const result = await graphAdapter.fromFile(entryFilePath);
+    const result = await graphAdapter.fromFile(entryFilePath).run();
 
     assertOk(result);
 
@@ -170,7 +170,7 @@ describe("GraphAdapter.fromFile", () => {
   it("returns source-file-not-found when the source file is outside the program", async () => {
     const graphAdapter = await createGraphAdapter();
 
-    const result = await graphAdapter.fromFile(path.resolve("src/fixtures/missing-entry.ts"));
+    const result = await graphAdapter.fromFile(path.resolve("src/fixtures/missing-entry.ts")).run();
 
     assertErr(result);
     assert.deepEqual(result.error, { reason: "source-file-not-found" });
@@ -180,7 +180,7 @@ describe("GraphAdapter.fromFile", () => {
 describe("GraphAdapter.fromFilePosition", () => {
   it("defers source lookup and graph building until the flow runs", async t => {
     const graphAdapter = await createGraphAdapter();
-    const project = await compilationRegistry.getProjectForFile(entryFilePath);
+    const project = await compilationRegistry.getProjectForFile(entryFilePath).run();
     assertOk(project);
     const getSourceFile = t.mock.method(project.value.program, 'getSourceFile');
     const sourceText = fs.readFileSync(entryFilePath, 'utf8');
@@ -469,10 +469,10 @@ describe('GraphAdapter native semantic resolution', () => {
   it('resolves imports, aliases, arrows, methods and nested functions to exact declarations', async () => {
     const root = path.resolve('src/fixtures/native-resolution');
     const entry = path.join(root, 'entry.ts');
-    const adapterResult = await GraphAdapter.create(entry, compilationRegistry);
+    const adapterResult = await GraphAdapter.create(entry, compilationRegistry).run();
     assertOk(adapterResult);
     const adapter = adapterResult.value;
-    assertOk(await adapter.fromFile(entry));
+    assertOk(await adapter.fromFile(entry).run());
     const graph = adapter.extract();
     const calls = graph.nodes.filter(isCallExpressionNode);
     const targetFor = (name: string) => {
@@ -527,27 +527,27 @@ describe('GraphAdapter repository isolation', () => {
       const workspaceRoot = path.join(directory, workspaceName);
       await cp(path.resolve('src/fixtures/workspace'), workspaceRoot, { recursive: true });
       await mkdir(path.join(workspaceRoot, '.git'));
-      const resultCreationResult = await TypeScriptCompilationRegistry.create(workspaceRoot);
+      const resultCreationResult = await TypeScriptCompilationRegistry.create(workspaceRoot).run();
       assertOk(resultCreationResult);
       compilationRegistries.push(resultCreationResult.value);
     }
 
     const [first, second] = compilationRegistries as [TypeScriptCompilationRegistry, TypeScriptCompilationRegistry];
     const analyze = async (compilationRegistry: TypeScriptCompilationRegistry) => {
-      const adapterResult = await GraphAdapter.create(path.join(compilationRegistry.root, 'core/src/use-case.ts'), compilationRegistry);
+      const adapterResult = await GraphAdapter.create(path.join(compilationRegistry.root, 'core/src/use-case.ts'), compilationRegistry).run();
       assertOk(adapterResult);
       const adapter = adapterResult.value;
-      assertOk(await adapter.fromFile(path.join(compilationRegistry.root, 'core/src/use-case.ts')));
+      assertOk(await adapter.fromFile(path.join(compilationRegistry.root, 'core/src/use-case.ts')).run());
       const implementations = adapter.extract().nodes.filter(isCallableTypeMemberDeclarationNode).flatMap(node => node.implementations);
       assert.equal(implementations.length, 1);
       assert.equal(implementations[0]!.filePath, path.join(compilationRegistry.root, 'infrastructure/src/adapter.ts'));
       return adapter;
     };
     await Promise.all(compilationRegistries.map(analyze));
-    const firstCompilationResult = await first.getProject(path.join(first.root, 'core/tsconfig.json'));
+    const firstCompilationResult = first.getProject(path.join(first.root, 'core/tsconfig.json'));
     assertOk(firstCompilationResult);
     const firstCompilation = firstCompilationResult.value;
-    const secondCompilationResult = await second.getProject(path.join(second.root, 'core/tsconfig.json'));
+    const secondCompilationResult = second.getProject(path.join(second.root, 'core/tsconfig.json'));
     assertOk(secondCompilationResult);
     const secondCompilation = secondCompilationResult.value;
     const firstServer = await first.getServer();
@@ -564,15 +564,15 @@ describe('GraphAdapter repository isolation', () => {
 
 describe('analyze', () => {
   it('returns a detached graph that survives compiler cleanup', async t => {
-    const analysisRegistryCreationResult = await TypeScriptCompilationRegistry.create(findWorkspaceRoot(tsconfigPath));
+    const analysisRegistryCreationResult = await TypeScriptCompilationRegistry.create(findWorkspaceRoot(tsconfigPath)).run();
     assertOk(analysisRegistryCreationResult);
     const analysisRegistry = analysisRegistryCreationResult.value;
     t.after(() => analysisRegistry.clear());
-    const graphAdapterResult = await GraphAdapter.create(entryFilePath, analysisRegistry);
+    const graphAdapterResult = await GraphAdapter.create(entryFilePath, analysisRegistry).run();
     assertOk(graphAdapterResult);
     const graphAdapter = graphAdapterResult.value;
     await analysisRegistry.getProjects();
-    const analysisResult = await graphAdapter.analyze(entryFilePath);
+    const analysisResult = await graphAdapter.analyze(entryFilePath).run();
     assertOk(analysisResult);
 
     await analysisRegistry.clear();

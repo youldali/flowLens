@@ -30,7 +30,7 @@ describe('ImplementationDiscovery', () => {
     const text = fs.readFileSync(portsPath, 'utf8');
     plainPosition = text.indexOf('list()');
     mappedPosition = text.indexOf('list()', text.indexOf('type Reads'));
-    const compilationRegistryCreationResult = await TypeScriptCompilationRegistry.create(root);
+    const compilationRegistryCreationResult = await TypeScriptCompilationRegistry.create(root).run();
     assertOk(compilationRegistryCreationResult);
     compilationRegistry = compilationRegistryCreationResult.value;
   });
@@ -41,10 +41,10 @@ describe('ImplementationDiscovery', () => {
   });
 
   it('discovers sibling implementations without traversing their bodies', async t => {
-    const adapterResult = await GraphAdapter.create(portsPath, compilationRegistry);
+    const adapterResult = await GraphAdapter.create(portsPath, compilationRegistry).run();
     assertOk(adapterResult);
     const adapter = adapterResult.value;
-    assertOk(await adapter.fromFile(path.join(root, 'core/src/use-case.ts')));
+    assertOk(await adapter.fromFile(path.join(root, 'core/src/use-case.ts')).run());
     const graph = adapter.extract();
     const members = graph.nodes.filter(isCallableTypeMemberDeclarationNode);
     const entries = members.flatMap(member => member.implementations);
@@ -61,15 +61,15 @@ describe('ImplementationDiscovery', () => {
     // Native LSP retains the mapped-type limitation of the legacy language service.
     assert.equal(members.filter(member => member.name === 'list' && member.implementations.length === 0).length, 1);
     assert.ok(graph.nodes.every(node => node.filePath.startsWith(path.join(root, 'core') + path.sep)));
-    const baselineResult = await GraphAdapter.create(portsPath, compilationRegistry);
+    const baselineResult = await GraphAdapter.create(portsPath, compilationRegistry).run();
     assertOk(baselineResult);
     const baseline = baselineResult.value;
     const baselineDiscovery = (baseline as unknown as { implementationDiscovery: ImplementationDiscovery }).implementationDiscovery;
     t.mock.method(baselineDiscovery, 'findImplementations', async () => []);
-    assertOk(await baseline.fromFile(path.join(root, 'core/src/use-case.ts')));
+    assertOk(await baseline.fromFile(path.join(root, 'core/src/use-case.ts')).run());
     assert.deepEqual(graph.edges, baseline.extract().edges);
     assert.deepEqual(graph.nodes.map(node => isCallableTypeMemberDeclarationNode(node) ? { ...node, implementations: [] } : node), baseline.extract().nodes);
-    assertErr(await adapter.fromFile(adapterPath));
+    assertErr(await adapter.fromFile(adapterPath).run());
     const discovery = new ImplementationDiscovery(configPath, compilationRegistry);
     assert.deepEqual(await discovery.findImplementations(portsPath, mappedPosition), []);
   });
@@ -95,16 +95,16 @@ describe('ImplementationDiscovery', () => {
     }));
     fs.writeFileSync(customSource, "import type { PlainCustomerRepository as Port } from '../core/src/ports.js';\nexport class Custom implements Port { list(): string[] { return []; } }");
     await compilationRegistry.clear();
-    const registryResult = await TypeScriptCompilationRegistry.create(root);
+    const registryResult = await TypeScriptCompilationRegistry.create(root).run();
     assertOk(registryResult);
     compilationRegistry = registryResult.value;
-    const customResult = await compilationRegistry.getProject(customConfig);
+    const customResult = compilationRegistry.getProject(customConfig);
     assertOk(customResult);
     const custom = customResult.value;
     assert.deepEqual(await custom.program.getSemanticDiagnostics(), []);
     const discovery = new ImplementationDiscovery(configPath, compilationRegistry);
-    await compilationRegistry.getProject(configPath);
-    const siblingResult = await compilationRegistry.getProject(path.join(root, 'infrastructure/tsconfig.json'));
+    compilationRegistry.getProject(configPath);
+    const siblingResult = compilationRegistry.getProject(path.join(root, 'infrastructure/tsconfig.json'));
     assertOk(siblingResult);
     const sibling = siblingResult.value;
     assert.deepEqual(await sibling.program.getSemanticDiagnostics(), []);
@@ -117,10 +117,10 @@ describe('ImplementationDiscovery', () => {
       ['list', 2, text.split('\r\n')[1]!.indexOf('list') + 1],
       ['list', 3, text.split('\r\n')[2]!.indexOf('list') + 1],
     ]);
-    const adapterResult = await GraphAdapter.create(portsPath, compilationRegistry);
+    const adapterResult = await GraphAdapter.create(portsPath, compilationRegistry).run();
     assertOk(adapterResult);
     const adapter = adapterResult.value;
-    assertOk(await adapter.fromFile(path.join(root, 'core/src/use-case.ts')));
+    assertOk(await adapter.fromFile(path.join(root, 'core/src/use-case.ts')).run());
     assert.deepEqual(adapter.extract().nodes.filter(isCallableTypeMemberDeclarationNode).flatMap(node => node.implementations), entries);
     assert.ok(adapter.extract().nodes.every(node => node.filePath.startsWith(path.join(root, 'core') + path.sep)));
     assert.equal(fs.existsSync(path.join(root, 'core/dist')), false);
@@ -137,10 +137,10 @@ describe('ImplementationDiscovery', () => {
 
     t.after(() => fs.rmSync(outside, { force: true }));
     await compilationRegistry.clear();
-    const registryResult = await TypeScriptCompilationRegistry.create(root);
+    const registryResult = await TypeScriptCompilationRegistry.create(root).run();
     assertOk(registryResult);
     compilationRegistry = registryResult.value;
-    const coreResult = await compilationRegistry.getProject(configPath);
+    const coreResult = compilationRegistry.getProject(configPath);
     assertOk(coreResult);
     const core = coreResult.value;
     await compilationRegistry.getProjects();
