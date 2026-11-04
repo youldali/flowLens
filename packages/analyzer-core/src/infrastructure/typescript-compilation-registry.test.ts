@@ -226,28 +226,41 @@ describe('TypeScriptCompilationRegistry', () => {
     ]);
   });
 
-  it('preserves compilation and partial snapshot cleanup failures without caching the failed load', async t => {
+  it('preserves compilation and both cleanup failures without caching the failed load', async t => {
     const nativeLanguageServer = await registry.getServer();
     const snapshot = await nativeLanguageServer.getSnapshot({ openProjects: [config], ensurePrograms: true });
     const compilationError = new Error('configured project unavailable');
     const cleanupError = new Error('snapshot cleanup failed');
+    const serverCleanupError = new Error('server cleanup failed');
+    const disposalOrder: string[] = [];
+    const disposeServer = NativeLanguageServer.prototype.dispose;
+    const serverCleanup = t.mock.method(NativeLanguageServer.prototype, 'dispose', async function (this: NativeLanguageServer) {
+      disposalOrder.push('server');
+      await disposeServer.call(this);
+      throw serverCleanupError;
+    });
     const getSnapshot = t.mock.method(NativeLanguageServer.prototype, 'getSnapshot', async () => snapshot);
     t.mock.method(snapshot, 'getConfiguredProject', () => { throw compilationError; });
     const disposeSnapshot = snapshot.dispose.bind(snapshot);
     const cleanup = t.mock.method(snapshot, 'dispose', async () => {
+      disposalOrder.push('snapshot');
       await disposeSnapshot();
       throw cleanupError;
     });
 
     await assert.rejects(TypeScriptCompilationRegistry.create(root).run(), error => {
       assert.ok(error instanceof AggregateError);
-      assert.equal(error.errors.length, 2);
+      assert.equal(error.errors.length, 3);
       assert.ok(error.errors[0] instanceof Error);
       assert.equal(error.errors[0].cause, compilationError);
       assert.equal(error.errors[1], cleanupError);
+      assert.equal(error.errors[2], serverCleanupError);
       return true;
     });
     assert.equal(cleanup.mock.callCount(), 1);
+    assert.equal(serverCleanup.mock.callCount(), 1);
+    assert.deepEqual(disposalOrder, ['snapshot', 'server']);
+    serverCleanup.mock.restore();
     assert.equal(snapshot.isDisposed(), true);
     getSnapshot.mock.restore();
     await recreateRegistry();
@@ -301,6 +314,25 @@ describe('create', () => {
     t.after(() => second.value.clear());
     assert.notEqual(first.value, second.value);
     assert.equal(createServer.mock.callCount(), 2);
+  });
+
+  it('keeps concurrent runs of the same flow independent', async t => {
+    await writeFile(path.join(root, 'tsconfig.json'), JSON.stringify({ files: ['entry.ts'] }));
+    await writeFile(path.join(root, 'entry.ts'), 'export const value = 1;');
+    const flow = TypeScriptCompilationRegistry.create(root);
+    const results = await Promise.all([flow.run(), flow.run()]);
+    const registries = results.map(result => {
+      assertOk(result);
+      t.after(() => result.value.clear());
+      return result.value;
+    });
+    const [first, second] = registries;
+    assert.ok(first);
+    assert.ok(second);
+
+    assert.notEqual(await first.getServer(), await second.getServer());
+    await first.clear();
+    assert.equal((await second.getProjects()).length, 1);
   });
 
   it('returns missing configuration and disposes the server without acquiring a snapshot', async t => {

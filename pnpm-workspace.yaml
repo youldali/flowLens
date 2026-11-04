@@ -7,3 +7,5 @@ verifyDepsBeforeRun: false
 packages:
   - "apps/*"
   - "packages/*"
+minimumReleaseAgeExclude:
+  - '@youldali/result-flow@2.1.0'

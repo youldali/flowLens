@@ -148,8 +148,8 @@ importers:
   apps/vscode-extension:
     dependencies:
       '@youldali/result-flow':
-        specifier: ^1.3.0
-        version: 1.3.0(neverthrow@8.2.0)
+        specifier: ^2.1.0
+        version: 2.1.0(neverthrow@8.2.0)
       typescript-native:
         specifier: npm:typescript@7.1.0-beta
         version: typescript@7.1.0-beta
@@ -194,8 +194,8 @@ importers:
         specifier: workspace:*
         version: link:../test-utils
       '@youldali/result-flow':
-        specifier: ^1.3.0
-        version: 1.3.0(neverthrow@8.2.0)
+        specifier: ^2.1.0
+        version: 2.1.0(neverthrow@8.2.0)
       neverthrow:
         specifier: ^8.2.0
         version: 8.2.0
@@ -221,8 +221,8 @@ importers:
         specifier: workspace:*
         version: link:../analyzer-core
       '@youldali/result-flow':
-        specifier: ^1.3.0
-        version: 1.3.0(neverthrow@8.2.0)
+        specifier: ^2.1.0
+        version: 2.1.0(neverthrow@8.2.0)
       ai:
         specifier: ^7.0.138
         version: 7.0.138(zod@4.4.3)
@@ -1657,8 +1657,8 @@ packages:
   '@workflow/serde@4.1.0':
     resolution: {integrity: sha512-pav4F2BoirECWR7Nf1TKt+2eETcBj7jj4cBefQ8VXQCA6NPkaKeLfj/zMgi+3zYV5ZIBT4GuUiphsj0/b9hPQQ==}
 
-  '@youldali/result-flow@1.3.0':
-    resolution: {integrity: sha512-wlVPboC+YqDGx3B7yi4czl6njSJalgEjJgcIl1hFD1nN1kTYefl3bgrPLaf01VbwzIWPvSZxabpt0ijLqONBEA==}
+  '@youldali/result-flow@2.1.0':
+    resolution: {integrity: sha512-cc6/Xqfmv03w3eN7Ugf8pz1EhEkf2IoIMs/luTZrYsQnO20mGwhiG+UtLUcKOQ0a+Y02bcWrL/nX97X8hNvdug==}
     peerDependencies:
       neverthrow: ^8.2.0
 
@@ -5083,7 +5083,7 @@ snapshots:
 
   '@workflow/serde@4.1.0': {}
 
-  '@youldali/result-flow@1.3.0(neverthrow@8.2.0)':
+  '@youldali/result-flow@2.1.0(neverthrow@8.2.0)':
     dependencies:
       neverthrow: 8.2.0
 
