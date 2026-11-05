@@ -54,6 +54,16 @@ describe('GraphController', () => {
 
   });
 
+  it('skips the configured explainer for nodes that cannot be explained', async t => {
+    const explainFunction = t.mock.fn(() => ResultFlow.from(err({ reason: 'generation-failed' as const, cause: undefined, statusCode: undefined })));
+    const controller = new GraphController(graph, { explainFunction });
+    const request = { graphId: controller.session.graphId, nodeId: file.id, requestId: 'request' };
+    const response = await controller.handleEvent(createVsCodeEvent('explain.node', request));
+
+    assert.deepEqual(response, createVsCodeEvent('explain.node.error', { ...request, reason: 'node-not-explainable' }));
+    assert.equal(explainFunction.mock.callCount(), 0);
+  });
+
   it('preserves provider error reasons without exposing error details', async () => {
     for (const reason of ['missing-api-token', 'api-error', 'invalid-output', 'generation-failed'] as const) {
       const controller = new GraphController(graph, {

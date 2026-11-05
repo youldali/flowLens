@@ -70,10 +70,14 @@ function findImplementations(): Result<ImplementationEntry[], 'not-found'> {
 
 ### Preconditions
 
-- Use `.precondition(predicate, onFailure)` for execution-sensitive guards, such as shutdown checks, instead of placing the guard in the flow body. It checks before the wrapped flow starts on every execution; constructing the flow does not run either callback.
+- Use `.precondition(predicate, onFailure)` for guards that apply to the whole flow, such as shutdown checks or whether an operation is supported. It checks before the wrapped flow starts on every execution; constructing the flow does not run either callback.
+- Attach preconditions to the whole flow. Do not introduce nested flows or a `chain` solely to expose a local value to a precondition. Keep checks that depend on values computed inside the body there, such as workspace membership after resolving a file path.
+- Chained preconditions execute from the outside in: `flow.precondition(a, errorA).precondition(b, errorB)` checks `b` before `a`. Preserve the intended error precedence when moving existing guards.
 - Return the typed error payload from `onFailure`; ResultFlow wraps it in a neverthrow `Err`. Do not return `err(...)` from this callback, which would nest the error. Include the payload type in the flow's error union.
 - Treat expected guard failures, such as a workspace closing, as typed errors rather than throwing. Exceptions thrown by either callback still reject execution.
 - Use `.ensure(...)` when validation depends on a successful upstream value; use `.precondition(...)` when work must be prevented from starting.
+- Predicate narrowing does not carry into the flow body. If moving a type guard requires an assertion, keep it local to the guarded operation and ensure the precondition validates the exact value used there. Do not assume mutable values remain valid across asynchronous boundaries.
+- Use `.precondition<FlowError>(...)` when the callback's inferred error type would lose shared optional fields needed by downstream handlers.
 
 ```ts
 return ResultFlow.from(() => this.performAnalysis(filePath, offset))

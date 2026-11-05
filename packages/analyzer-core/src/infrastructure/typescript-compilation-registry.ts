@@ -8,6 +8,7 @@ import { InvalidTypeScriptConfigError, NativeLanguageServer } from '#infrastruct
 const excludedTsconfigFileNamePattern = /^tsconfig\.test\.json$/;
 
 export type ProjectNotFoundError = { reason: 'project-not-found'; filePath: FilePath };
+export type RegistryClearedError = { reason: 'registry-cleared' };
 
 export type CompilationError =
   | { reason: 'tsconfig-not-found' }
@@ -78,20 +79,19 @@ export class TypeScriptCompilationRegistry {
     return project ? ok(project) : err({ reason: 'config-not-in-snapshot', configPath });
   }
 
-  getProjectForFile(filePath: FilePath): ResultFlow<Project, ProjectNotFoundError> {
-    const registry = this;
-    return ResultFlow.gen<Project, ProjectNotFoundError>(async function* ({ fail }) {
-      registry.ensureOpen();
-
+  getProjectForFile(filePath: FilePath): ResultFlow<Project, ProjectNotFoundError | RegistryClearedError> {
+    return ResultFlow.from<Project, ProjectNotFoundError>(async () => {
       const resolvedFilePath = path.resolve(filePath);
-      if (!isWithinDirectory(registry.root, resolvedFilePath)) return fail({ reason: 'project-not-found', filePath: resolvedFilePath });
-      const project = await registry.snapshot.getDefaultProjectForFile(resolvedFilePath);
-      if (!project?.configFileName || registry.compilations.get(path.resolve(project.configFileName)) !== project) {
-        return fail({ reason: 'project-not-found', filePath: resolvedFilePath });
-      }
+      if (!isWithinDirectory(this.root, resolvedFilePath)) return err({ reason: 'project-not-found', filePath: resolvedFilePath });
 
-      return project;
-    });
+      const project = await this.snapshot.getDefaultProjectForFile(resolvedFilePath);
+      return project?.configFileName && this.compilations.get(path.resolve(project.configFileName)) === project
+        ? ok(project)
+        : err({ reason: 'project-not-found', filePath: resolvedFilePath });
+    }).precondition(
+      () => !this.clearing,
+      () => ({ reason: 'registry-cleared' } as const),
+    );
   }
 
   async getProjects(): Promise<readonly Project[]> {

@@ -7,7 +7,7 @@ import { Queue } from '@flowlens/common/queue';
 import * as NodeModule from '../domain/node.js';
 import * as TsNodeModule from './ts-node/index.js';
 import * as EdgeModule from '../domain/edge.js';
-import type { ProjectNotFoundError, TypeScriptCompilationRegistry } from '#infrastructure/typescript-compilation-registry';
+import type { RegistryClearedError, ProjectNotFoundError, TypeScriptCompilationRegistry } from '#infrastructure/typescript-compilation-registry';
 import { ImplementationDiscovery } from '../infrastructure/implementation-discovery.js';
 
 import type { FlowGraph } from '../domain/flow-graph.js';
@@ -36,8 +36,8 @@ export class GraphAdapter {
   private readonly implementationDiscovery: ImplementationDiscovery;
   private readonly nodeAdapter: NodeAdapter;
 
-  static create(filePath: FilePath, compilationRegistry: TypeScriptCompilationRegistry): ResultFlow<GraphAdapter, ProjectNotFoundError> {
-    return ResultFlow.gen<GraphAdapter, ProjectNotFoundError>(async function* () {
+  static create(filePath: FilePath, compilationRegistry: TypeScriptCompilationRegistry): ResultFlow<GraphAdapter, ProjectNotFoundError | RegistryClearedError> {
+    return ResultFlow.gen<GraphAdapter, ProjectNotFoundError | RegistryClearedError>(async function* () {
       const project = yield* compilationRegistry.getProjectForFile(filePath);
       if (!project.configFileName) throw new Error(`Configured project for ${filePath} has no configuration path`);
       return new GraphAdapter(project.configFileName, project, compilationRegistry);

@@ -89,10 +89,24 @@ describe('TypeScriptCompilationRegistry', () => {
     const missing = await registry.getProjectForFile(missingPath).run();
     assertErr(missing);
     assert.deepEqual(missing.error, { reason: 'project-not-found', filePath: missingPath });
-    assertErr(await registry.getProjectForFile(path.join(root, '../outside.ts')).run());
+    const lookupProject = t.mock.method(snapshot, 'getDefaultProjectForFile');
+    const outsidePath = path.resolve(root, '../outside.ts');
+    const outsideFlow = registry.getProjectForFile(outsidePath);
+    const outside = await outsideFlow.run();
+    assertErr(outside);
+    assert.deepEqual(outside.error, { reason: 'project-not-found', filePath: outsidePath });
+    assert.equal(lookupProject.mock.callCount(), 0);
+    const selectedFlow = registry.getProjectForFile(sourcePath);
     assert.equal(acquireSnapshot.mock.callCount(), 1);
     await registry.clear();
-    await assert.rejects(registry.getProjectForFile(sourcePath).run(), /cleared/);
+
+    for (const flow of [selectedFlow, outsideFlow]) {
+      const cleared = await flow.run();
+      assertErr(cleared);
+      assert.deepEqual(cleared.error, { reason: 'registry-cleared' });
+    }
+
+    assert.equal(lookupProject.mock.callCount(), 0);
 
     await writeFile(path.join(root, 'core/tsconfig.extra.json'), JSON.stringify({ extends: './tsconfig.json', files: ['src/ports.ts'] }));
     await recreateRegistry();

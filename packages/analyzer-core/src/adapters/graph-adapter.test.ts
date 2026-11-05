@@ -557,7 +557,9 @@ describe('GraphAdapter repository isolation', () => {
     await assert.rejects(firstCompilation.program.getSourceFile('unused.ts'), /Client is closed/);
     assert.ok(await secondCompilation.program.getSourceFile(path.join(secondCompilation.currentDirectory, 'src/ports.ts')));
     await analyze(second);
-    await assert.rejects(analyze(first), /cleared/);
+    const cleared = await GraphAdapter.create(path.join(first.root, 'core/src/use-case.ts'), first).run();
+    assertErr(cleared);
+    assert.deepEqual(cleared.error, { reason: 'registry-cleared' });
   });
 
 });

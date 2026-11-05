@@ -47,11 +47,16 @@ export class GraphController {
 
   private async explainNode(node: Node, request: ExplainNodeEvent): Promise<GraphEventResult> {
     const options = this.options;
-    return ResultFlow.gen<FunctionExplanation, ExplanationError>(async function* ({ fail }) {
-      if (!isFunctionDeclarationNode(node)) return fail({ reason: 'node-not-explainable' });
-      if (!options.explainFunction) return fail({ reason: 'missing-api-token' });
-      return yield* options.explainFunction(node);
-    }).runAndMatch<GraphEventResult>({
+    return ResultFlow.gen<FunctionExplanation, ExplanationError>(async function* () {
+      // Preconditions validate both values before this body runs.
+      return yield* options.explainFunction!(node as FunctionDeclarationNode);
+    }).precondition<ExplanationError>(
+      () => !!options.explainFunction,
+      () => ({ reason: 'missing-api-token' } as const),
+    ).precondition<ExplanationError>(
+      () => isFunctionDeclarationNode(node),
+      () => ({ reason: 'node-not-explainable' } as const),
+    ).runAndMatch<GraphEventResult>({
       ok: explanation => createVsCodeEvent('explain.node.result', { ...request.payload, explanation }),
       err: error => {
         console.error('FlowLens: Could not explain node.', {

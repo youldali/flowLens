@@ -1,12 +1,12 @@
 import type { FlowGraph } from '#domain/flow-graph';
-import { TypeScriptCompilationRegistry, type CompilationError, type ProjectNotFoundError } from '#infrastructure/typescript-compilation-registry';
+import { TypeScriptCompilationRegistry, type RegistryClearedError, type CompilationError, type ProjectNotFoundError } from '#infrastructure/typescript-compilation-registry';
 import * as path from 'node:path';
 import { GraphAdapter, type FromFilePositionError } from '#adapters/graph-adapter';
 import { findWorkspaceRoot, type FilePath } from '@flowlens/common/fs';
 import type { Result } from 'neverthrow';
 import { ResultFlow } from '@youldali/result-flow';
 
-export type AnalysisError = FromFilePositionError | CompilationError | ProjectNotFoundError | { reason: 'workspace-closing' };
+export type AnalysisError = FromFilePositionError | CompilationError | ProjectNotFoundError | RegistryClearedError | { reason: 'workspace-closing' };
 
 /** Owns fresh compiler resources for each analysis and waits for cleanup before shutdown. */
 export class WorkspaceAnalysisService {
