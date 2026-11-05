@@ -1,3 +1,5 @@
+import { ResultFlow } from '@youldali/result-flow';
+import { err, ok } from 'neverthrow';
 import assert from 'node:assert/strict';
 import * as fs from 'node:fs';
 import * as os from 'node:os';
@@ -65,13 +67,15 @@ describe('ImplementationDiscovery', () => {
     assertOk(baselineResult);
     const baseline = baselineResult.value;
     const baselineDiscovery = (baseline as unknown as { implementationDiscovery: ImplementationDiscovery }).implementationDiscovery;
-    t.mock.method(baselineDiscovery, 'findImplementations', async () => []);
+    t.mock.method(baselineDiscovery, 'findImplementations', () => ResultFlow.from(() => ok([])));
     assertOk(await baseline.fromFile(path.join(root, 'core/src/use-case.ts')).run());
     assert.deepEqual(graph.edges, baseline.extract().edges);
     assert.deepEqual(graph.nodes.map(node => isCallableTypeMemberDeclarationNode(node) ? { ...node, implementations: [] } : node), baseline.extract().nodes);
     assertErr(await adapter.fromFile(adapterPath).run());
     const discovery = new ImplementationDiscovery(configPath, compilationRegistry);
-    assert.deepEqual(await discovery.findImplementations(portsPath, mappedPosition), []);
+    const mappedResult = await discovery.findImplementations(portsPath, mappedPosition).run();
+    assertOk(mappedResult);
+    assert.deepEqual(mappedResult.value, []);
   });
 
   it('finds multiple semantic candidates through aliases and re-exports, excluding unrelated same-named methods', async () => {
@@ -108,7 +112,9 @@ describe('ImplementationDiscovery', () => {
     assertOk(siblingResult);
     const sibling = siblingResult.value;
     assert.deepEqual(await sibling.program.getSemanticDiagnostics(), []);
-    const entries = await discovery.findImplementations(portsPath, plainPosition);
+    const entriesResult = await discovery.findImplementations(portsPath, plainPosition).run();
+    assertOk(entriesResult);
+    const entries = entriesResult.value;
     const extra = entries.filter(entry => entry.filePath === additionalPath);
     assert.equal(entries.length, 4);
     assert.ok(entries.some(entry => entry.filePath === customSource));
@@ -143,11 +149,14 @@ describe('ImplementationDiscovery', () => {
     const coreResult = compilationRegistry.getProject(configPath);
     assertOk(coreResult);
     const core = coreResult.value;
-    await compilationRegistry.getProjects();
+    const compilationRegistryProjectsResult = await compilationRegistry.getProjects();
+    assertOk(compilationRegistryProjectsResult);
     const source = await core.program.getSourceFile(portsPath);
     assert.ok(source);
     const coordinates = source.getLineAndCharacterOfPosition(plainPosition);
-    const server = await compilationRegistry.getServer();
+    const compilationRegistryServerResult = await compilationRegistry.getServer();
+    assertOk(compilationRegistryServerResult);
+    const server = compilationRegistryServerResult.value;
     const locations = await server.findImplementations(portsPath, coordinates.line, coordinates.character);
     assert.equal(locations.length, 1);
     const originalGetSourceFile = core.program.getSourceFile.bind(core.program);
@@ -163,10 +172,47 @@ describe('ImplementationDiscovery', () => {
       }))];
     });
     const discovery = new ImplementationDiscovery(configPath, compilationRegistry);
-    await assert.rejects(discovery.findImplementations(portsPath, plainPosition), error => error === failure);
-    const entries = await discovery.findImplementations(portsPath, plainPosition);
+    await assert.rejects(discovery.findImplementations(portsPath, plainPosition).run(), error => error === failure);
+    const entriesResult = await discovery.findImplementations(portsPath, plainPosition).run();
+    assertOk(entriesResult);
+    const entries = entriesResult.value;
     assert.deepEqual(entries.map(entry => entry.filePath), [adapterPath]);
-    assert.equal(await discovery.findImplementations(portsPath, plainPosition), entries);
+    const cachedResult = await discovery.findImplementations(portsPath, plainPosition).run();
+    assertOk(cachedResult);
+    assert.equal(cachedResult.value, entries);
     assert.equal(query.mock.callCount(), 2);
   });
+
+  it('checks registry access only on execution and preserves cached results after disposal', async t => {
+    const discovery = new ImplementationDiscovery(configPath, compilationRegistry);
+    const projects = t.mock.method(compilationRegistry, 'getProjects');
+    const flow = discovery.findImplementations(portsPath, plainPosition);
+    assert.equal(projects.mock.callCount(), 0);
+
+    const first = await flow.run();
+    assertOk(first);
+    await compilationRegistry.clear();
+
+    const cached = await flow.run();
+    assertOk(cached);
+    assert.equal(cached.value, first.value);
+    assert.equal(projects.mock.callCount(), 1);
+
+    const uncached = await discovery.findImplementations(portsPath, mappedPosition).run();
+    assertErr(uncached);
+    assert.deepEqual(uncached.error, { reason: 'registry-cleared' });
+  });
+
+  it('propagates server acquisition failures without caching them', async t => {
+    const discovery = new ImplementationDiscovery(configPath, compilationRegistry);
+    const server = t.mock.method(compilationRegistry, 'getServer', async () => err({ reason: 'registry-cleared' } as const));
+    const flow = discovery.findImplementations(portsPath, plainPosition);
+    const failed = await flow.run();
+    assertErr(failed);
+    assert.deepEqual(failed.error, { reason: 'registry-cleared' });
+
+    server.mock.restore();
+    assertOk(await flow.run());
+  });
+
 });

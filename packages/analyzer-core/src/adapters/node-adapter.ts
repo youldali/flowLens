@@ -1,3 +1,5 @@
+import { ResultFlow } from '@youldali/result-flow';
+import type { RegistryClearedError } from '#infrastructure/typescript-compilation-registry';
 import * as ts from 'typescript-native/ast';
 import type { Checker, Program } from 'typescript-native/async';
 import * as path from 'node:path';
@@ -65,25 +67,27 @@ export class NodeAdapter {
     };
   }
 
-  async buildCallableTypeMemberDeclarationNode(node: TsModule.TypeCallableDeclaration): Promise<CallableTypeMemberDeclarationNode> {
-    const id = TsModule.deriveIdFromTsNode(node);
-    const cached = this.callableTypeMemberNodesCache.get(id);
-    if (cached) return cached;
-    const sourceFile = node.getSourceFile();
-    const symbol = await this.checker.getSymbolAtLocation(node.name);
-    const jsdoc = symbol ? await symbol.getDocumentationComment(this.checker) : undefined;
-    const graphNode: CallableTypeMemberDeclarationNode = {
-      id,
-      name: node.name.getText(sourceFile),
-      filePath: normalizePath(sourceFile.fileName),
-      fileName: path.basename(sourceFile.fileName),
-      kind: 'callableTypeMemberDeclaration',
-      sourceOrigin: await this.getSourceFileOrigin(sourceFile),
-      implementations: await this.implementationDiscovery.findImplementations(sourceFile.fileName, node.name.getStart(sourceFile)),
-      ...(jsdoc ? { jsdoc } : {}),
-    };
-    this.callableTypeMemberNodesCache.set(id, graphNode);
-    return graphNode;
+  buildCallableTypeMemberDeclarationNode(node: TsModule.TypeCallableDeclaration): ResultFlow<CallableTypeMemberDeclarationNode, RegistryClearedError> {
+    return ResultFlow.gen<CallableTypeMemberDeclarationNode, RegistryClearedError>(async function* (this: NodeAdapter) {
+      const id = TsModule.deriveIdFromTsNode(node);
+      const cached = this.callableTypeMemberNodesCache.get(id);
+      if (cached) return cached;
+      const sourceFile = node.getSourceFile();
+      const symbol = await this.checker.getSymbolAtLocation(node.name);
+      const jsdoc = symbol ? await symbol.getDocumentationComment(this.checker) : undefined;
+      const graphNode: CallableTypeMemberDeclarationNode = {
+        id,
+        name: node.name.getText(sourceFile),
+        filePath: normalizePath(sourceFile.fileName),
+        fileName: path.basename(sourceFile.fileName),
+        kind: 'callableTypeMemberDeclaration',
+        sourceOrigin: await this.getSourceFileOrigin(sourceFile),
+        implementations: yield* this.implementationDiscovery.findImplementations(sourceFile.fileName, node.name.getStart(sourceFile)),
+        ...(jsdoc ? { jsdoc } : {}),
+      };
+      this.callableTypeMemberNodesCache.set(id, graphNode);
+      return graphNode;
+    }.bind(this));
   }
 
   async buildFileNode(sourceFile: ts.SourceFile): Promise<FileNode> {

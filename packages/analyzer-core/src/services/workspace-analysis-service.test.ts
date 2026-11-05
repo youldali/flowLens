@@ -60,7 +60,9 @@ describe('analyze', () => {
     assert.equal(clearRegistry.mock.callCount(), 4);
 
     for (const compilationRegistry of compilationRegistries) {
-      await assert.rejects(compilationRegistry.getServer(), /cleared/);
+      const clearedResult = await compilationRegistry.getServer();
+      assertErr(clearedResult);
+      assert.deepEqual(clearedResult.error, { reason: 'registry-cleared' });
     }
 
     assert.ok(compilationRegistries.some(registry => registry.root === workspaceRoots[1] && registry !== firstRegistries[0]));
@@ -199,7 +201,9 @@ describe('analyze', () => {
         assert.equal(cleanup.mock.callCount(), 1);
         const compilationRegistry = cleanup.mock.calls[0]!.this;
         assert.ok(compilationRegistry instanceof TypeScriptCompilationRegistry);
-        await assert.rejects(compilationRegistry.getServer(), /cleared/);
+        const clearedResult = await compilationRegistry.getServer();
+        assertErr(clearedResult);
+        assert.deepEqual(clearedResult.error, { reason: 'registry-cleared' });
       });
     }
   });
@@ -332,12 +336,11 @@ describe('dispose', () => {
     }));
     const analyzeGraph = GraphAdapter.prototype.analyze;
     t.mock.method(GraphAdapter.prototype, 'analyze', function (this: GraphAdapter, entryFilePath: string, offset?: number) {
-      const graphAdapter = this;
-      return ResultFlow.gen(async function* () {
+      return ResultFlow.gen(async function* (this: GraphAdapter) {
         analysisStarted.resolve();
         await analysisGate.promise;
-        return yield* analyzeGraph.call(graphAdapter, entryFilePath, offset);
-      });
+        return yield* analyzeGraph.call(this, entryFilePath, offset);
+      }.bind(this));
     });
     const clearRegistry = TypeScriptCompilationRegistry.prototype.clear;
     t.mock.method(TypeScriptCompilationRegistry.prototype, 'clear', async function (this: TypeScriptCompilationRegistry) {

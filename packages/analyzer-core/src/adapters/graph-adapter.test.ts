@@ -1,3 +1,4 @@
+import { err } from 'neverthrow';
 import { pathToFileURL } from 'node:url';
 import { TypeScriptCompilationRegistry } from '#infrastructure/typescript-compilation-registry';
 import { findWorkspaceRoot } from '@flowlens/common/fs';
@@ -67,6 +68,16 @@ const createClosureNamingTestContext = async () => {
 };
 
 describe("GraphAdapter.extract implementations", () => {
+  it('propagates registry failures from implementation discovery through analysis', async t => {
+    const adapter = await createGraphAdapter();
+    t.mock.method(compilationRegistry, 'getProjects', async () => err({ reason: 'registry-cleared' } as const));
+
+    const result = await adapter.analyze(path.resolve('src/fixtures/implementation-entry.ts')).run();
+
+    assertErr(result);
+    assert.deepEqual(result.error, { reason: 'registry-cleared' });
+  });
+
   it("includes class methods and object literal properties in callable type members", async () => {
     const adapter = await createGraphAdapter();
     const filePath = path.resolve("src/fixtures/implementation-entry.ts");
@@ -101,7 +112,9 @@ describe("GraphAdapter.extract implementations", () => {
       uri: pathToFileURL(filePath).href,
       range: { start: coordinates, end: { ...coordinates, character: coordinates.character + 3 } },
     };
-    const server = await compilationRegistry.getServer();
+    const compilationRegistryServerResult = await compilationRegistry.getServer();
+    assertOk(compilationRegistryServerResult);
+    const server = compilationRegistryServerResult.value;
     t.mock.method(server, 'findImplementations', async () => [
       location, location,
       { ...location, uri: pathToFileURL(path.resolve("src/fixtures/missing.ts")).href },
@@ -550,8 +563,12 @@ describe('GraphAdapter repository isolation', () => {
     const secondCompilationResult = second.getProject(path.join(second.root, 'core/tsconfig.json'));
     assertOk(secondCompilationResult);
     const secondCompilation = secondCompilationResult.value;
-    const firstServer = await first.getServer();
-    assert.notEqual(firstServer, await second.getServer());
+    const firstServerResult = await first.getServer();
+    assertOk(firstServerResult);
+    const firstServer = firstServerResult.value;
+    const secondServerResult = await second.getServer();
+    assertOk(secondServerResult);
+    assert.notEqual(firstServer, secondServerResult.value);
     await first.clear();
     await first.clear();
     await assert.rejects(firstCompilation.program.getSourceFile('unused.ts'), /Client is closed/);
@@ -573,7 +590,8 @@ describe('analyze', () => {
     const graphAdapterResult = await GraphAdapter.create(entryFilePath, analysisRegistry).run();
     assertOk(graphAdapterResult);
     const graphAdapter = graphAdapterResult.value;
-    await analysisRegistry.getProjects();
+    const analysisRegistryProjectsResult = await analysisRegistry.getProjects();
+    assertOk(analysisRegistryProjectsResult);
     const analysisResult = await graphAdapter.analyze(entryFilePath).run();
     assertOk(analysisResult);
 

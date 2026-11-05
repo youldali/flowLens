@@ -62,13 +62,15 @@ export class TypeScriptCompilationRegistry {
     private readonly compilations: Map<FilePath, Project>,
   ) {}
 
-  async getServer(): Promise<NativeLanguageServer> {
-    this.ensureOpen();
-    return this.nativeLanguageServer;
+  async getServer(): Promise<Result<NativeLanguageServer, RegistryClearedError>> {
+    const openResult = this.ensureOpen();
+    if (openResult.isErr()) return err(openResult.error);
+    return ok(this.nativeLanguageServer);
   }
 
-  getProject(tsconfigPath: FilePath): Result<Project, CompilationError> {
-    this.ensureOpen();
+  getProject(tsconfigPath: FilePath): Result<Project, CompilationError | RegistryClearedError> {
+    const openResult = this.ensureOpen();
+    if (openResult.isErr()) return err(openResult.error);
 
     const configPath = path.resolve(tsconfigPath);
     if (!isWithinDirectory(this.root, configPath)) {
@@ -94,11 +96,12 @@ export class TypeScriptCompilationRegistry {
     );
   }
 
-  async getProjects(): Promise<readonly Project[]> {
-    this.ensureOpen();
+  async getProjects(): Promise<Result<readonly Project[], RegistryClearedError>> {
+    const openResult = this.ensureOpen();
+    if (openResult.isErr()) return err(openResult.error);
 
-    return [...this.compilations.entries()].sort(([firstPath], [secondPath]) => firstPath.localeCompare(secondPath))
-      .map(([, project]) => project);
+    return ok([...this.compilations.entries()].sort(([firstPath], [secondPath]) => firstPath.localeCompare(secondPath))
+      .map(([, project]) => project));
   }
 
   /** Terminal cleanup; the owner must finish all resource access before calling this. */
@@ -127,8 +130,8 @@ export class TypeScriptCompilationRegistry {
     if (disposalFailures.length) throw new AggregateError(disposalFailures, `Failed to clear TypeScript compilation registry for ${this.root}`);
   }
 
-  private ensureOpen(): void {
-    if (this.clearing) throw new Error('TypeScript compilation registry is cleared');
+  private ensureOpen(): Result<void, RegistryClearedError> {
+    return this.clearing ? err({ reason: 'registry-cleared' }) : ok();
   }
 }
 

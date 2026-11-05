@@ -1,3 +1,6 @@
+import { ResultFlow } from '@youldali/result-flow';
+import { ok } from 'neverthrow';
+import { assertOk } from '@flowlens/common/testing';
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import * as ts from '../fixtures/native-compiler.js';
@@ -15,7 +18,7 @@ const createNodeAdapter = (
   checker: ts.TypeChecker = createTypeChecker(),
   program: ts.Program = createProgram(),
 ): NodeAdapter => {
-  return new NodeAdapter(checker, program, { findImplementations: async () => [] });
+  return new NodeAdapter(checker, program, { findImplementations: () => ResultFlow.from(() => ok([])) });
 };
 
 describe("NodeAdapter", () => {
@@ -154,7 +157,9 @@ describe("NodeAdapter", () => {
       assert.fail("Expected a callable type declaration.");
     }
 
-    assert.deepEqual(await adapter.buildCallableTypeMemberDeclarationNode(propertySignatureFixture), {
+    const result = await adapter.buildCallableTypeMemberDeclarationNode(propertySignatureFixture).run();
+    assertOk(result);
+    assert.deepEqual(result.value, {
       id: TsNodeModule.deriveIdFromTsNode(propertySignatureFixture),
       name: "property",
       filePath: normalizePath(sourceFileFixture.fileName),
