@@ -1,5 +1,7 @@
 import { ResultFlow } from '@youldali/result-flow';
 import assert from 'node:assert/strict';
+import { execFileSync } from 'node:child_process';
+import { readFile } from 'node:fs/promises';
 import { registerHooks } from 'node:module';
 import { afterEach, describe, it } from 'node:test';
 import type { ExtensionContext, TextDocument, TextEditor } from 'vscode';
@@ -33,6 +35,33 @@ afterEach(async () => {
 });
 
 describe('activate', () => {
+  it('imports and activates the bundled ESM extension from its manifest entry point', async t => {
+    execFileSync(process.execPath, ['scripts/bundle-extension.js'], {
+      cwd: new URL('../../', import.meta.url),
+      stdio: 'pipe',
+    });
+    const bundleHooks = registerHooks({
+      resolve(specifier, context, nextResolve) {
+        return nextResolve(specifier === 'vscode' ? new URL('../mocks/vscode.ts', import.meta.url).href : specifier, context);
+      },
+    });
+    t.after(() => bundleHooks.deregister());
+    const manifest = JSON.parse(await readFile(new URL('../../package.json', import.meta.url), 'utf8'));
+    assert.equal(manifest.type, 'module');
+    assert.equal(manifest.main, './dist/extension.mjs');
+    const registerCommand = t.mock.method(commands, 'registerCommand');
+    const bundledExtension = await import(new URL(`../../${manifest.main}`, import.meta.url).href) as typeof import('./index.js');
+    t.after(() => bundledExtension.deactivate());
+
+    bundledExtension.activate(extensionContext);
+
+    assert.deepEqual(registerCommand.mock.calls.map(call => call.arguments[0]).sort(), [
+      'flowlens.generateGraph',
+      'flowlens.removeAiApiKey',
+      'flowlens.setAiApiKey',
+    ]);
+  });
+
   it('rejects duplicate activation before registering commands or replacing the service', async t => {
     const registerCommand = t.mock.method(commands, 'registerCommand');
     const dispose = t.mock.method(WorkspaceAnalysisService.prototype, 'dispose');

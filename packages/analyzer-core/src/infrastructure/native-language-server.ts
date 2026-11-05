@@ -4,7 +4,7 @@ import { createRequire } from 'node:module';
 import * as path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { createMessageConnection, StreamMessageReader, StreamMessageWriter, type MessageConnection } from 'vscode-jsonrpc/node.js';
-import type { API, LanguageServerSnapshotChanges } from 'typescript-native/async';
+import { API, formatDiagnostics, type LanguageServerSnapshotChanges } from 'typescript-native/async';
 
 import type { ImplementationLocation } from '#domain/implementation';
 
@@ -38,7 +38,6 @@ export class NativeLanguageServer {
   }
 
   static async create(root: FilePath): Promise<NativeLanguageServer> {
-    const { API } = await import('typescript-native/async');
     const server = new NativeLanguageServer(root);
 
     try {
@@ -72,7 +71,6 @@ export class NativeLanguageServer {
     const parsed = await this.api.parseConfigFile(file);
     const errors = parsed.errors.filter(error => error.code !== 18003);
     if (errors.length) {
-      const { formatDiagnostics } = await import('typescript-native/async');
       throw new InvalidTypeScriptConfigError(formatDiagnostics(errors, this.api));
     }
     return parsed;

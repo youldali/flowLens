@@ -2,6 +2,7 @@
 .vscode-test/**
 assets/*.svg
 dist/extension.js
+dist/extension.cjs
 dist/**/*.js
 dist/**/*.d.ts
 dist/**/*.d.ts.map

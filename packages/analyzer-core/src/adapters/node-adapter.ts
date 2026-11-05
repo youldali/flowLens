@@ -1,7 +1,7 @@
 import { ResultFlow } from '@youldali/result-flow';
 import type { RegistryClearedError } from '#infrastructure/typescript-compilation-registry';
 import * as ts from 'typescript-native/ast';
-import type { Checker, Program } from 'typescript-native/async';
+import { SymbolFlags, type Checker, type Program } from 'typescript-native/async';
 import * as path from 'node:path';
 import { normalizePath } from '@flowlens/common/fs';
 import * as TsModule from './ts-node/index.js';
@@ -126,7 +126,6 @@ export class NodeAdapter {
   }
 
   private async getSymbolDeclarations(node: ts.Node): Promise<ts.Declaration[]> {
-    const { SymbolFlags } = await import('typescript-native/async');
     const located = await this.checker.getSymbolAtLocation(node);
     const symbol = located && (located.flags & SymbolFlags.Alias)
       ? await this.checker.getAliasedSymbol(located) : located;
