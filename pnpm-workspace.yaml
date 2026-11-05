@@ -9,3 +9,4 @@ packages:
   - "packages/*"
 minimumReleaseAgeExclude:
   - '@youldali/result-flow@2.1.0'
+  - '@youldali/result-flow@2.2.0'

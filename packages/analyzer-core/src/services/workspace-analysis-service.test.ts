@@ -299,7 +299,9 @@ describe('dispose', () => {
     await Promise.resolve();
     assert.equal(createRegistry.mock.callCount(), 0);
     await service.dispose();
-    await assert.rejects(flow.run(), /shutting down/);
+    const result = await flow.run();
+    assertErr(result);
+    assert.deepEqual(result.error, { reason: 'workspace-closing' });
     assert.equal(createRegistry.mock.callCount(), 0);
   });
 
@@ -349,7 +351,9 @@ describe('dispose', () => {
     let shutdownCompleted = false;
     void closing.then(() => { shutdownCompleted = true; });
     assert.equal(workspaceAnalysisService.dispose(), closing);
-    await assert.rejects(workspaceAnalysisService.analyze(filePath).run(), /shutting down/);
+    const result = await workspaceAnalysisService.analyze(filePath).run();
+    assertErr(result);
+    assert.deepEqual(result.error, { reason: 'workspace-closing' });
     assert.equal(shutdownCompleted, false);
 
     initializationGate.resolve();

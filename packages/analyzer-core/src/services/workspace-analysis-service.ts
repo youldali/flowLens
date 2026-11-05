@@ -6,7 +6,7 @@ import { findWorkspaceRoot, type FilePath } from '@flowlens/common/fs';
 import type { Result } from 'neverthrow';
 import { ResultFlow } from '@youldali/result-flow';
 
-export type AnalysisError = FromFilePositionError | CompilationError | ProjectNotFoundError;
+export type AnalysisError = FromFilePositionError | CompilationError | ProjectNotFoundError | { reason: 'workspace-closing' };
 
 /** Owns fresh compiler resources for each analysis and waits for cleanup before shutdown. */
 export class WorkspaceAnalysisService {
@@ -15,8 +15,6 @@ export class WorkspaceAnalysisService {
 
   analyze(filePath: FilePath, offset?: number): ResultFlow<FlowGraph, AnalysisError> {
     return ResultFlow.from(() => {
-      if (this.closing) throw new Error('Workspace analysis service is shutting down');
-
       const resolvedFilePath = path.resolve(filePath);
       const workspaceRoot = findWorkspaceRoot(resolvedFilePath);
       const analysisPromise = Promise.resolve().then(() => this.createAnalysisFlow(workspaceRoot, resolvedFilePath, offset).run());
@@ -25,7 +23,10 @@ export class WorkspaceAnalysisService {
       return analysisPromise.finally(() => {
         this.activeAnalyses.delete(analysisPromise);
       });
-    });
+    }).precondition(
+      () => !this.closing,
+      () => ({ reason: 'workspace-closing' } as const),
+    );
   }
 
   dispose(): Promise<void> {

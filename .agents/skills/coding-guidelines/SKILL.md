@@ -62,16 +62,31 @@ function findImplementations(): Result<ImplementationEntry[], 'not-found'> {
 
 ### Failures and Cleanup
 
-- Keep typed failures and exceptions distinct, following the Error Handling rules above. In ResultFlow 2.1, `ifFailure` receives either `{ kind: 'err', error }` or `{ kind: 'exception', cause }`.
+- Keep typed failures and exceptions distinct, following the Error Handling rules above. In ResultFlow 2.2, `ifFailure` receives either `{ kind: 'err', error }` or `{ kind: 'exception', cause }`.
 - Use `.ifFailure(...)` for effects or cleanup needed only on failure. It observes both typed failures and exceptions; it does not recover the flow.
 - Use `.finally(exit => ...)` for cleanup on every outcome, including success. Inspect `exit.kind` (`'ok'`, `'err'`, or `'exception'`) when cleanup must account for the original outcome.
 - Use `.catch(...)` to handle exceptions, including translating recognized boundary failures into typed errors. Scope it to the relevant operation: credential-loading failures must not catch and relabel later generation failures. Typed errors pass through `.catch(...)` unchanged.
 - Preserve the original failure if cleanup also fails, using an `AggregateError` when appropriate. Attempt all required resource disposals even if one fails.
 
+### Preconditions
+
+- Use `.precondition(predicate, onFailure)` for execution-sensitive guards, such as shutdown checks, instead of placing the guard in the flow body. It checks before the wrapped flow starts on every execution; constructing the flow does not run either callback.
+- Return the typed error payload from `onFailure`; ResultFlow wraps it in a neverthrow `Err`. Do not return `err(...)` from this callback, which would nest the error. Include the payload type in the flow's error union.
+- Treat expected guard failures, such as a workspace closing, as typed errors rather than throwing. Exceptions thrown by either callback still reject execution.
+- Use `.ensure(...)` when validation depends on a successful upstream value; use `.precondition(...)` when work must be prevented from starting.
+
+```ts
+return ResultFlow.from(() => this.performAnalysis(filePath, offset))
+  .precondition(
+    () => !this.closing,
+    () => ({ reason: 'workspace-closing' } as const),
+  );
+```
+
 ### Lazy Execution and Resource Ownership
 
 - Pass a thunk to `from` when execution must remain lazy: `ResultFlow.from(() => load())`, rather than `ResultFlow.from(load())`, which starts the operation immediately.
-- Place execution-sensitive guards, such as shutdown checks, inside the lazy callback so they run on every `.run()`. A check or decorator that runs only when the flow is constructed is insufficient.
+- Keep work guarded by a precondition lazy: a precondition cannot defer an already-started promise.
 - Acquire resources and allocate mutable execution state per run. Keep repeated and concurrent runs independent, and attach cleanup within the scope that owns the resources.
 - Clean up resources acquired before a failure. After successful ownership transfer, leave disposal to the receiving owner; resources used only for the duration of a flow should be disposed on every exit.
 

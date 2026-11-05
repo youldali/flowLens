@@ -90,7 +90,7 @@
     "vscode:prepublish": "node ./scripts/vscode-prepublish.js"
   },
   "dependencies": {
-    "@youldali/result-flow": "^2.1.0",
+    "@youldali/result-flow": "^2.2.0",
     "typescript-native": "npm:typescript@7.1.0-beta"
   },
   "devDependencies": {

@@ -7,7 +7,7 @@ import { WorkspaceAnalysisService } from '@flowlens/analyzer-core/services/works
 import { GraphAdapter } from '@flowlens/analyzer-core/adapter/graph-adapter';
 import { TypeScriptCompilationRegistry } from '@flowlens/analyzer-core/infrastructure/typescript-compilation-registry';
 import { findWorkspaceRoot } from '@flowlens/common/fs';
-import { assertOk } from '@flowlens/common/testing';
+import { assertErr, assertOk } from '@flowlens/common/testing';
 import { createGraphViewerServer } from './server.js';
 
 describe('createGraphViewerServer', () => {
@@ -155,6 +155,8 @@ describe('createGraphViewerServer', () => {
     const sourceResponse = await app.inject('/source?' + new URLSearchParams({ graphId: first.graphId, filePath: file, offset: '0' }));
     assert.equal(sourceResponse.statusCode, 404);
     await app.close();
-    await assert.rejects(workspaceAnalysisService.analyze(file).run(), /shutting down/);
+    const result = await workspaceAnalysisService.analyze(file).run();
+    assertErr(result);
+    assert.deepEqual(result.error, { reason: 'workspace-closing' });
   });
 });
