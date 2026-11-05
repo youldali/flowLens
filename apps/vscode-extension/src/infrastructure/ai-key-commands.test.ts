@@ -146,6 +146,7 @@ describe('configureAIProvider', () => {
     });
     context.mock.method(window, 'showInputBox', async (options: import('vscode').InputBoxOptions) => {
       inputCalls++;
+      assert.equal(lastPicker?.disposed, true);
       assert.ok(options.title?.includes(selection!.toLowerCase()));
       assert.equal(options.password, true);
       assert.equal(options.value, undefined);
@@ -198,6 +199,51 @@ describe('configureAIProvider', () => {
   });
 });
 
+describe('selectAIProvider', () => {
+  it('disposes acquired resources when listener registration or showing the picker throws', async t => {
+    for (const failureStage of ['subscribe', 'show'] as const) {
+      await t.test(failureStage, async t => {
+        const handlers = new Map<string, () => Promise<SetAiApiKeyResult>>();
+        const picker = new MockQuickPick<import('vscode').QuickPickItem>();
+        const cause = new Error('picker failed');
+        const disposeAccept = t.mock.fn();
+        const disposeHide = t.mock.fn();
+        const disposePicker = t.mock.method(picker, 'dispose');
+        t.mock.method(commands, 'registerCommand', (id: string, handler: () => Promise<SetAiApiKeyResult>) => {
+          handlers.set(id, handler);
+          return { dispose() {} };
+        });
+        t.mock.method(window, 'createQuickPick', () => picker);
+        t.mock.method(picker, 'onDidAccept', () => ({ dispose: disposeAccept }));
+        t.mock.method(picker, 'onDidHide', () => {
+          if (failureStage === 'subscribe') throw cause;
+          return { dispose: disposeHide };
+        });
+        t.mock.method(picker, 'show', () => { throw cause; });
+        const prompt = t.mock.method(window, 'showInputBox');
+        const showError = t.mock.method(window, 'showErrorMessage');
+        const saveKey = t.mock.fn(async () => {});
+        registerAIKeyCommands(new AiKeyService({
+          get: async () => undefined,
+          set: saveKey,
+          delete: async () => {},
+        }));
+
+        const result = await handlers.get('flowlens.setAiApiKey')!();
+
+        assertErr(result);
+        assert.deepEqual(result.error, { reason: 'configuration-failed', cause });
+        assert.equal(disposeAccept.mock.callCount(), 1);
+        assert.equal(disposeHide.mock.callCount(), failureStage === 'show' ? 1 : 0);
+        assert.equal(disposePicker.mock.callCount(), 1);
+        assert.equal(prompt.mock.callCount(), 0);
+        assert.equal(saveKey.mock.callCount(), 0);
+        assert.equal(showError.mock.callCount(), 1);
+      });
+    }
+  });
+});
+
 describe('executeSetAiApiKeyCommand', () => {
   it('preserves command results, including the original configuration failure cause', async context => {
     const cause = new Error('private storage details');
@@ -226,13 +272,5 @@ describe('executeSetAiApiKeyCommand', () => {
     assertErr(result);
     assert.equal(result.error.cause, cause);
     assert.equal(result.error.reason, 'command-execution-failed');
-  });
-
-  it('reports a missing command result as an explicit failure', async context => {
-    context.mock.method(commands, 'executeCommand', async () => undefined);
-    const result = await executeSetAiApiKeyCommand().run();
-
-    assertErr(result);
-    assert.deepEqual(result.error, { reason: 'missing-command-result', cause: undefined });
   });
 });

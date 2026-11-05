@@ -6,23 +6,14 @@ import { getAIProvider, updateAIProvider } from '@infrastructure/configuration.j
 import type { AiKeyService } from '@services/ai-key-service.js';
 
 export type SetAiApiKeyError = {
-  reason: 'cancelled' | 'missing-command-result' | 'command-execution-failed' | 'invalid-api-key' | 'configuration-failed';
+  reason: 'cancelled' | 'command-execution-failed' | 'invalid-api-key' | 'configuration-failed';
   cause: unknown;
 };
 export type SetAiApiKeyResult = Result<'saved', SetAiApiKeyError>;
 
 export function executeSetAiApiKeyCommand(): ResultFlow<'saved', SetAiApiKeyError> {
-  return ResultFlow.gen<'saved', SetAiApiKeyError>(async function* ({ fail }) {
-    let result: SetAiApiKeyResult | undefined;
-    try {
-      result = await vscode.commands.executeCommand<SetAiApiKeyResult>('flowlens.setAiApiKey');
-    } catch (cause) {
-      return fail({ reason: 'command-execution-failed', cause });
-    }
-
-    if (!result) return fail({ reason: 'missing-command-result', cause: undefined });
-    return yield* result;
-  });
+  return ResultFlow.from(async () => vscode.commands.executeCommand<SetAiApiKeyResult>('flowlens.setAiApiKey'))
+    .catch(cause => err({ reason: 'command-execution-failed' as const, cause }));
 }
 
 export function registerAIKeyCommands(aiKeyService: AiKeyService): vscode.Disposable[] {
@@ -33,59 +24,47 @@ export function registerAIKeyCommands(aiKeyService: AiKeyService): vscode.Dispos
 }
 
 function configureAIProvider(aiKeyService: AiKeyService): ResultFlow<'saved', SetAiApiKeyError> {
-  return ResultFlow.gen<'saved', SetAiApiKeyError>(async function* ({ fail }) {
-    try {
-      return yield* await ResultFlow.gen<'saved', SetAiApiKeyError>(async function* () {
-        const provider = yield* selectAIProvider(getAIProvider());
-        const key = yield* promptAIKey(provider);
+  return ResultFlow.gen<'saved', SetAiApiKeyError>(async function* () {
+    const provider = yield* selectAIProvider(getAIProvider());
+    const key = yield* promptAIKey(provider);
 
-        await aiKeyService.setAiApiKey(provider, key);
-        await updateAIProvider(provider);
-        await vscode.window.showInformationMessage(`FlowLens: AI provider configured for ${provider}.`);
-        return 'saved';
-      }).run();
-    } catch (cause) {
-      await vscode.window.showErrorMessage('FlowLens: Could not configure the AI provider.');
-      return fail({ reason: 'configuration-failed', cause });
-    }
+    await aiKeyService.setAiApiKey(provider, key);
+    await updateAIProvider(provider);
+    await vscode.window.showInformationMessage(`FlowLens: AI provider configured for ${provider}.`);
+    return 'saved';
+  }).catch(async cause => {
+    await vscode.window.showErrorMessage('FlowLens: Could not configure the AI provider.');
+    return err({ reason: 'configuration-failed' as const, cause });
   });
 }
 
 function selectAIProvider(currentProvider: AIProvider): ResultFlow<AIProvider, SetAiApiKeyError> {
-  return ResultFlow.gen<AIProvider, SetAiApiKeyError>(async function* () {
-    const picker = vscode.window.createQuickPick<vscode.QuickPickItem & { provider: AIProvider }>();
-    picker.title = 'FlowLens: Configure AI Provider';
-    picker.placeholder = 'Choose an AI provider';
-    picker.ignoreFocusOut = true;
-    picker.items = aiProviderSchema.options.map(provider => ({
-      label: provider === 'openai' ? 'OpenAI' : 'Anthropic',
-      provider,
-    }));
-    picker.activeItems = picker.items.filter(item => item.provider === currentProvider);
+  return ResultFlow.from(() => ok(vscode.window.createQuickPick<vscode.QuickPickItem & { provider: AIProvider }>()))
+    .chain(picker => {
+      const subscriptions: vscode.Disposable[] = [];
 
-    const subscriptions: vscode.Disposable[] = [];
-    let selectionResult: Result<AIProvider, SetAiApiKeyError>;
+      return ResultFlow.from(() => new Promise<Result<AIProvider, SetAiApiKeyError>>(resolve => {
+        picker.title = 'FlowLens: Configure AI Provider';
+        picker.placeholder = 'Choose an AI provider';
+        picker.ignoreFocusOut = true;
+        picker.items = aiProviderSchema.options.map(provider => ({
+          label: provider === 'openai' ? 'OpenAI' : 'Anthropic',
+          provider,
+        }));
+        picker.activeItems = picker.items.filter(item => item.provider === currentProvider);
 
-    try {
-      selectionResult = await new Promise<Result<AIProvider, SetAiApiKeyError>>(resolve => {
-        subscriptions.push(
-          picker.onDidAccept(() => {
-            const selected = picker.selectedItems[0];
+        subscriptions.push(picker.onDidAccept(() => {
+          const selected = picker.selectedItems[0];
 
-            if (selected) resolve(ok(selected.provider));
-          }),
-          picker.onDidHide(() => resolve(err({ reason: 'cancelled', cause: undefined }))),
-        );
+          if (selected) resolve(ok(selected.provider));
+        }));
+        subscriptions.push(picker.onDidHide(() => resolve(err({ reason: 'cancelled', cause: undefined }))));
         picker.show();
+      })).finally(() => {
+        subscriptions.forEach(subscription => subscription.dispose());
+        picker.dispose();
       });
-    } finally {
-      subscriptions.forEach(subscription => subscription.dispose());
-      picker.dispose();
-    }
-
-    // Yield only after disposal: an Err stops the generator without resuming it.
-    return yield* selectionResult;
-  });
+    });
 }
 
 function promptAIKey(provider: AIProvider): ResultFlow<string, SetAiApiKeyError> {

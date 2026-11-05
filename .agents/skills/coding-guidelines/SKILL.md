@@ -44,6 +44,37 @@ function findImplementations(): Result<ImplementationEntry[], 'not-found'> {
 }
 ```
 
+## ResultFlow
+
+### When to Use It
+
+- Prefer `ResultFlow<T, E>` over `Promise<Result<T, E>>` in controllers and orchestration methods. Execute the flow at the application or framework boundary when a promise or response is required.
+- Use ResultFlow when several `Promise<Result<...>>`, `Result`, or `ResultFlow` operations need to be unwrapped and composed, with typed failures stopping the success path.
+- Use it for complex workflows involving branching, retries, recovery, or coordinated error handling and cleanup.
+- Keep simple infrastructure helpers as ordinary async functions returning `Promise<Result<T, E>>` when a regular `try/catch` is clearer. Do not introduce ResultFlow solely to wrap one operation or replace every `try/catch`. Lift the helper into a flow at the orchestration layer when needed.
+
+### Construction and Composition
+
+- Use `ResultFlow.gen` when the body unwraps results with `yield*`. Unwrap a `Promise<Result<...>>` with `yield* await operation()` and a `ResultFlow` with `yield* flow`.
+- Use `ResultFlow.from(() => operation())` to lift an existing result-producing operation. If no results need unwrapping, prefer `from` over a generator; return `ok(value)` when the callback produces a plain success value.
+- Compose flows with `chain` or `yield*` rather than nesting generators and manually calling `.run()` to inspect intermediate results. A `chain` callback can also provide a resource scope shared by subsequent work and its cleanup handler.
+- Prefer the simplest appropriate mechanism. For example, native Promise `.finally()` is sufficient when the task is just to remove an already tracked promise after it settles.
+
+### Failures and Cleanup
+
+- Keep typed failures and exceptions distinct, following the Error Handling rules above. In ResultFlow 2.1, `ifFailure` receives either `{ kind: 'err', error }` or `{ kind: 'exception', cause }`.
+- Use `.ifFailure(...)` for effects or cleanup needed only on failure. It observes both typed failures and exceptions; it does not recover the flow.
+- Use `.finally(exit => ...)` for cleanup on every outcome, including success. Inspect `exit.kind` (`'ok'`, `'err'`, or `'exception'`) when cleanup must account for the original outcome.
+- Use `.catch(...)` to handle exceptions, including translating recognized boundary failures into typed errors. Scope it to the relevant operation: credential-loading failures must not catch and relabel later generation failures. Typed errors pass through `.catch(...)` unchanged.
+- Preserve the original failure if cleanup also fails, using an `AggregateError` when appropriate. Attempt all required resource disposals even if one fails.
+
+### Lazy Execution and Resource Ownership
+
+- Pass a thunk to `from` when execution must remain lazy: `ResultFlow.from(() => load())`, rather than `ResultFlow.from(load())`, which starts the operation immediately.
+- Place execution-sensitive guards, such as shutdown checks, inside the lazy callback so they run on every `.run()`. A check or decorator that runs only when the flow is constructed is insufficient.
+- Acquire resources and allocate mutable execution state per run. Keep repeated and concurrent runs independent, and attach cleanup within the scope that owns the resources.
+- Clean up resources acquired before a failure. After successful ownership transfer, leave disposal to the receiving owner; resources used only for the duration of a flow should be disposed on every exit.
+
 ## Variable Naming
 
 - Prefer explicit, unambiguous variable names that describe the value's domain and purpose.

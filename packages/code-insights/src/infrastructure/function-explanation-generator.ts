@@ -5,6 +5,7 @@ import type { FunctionDeclarationNode } from '@flowlens/analyzer-core/domain/nod
 import { generateText, Output, type LanguageModel } from 'ai';
 import { toAiApiError, type AiApiError } from '#common/ai-api-adapter';
 import { ResultFlow } from '@youldali/result-flow';
+import { err, ok, type Result } from 'neverthrow';
 import { functionExplanationSchema } from '#domain/function-explanation-contract';
 
 import type { FunctionExplanation } from '#domain/function-explanation';
@@ -15,8 +16,9 @@ export function createFunctionExplainer({ provider, apiKey }: {
   apiKey: string;
 }): (node: FunctionDeclarationNode) => ResultFlow<FunctionExplanation, AiApiError> {
   const model = createAiModel(provider, apiKey);
+  const generateExplanation = createFunctionExplanationGenerator({ model });
 
-  return createFunctionExplanationGenerator({ model });
+  return node => ResultFlow.from(() => generateExplanation(node));
 }
 
 function createAiModel(provider: AIProvider, apiKey: string): Exclude<LanguageModel, string> {
@@ -27,8 +29,8 @@ function createAiModel(provider: AIProvider, apiKey: string): Exclude<LanguageMo
 
 function createFunctionExplanationGenerator({ model }: {
   model: Exclude<LanguageModel, string>;
-}): (node: FunctionDeclarationNode) => ResultFlow<FunctionExplanation, AiApiError> {
-  return node => ResultFlow.gen<FunctionExplanation, AiApiError>(async function* ({ fail }) {
+}): (node: FunctionDeclarationNode) => Promise<Result<FunctionExplanation, AiApiError>> {
+  return async node => {
     try {
       const { output } = await generateText({
         model,
@@ -36,9 +38,9 @@ function createFunctionExplanationGenerator({ model }: {
         output: Output.object({ schema: functionExplanationSchema }),
       });
 
-      return output;
+      return ok(output);
     } catch (cause) {
-      return fail(toAiApiError(cause));
+      return err(toAiApiError(cause));
     }
-  });
+  };
 }

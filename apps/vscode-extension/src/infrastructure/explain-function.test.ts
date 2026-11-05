@@ -18,13 +18,15 @@ describe('createExplainFunction', () => {
       calls.push(options);
       return received => ResultFlow.gen(async function* () { assert.equal(received, node); return yield* result; });
     });
-    const explanationResult = await explain(node).run();
+    const flow = explain(node);
+    assert.deepEqual(calls, []);
+    const explanationResult = await flow.run();
     assertOk(explanationResult);
     assert.equal(explanationResult.value, result.value);
     keys.set('openai', 'replacement');
-    await explain(node).run();
+    await flow.run();
     provider = 'anthropic';
-    await explain(node).run();
+    await flow.run();
     assert.deepEqual(calls, [
       { provider: 'openai', apiKey: 'first' },
       { provider: 'openai', apiKey: 'replacement' },
@@ -40,6 +42,32 @@ describe('createExplainFunction', () => {
     const failureResult = await failing(node).run();
     assertErr(failureResult);
     assert.equal(failureResult.error, failure.error);
+  });
+
+  it('sanitizes provider lookup failures without intercepting generation exceptions', async () => {
+    const node = createFunctionDeclarationNode();
+    const providerFailure = new Error('private provider details');
+    const lookupFailure = createExplainFunction(
+      async () => assert.fail('Must not load a key'),
+      () => { throw providerFailure; },
+      () => assert.fail('Must not generate'),
+    );
+    const result = await lookupFailure(node).run();
+    assertErr(result);
+    assert.equal(result.error.reason, 'generation-failed');
+    assert.ok(result.error.cause instanceof Error);
+    assert.equal(result.error.cause.message, 'Could not load AI credentials.');
+
+    const generationFailure = new Error('generation failed');
+
+    for (const failureStage of ['creation', 'execution'] as const) {
+      const explain = createExplainFunction(async () => 'key', () => 'openai', () => {
+        if (failureStage === 'creation') throw generationFailure;
+        return () => ResultFlow.gen(async function* () { throw generationFailure; });
+      });
+
+      await assert.rejects(explain(node).run(), error => error === generationFailure);
+    }
   });
 
   it('avoids generation for missing keys and sanitizes retrieval failures', async () => {

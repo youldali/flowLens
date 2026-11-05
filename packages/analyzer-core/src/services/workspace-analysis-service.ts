@@ -14,23 +14,17 @@ export class WorkspaceAnalysisService {
   private closing: Promise<void> | undefined;
 
   analyze(filePath: FilePath, offset?: number): ResultFlow<FlowGraph, AnalysisError> {
-    const service = this;
-    return ResultFlow.gen<FlowGraph, AnalysisError>(async function* () {
-      if (service.closing) throw new Error('Workspace analysis service is shutting down');
+    return ResultFlow.from(() => {
+      if (this.closing) throw new Error('Workspace analysis service is shutting down');
 
       const resolvedFilePath = path.resolve(filePath);
       const workspaceRoot = findWorkspaceRoot(resolvedFilePath);
-      const analysisPromise = Promise.resolve().then(() => service.createAnalysisFlow(workspaceRoot, resolvedFilePath, offset).run());
-      service.activeAnalyses.add(analysisPromise);
-      let analysisResult: Result<FlowGraph, AnalysisError>;
+      const analysisPromise = Promise.resolve().then(() => this.createAnalysisFlow(workspaceRoot, resolvedFilePath, offset).run());
+      this.activeAnalyses.add(analysisPromise);
 
-      try {
-        analysisResult = await analysisPromise;
-      } finally {
-        service.activeAnalyses.delete(analysisPromise);
-      }
-
-      return yield* analysisResult;
+      return analysisPromise.finally(() => {
+        this.activeAnalyses.delete(analysisPromise);
+      });
     });
   }
 
@@ -44,34 +38,19 @@ export class WorkspaceAnalysisService {
     filePath: FilePath,
     offset?: number,
   ): ResultFlow<FlowGraph, AnalysisError> {
-    return ResultFlow.gen<FlowGraph, AnalysisError>(async function* () {
-      let compilationRegistry: TypeScriptCompilationRegistry | undefined;
-      let analysisFailure: { error: unknown } | undefined;
-      let analysisResult: Result<FlowGraph, AnalysisError>;
-
-      try {
-        // Materialize the result so generator short-circuiting cannot skip cleanup.
-        analysisResult = await ResultFlow.gen<FlowGraph, AnalysisError>(async function* () {
-          compilationRegistry = yield* TypeScriptCompilationRegistry.create(workspaceRoot);
-          const graphAdapter = yield* GraphAdapter.create(filePath, compilationRegistry);
-          return yield* graphAdapter.analyze(filePath, offset);
-        }).run();
-
-        if (analysisResult.isErr()) analysisFailure = { error: analysisResult.error };
-      } catch (error) {
-        analysisFailure = { error };
-        throw error;
-      } finally {
+    return TypeScriptCompilationRegistry.create(workspaceRoot).chain(compilationRegistry =>
+      ResultFlow.gen<FlowGraph, AnalysisError>(async function* () {
+        const graphAdapter = yield* GraphAdapter.create(filePath, compilationRegistry);
+        return yield* graphAdapter.analyze(filePath, offset);
+      }).finally(async exit => {
         try {
-          await compilationRegistry?.clear();
+          await compilationRegistry.clear();
         } catch (cleanupError) {
-          if (analysisFailure) throw new AggregateError([analysisFailure.error, cleanupError], 'Analysis and compiler cleanup failed');
-          throw cleanupError;
+          if (exit.kind === 'ok') throw cleanupError;
+          const analysisFailure = exit.kind === 'err' ? exit.error : exit.cause;
+          throw new AggregateError([analysisFailure, cleanupError], 'Analysis and compiler cleanup failed');
         }
-      }
-
-      return yield* analysisResult;
-    });
+      }));
   }
 
   private async close(): Promise<void> {

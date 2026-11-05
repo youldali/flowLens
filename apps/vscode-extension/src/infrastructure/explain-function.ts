@@ -1,6 +1,6 @@
 import { ResultFlow } from '@youldali/result-flow';
-import type { FunctionExplanation } from '@flowlens/code-insights/domain/function-explanation-contract';
-import { createFunctionExplainer, type AiApiError } from '@flowlens/code-insights';
+import { err, ok } from 'neverthrow';
+import { createFunctionExplainer } from '@flowlens/code-insights';
 import type { AIProvider } from '@flowlens/code-insights/domain/ai-provider';
 
 export function createExplainFunction(
@@ -8,23 +8,17 @@ export function createExplainFunction(
   getProvider: () => AIProvider,
   createExplainer = createFunctionExplainer,
 ): ReturnType<typeof createFunctionExplainer> {
-  return node => ResultFlow.gen<FunctionExplanation, AiApiError>(async function* ({ fail }) {
-    let provider: AIProvider;
-    let apiKey: string | undefined;
-
-    try {
-      provider = getProvider();
-      apiKey = await getApiKey(provider);
-    } catch {
-      return fail({
-        reason: 'generation-failed',
-        cause: new Error('Could not load AI credentials.'),
-        statusCode: undefined,
-      });
-    }
-
-    return apiKey
-      ? yield* createExplainer({ provider, apiKey })(node)
-      : fail({ reason: 'missing-api-token', cause: undefined, statusCode: undefined });
-  });
+  return node => ResultFlow.from(async () => {
+    const provider = getProvider();
+    const apiKey = await getApiKey(provider);
+    return ok({ provider, apiKey });
+  })
+    .catch(() => err({
+      reason: 'generation-failed' as const,
+      cause: new Error('Could not load AI credentials.'),
+      statusCode: undefined,
+    }))
+    .chain(({ provider, apiKey }) => apiKey
+      ? createExplainer({ provider, apiKey })(node)
+      : err({ reason: 'missing-api-token' as const, cause: undefined, statusCode: undefined }));
 }
