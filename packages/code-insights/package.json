@@ -5,7 +5,7 @@
   "type": "module",
   "license": "ISC",
   "scripts": {
-    "build": "tsc -p tsconfig.json",
+    "build": "tsc -p tsconfig.json && node scripts/generate-function-explanation-schema.js",
     "test": "pnpm build && node --test \"dist/**/*.test.js\""
   },
   "exports": {
@@ -26,13 +26,13 @@
     "@ai-sdk/anthropic": "^4.0.82",
     "@ai-sdk/openai": "^4.0.96",
     "@flowlens/analyzer-core": "workspace:*",
+    "@flowlens/common": "workspace:*",
     "@youldali/result-flow": "^2.2.0",
     "ai": "^7.0.138",
     "neverthrow": "^8.2.0",
     "zod": "^4.4.3"
   },
   "devDependencies": {
-    "@flowlens/common": "workspace:*",
     "@flowlens/test-utils": "workspace:*"
   },
   "imports": {

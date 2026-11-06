@@ -220,6 +220,9 @@ importers:
       '@flowlens/analyzer-core':
         specifier: workspace:*
         version: link:../analyzer-core
+      '@flowlens/common':
+        specifier: workspace:*
+        version: link:../common
       '@youldali/result-flow':
         specifier: ^2.2.0
         version: 2.2.0(neverthrow@8.2.0)
@@ -233,9 +236,6 @@ importers:
         specifier: ^4.4.3
         version: 4.4.3
     devDependencies:
-      '@flowlens/common':
-        specifier: workspace:*
-        version: link:../common
       '@flowlens/test-utils':
         specifier: workspace:*
         version: link:../test-utils
