@@ -4,3 +4,4 @@ node_modules
 *.vsix
 .xdg
 apps/vscode-extension/media/frontend
+TODO.yaml
