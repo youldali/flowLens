@@ -51,17 +51,17 @@ function setup(runtimeHost: 'vscode' | 'web-app' | 'cli' = 'vscode', deliveryFai
       sent.push(message as ExplainNodeEvent)
     }
   } }
-  const view = (nodeId: string, graphId: string) => (
+  const view = (nodeId: string | undefined, graphId: string) => (
     <AppShell config={{ runtimeHost, vscodeApi }}>
       <KeepCache>
         <GraphProvider graphId={graphId} graph={{ nodes: [], edges: [] }}>
-          <NodeExplanationSection nodeId={nodeId} />
+          {nodeId && <NodeExplanationSection nodeId={nodeId} />}
         </GraphProvider>
       </KeepCache>
     </AppShell>
   )
   const result = render(view('one', 'graph'))
-  return { sent, recovery, graphRequests, vscodeApi, ...result, change: (nodeId: string, graphId = 'graph') => result.rerender(view(nodeId, graphId)) }
+  return { sent, recovery, graphRequests, vscodeApi, ...result, change: (nodeId: string | undefined, graphId = 'graph') => result.rerender(view(nodeId, graphId)) }
 }
 
 function succeed(request: ExplainNodeEvent, result = explanation) {
@@ -222,6 +222,7 @@ describe('NodeExplanationSection', () => {
       const { sent } = setup(runtime)
       assert.equal((screen.getByRole('button', { name: 'Explain' }) as HTMLButtonElement).disabled, true)
       screen.getByText('Explanations are available in VS Code.')
+      assert.equal(screen.queryByRole('combobox'), null)
       assert.equal(sent.length, 0)
     })
   }

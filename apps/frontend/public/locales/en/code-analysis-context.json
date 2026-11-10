@@ -73,6 +73,9 @@
             "notFound": "No code analysis graph was found for this project."
         }
     },
+    "ai": {
+        "backend": "AI backend"
+    },
     "explanation": {
         "title": "Explanation",
         "explain": "Explain",

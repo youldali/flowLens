@@ -4,6 +4,7 @@ import { useConfig } from '#common/config/index.ts'
 import { useTranslation } from '#common/hooks/useTranslation.ts'
 import { graphFacade } from '#code-analysis-context/graph-visualization/adapters/graphFacade.ts'
 import { useExplainNodeQuery } from '../../apis/useExplainNodeQuery'
+import { useAiBackend } from '../../store/ai-config'
 import { ExplanationError } from './ExplanationError'
 import { ExplanationContent } from './ExplanationContent'
 import styles from './NodeExplanationSection.module.css'
@@ -34,7 +35,8 @@ export function NodeExplanationSection({ nodeId }: NodeExplanationSectionProps) 
 
 function NodeExplanation({ nodeId }: NodeExplanationSectionProps) {
   const { t } = useTranslation('code-analysis-context')
-  const query = useExplainNodeQuery(nodeId)
+  const { backend } = useAiBackend()
+  const query = useExplainNodeQuery(nodeId, backend)
   const isCancelled = query.error?.reason === 'cancelled'
   const showError = query.isError && !query.isFetching && !isCancelled
   const retry = async () => {

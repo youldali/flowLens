@@ -25,7 +25,7 @@ describe('requestNodeExplanationViaVsCode', () => {
       send(createVsCodeEvent('explain.node.result', { ...payload, explanation }))
     } }
 
-    assert.deepEqual(await requestNodeExplanationViaVsCode(api, 'graph', 'one'), explanation)
+    assert.deepEqual(await requestNodeExplanationViaVsCode(api, 'graph', 'one', 'openai-api'), explanation)
     assert.equal(remove.mock.calls[0]?.[0], 'message')
   })
 
@@ -34,17 +34,17 @@ describe('requestNodeExplanationViaVsCode', () => {
       send(createVsCodeEvent('explain.node.error', {
         ...(message as ExplainNodeEvent).payload, reason: 'api-error', statusCode: 429,
       }))
-    } }, 'graph', 'one'), { reason: 'api-error', statusCode: 429 })
+    } }, 'graph', 'one', 'openai-api'), { reason: 'api-error', statusCode: 429 })
   })
 
   it('removes listeners on remote errors and delivery failures', async () => {
     const remove = vi.spyOn(window, 'removeEventListener')
     const cause = new Error('Unavailable')
 
-    await assert.rejects(requestNodeExplanationViaVsCode({ postMessage: () => { throw cause } }, 'graph', 'one'), { reason: 'delivery-failed', cause, originalError: cause, transport: 'vscode', operation: 'explain.node' })
+    await assert.rejects(requestNodeExplanationViaVsCode({ postMessage: () => { throw cause } }, 'graph', 'one', 'openai-api'), { reason: 'delivery-failed', cause, originalError: cause, transport: 'vscode', operation: 'explain.node' })
     await assert.rejects(requestNodeExplanationViaVsCode({ postMessage: (message: unknown) => {
       send(createVsCodeEvent('explain.node.error', { ...(message as ExplainNodeEvent).payload, reason: 'stale-graph' }))
-    } }, 'graph', 'one'), { reason: 'stale-graph', transport: 'vscode', operation: 'explain.node' })
+    } }, 'graph', 'one', 'openai-api'), { reason: 'stale-graph', transport: 'vscode', operation: 'explain.node' })
     assert.equal(remove.mock.calls.length, 2)
   })
 
@@ -52,13 +52,13 @@ describe('requestNodeExplanationViaVsCode', () => {
     const controller = new AbortController()
     const postMessage = vi.fn()
     const remove = vi.spyOn(window, 'removeEventListener')
-    const pending = requestNodeExplanationViaVsCode({ postMessage }, 'graph', 'one', controller.signal)
+    const pending = requestNodeExplanationViaVsCode({ postMessage }, 'graph', 'one', 'openai-api', controller.signal)
     const rejection = assert.rejects(pending, { reason: 'cancelled' })
 
     controller.abort()
     await rejection
     assert.equal(remove.mock.calls[0]?.[0], 'message')
-    await assert.rejects(requestNodeExplanationViaVsCode({ postMessage }, 'graph', 'one', controller.signal), { reason: 'cancelled' })
+    await assert.rejects(requestNodeExplanationViaVsCode({ postMessage }, 'graph', 'one', 'openai-api', controller.signal), { reason: 'cancelled' })
     assert.equal(postMessage.mock.calls.length, 1)
   })
 })

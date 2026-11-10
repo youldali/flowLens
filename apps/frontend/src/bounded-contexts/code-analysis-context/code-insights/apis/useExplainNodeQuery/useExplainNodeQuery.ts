@@ -6,14 +6,15 @@ import { graphFacade } from '#code-analysis-context/graph-visualization/adapters
 import { useVsCodeApi } from '#common/hooks/useVsCodeApi.ts'
 import type { FunctionExplanation } from '@flowlens/code-insights/domain/function-explanation-contract'
 import { requestNodeExplanationViaVsCode, type ExplanationErrorReason } from './requestNodeExplanation'
+import type { AiBackend } from '../../domain/ai-config'
 
-export function useExplainNodeQuery(nodeId: NodeId): UseQueryResult<FunctionExplanation, VsCodeQueryError<ExplanationErrorReason>> {
+export function useExplainNodeQuery(nodeId: NodeId, backend: AiBackend): UseQueryResult<FunctionExplanation, VsCodeQueryError<ExplanationErrorReason>> {
   const graphId = graphFacade.data.useGraphId()
   const vscodeApi = useVsCodeApi()
 
   return useQuery<FunctionExplanation, VsCodeQueryError<ExplanationErrorReason>>(
     getExplanationQueryKey(graphId, nodeId),
-    ({ signal }) => requestNodeExplanationViaVsCode(vscodeApi, graphId, nodeId, signal),
+    ({ signal }) => requestNodeExplanationViaVsCode(vscodeApi, graphId, nodeId, backend, signal),
     { enabled: false, retry: false },
   )
 }

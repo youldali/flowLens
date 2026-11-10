@@ -20,8 +20,8 @@ function setup(postMessage?: (message: ExplainNodeEvent) => void) {
   } }
   const wrapper = ({ children }: PropsWithChildren) => <AppShell config={{ runtimeHost: 'vscode', vscodeApi }}><GraphProvider graphId={graphId} graph={{ nodes: [], edges: [] }}>{children}</GraphProvider></AppShell>
   const hook = renderHook(() => ({
-    query: useExplainNodeQuery('one'),
-    secondQuery: useExplainNodeQuery('two'),
+    query: useExplainNodeQuery('one', 'openai-api'),
+    secondQuery: useExplainNodeQuery('two', 'openai-api'),
   }), { wrapper })
 
   return { sent, ...hook, changeGraph: (nextGraphId: string) => {
