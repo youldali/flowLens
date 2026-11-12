@@ -9,7 +9,7 @@ import { AiKeyService } from '@services/ai-key-service.js';
 import { WorkspaceAnalysisService } from '@flowlens/analyzer-core/services/workspace-analysis-service';
 import { createExtensionStore } from './state.js';
 import { setupSubscriptions } from './subscription.js';
-import { registerGenerateGraphCommand } from './commands/generate-graph.js';
+import { registerGenerateGraphCommand } from './commands/generate-graph/index.js';
 
 let workspaceAnalysisService: WorkspaceAnalysisService | undefined;
 let shuttingDown = false;

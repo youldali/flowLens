@@ -3,8 +3,8 @@ import * as vscode from 'vscode';
 import { findNearestTsconfig, findWorkspaceRoot, isWithinDirectory } from '@flowlens/common/fs';
 import type { WorkspaceAnalysisService } from '@flowlens/analyzer-core/services/workspace-analysis-service';
 import type { FlowLensGraphWebview } from '@infrastructure/webview.js';
-import type { ExtensionStore } from '../state.js';
-import { generateGraph } from '../generate-graph.js';
+import type { ExtensionStore } from '../../state.js';
+import { generateGraph } from './generate-graph.js';
 
 type RegisterGenerateGraphCommandOptions = {
   analysisService: WorkspaceAnalysisService;

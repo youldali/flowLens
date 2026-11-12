@@ -6,14 +6,14 @@ import type { TextDocument, TextEditor, Uri as VsCodeUri } from 'vscode';
 import { ok } from 'neverthrow';
 import { commands, Uri, window, workspace } from '@mocks/vscode.js';
 import { WorkspaceAnalysisService } from '@flowlens/analyzer-core/services/workspace-analysis-service';
-import { createExtensionStore } from '../state.js';
+import { createExtensionStore } from '../../state.js';
 
 const hooks = registerHooks({
   resolve(specifier, context, nextResolve) {
-    return nextResolve(specifier === 'vscode' ? new URL('../../mocks/vscode.ts', import.meta.url).href : specifier, context);
+    return nextResolve(specifier === 'vscode' ? new URL('../../../mocks/vscode.ts', import.meta.url).href : specifier, context);
   },
 });
-const { registerGenerateGraphCommand } = await import('./generate-graph.js');
+const { registerGenerateGraphCommand } = await import('./index.js');
 const { FlowLensGraphWebview } = await import('@infrastructure/webview.js');
 hooks.deregister();
 
