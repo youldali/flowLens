@@ -8,7 +8,7 @@ import { createVsCodeEvent, type ExplainNodeEvent, type ExplainNodeErrorEvent, t
 import { GraphProvider } from '#code-analysis-context/graph-visualization/context/index.ts'
 import { AppShell } from '#common/test-utils/appShell.tsx'
 import { VsCodeQueryErrorClass } from '#common/utils/QueryError/index.ts'
-import * as explanationRequest from '../../apis/useExplainNodeQuery/requestNodeExplanation'
+import * as explanationRequest from '#code-analysis-context/code-insights/apis/useExplainNodeQuery/requestNodeExplanation.ts'
 import translations from '../../../../../../public/locales/en/code-analysis-context.json'
 import { NodeExplanationSection } from './NodeExplanationSection'
 

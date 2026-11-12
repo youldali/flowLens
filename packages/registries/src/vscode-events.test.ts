@@ -23,6 +23,34 @@ describe('createVsCodeEvent', () => {
 });
 
 describe('parseVsCodeEvent', () => {
+  it('accepts AI settings operations and prevents secrets in host responses or mismatched providers', () => {
+    const configuration = { backend: 'openai-api', credentialPresence: { openai: true, anthropic: false } } as const;
+    const messages = [
+      createVsCodeEvent('ai.settings.get', { requestId: 'settings' }),
+      createVsCodeEvent('ai.settings.save', { requestId: 'settings', configuration: { backend: 'codex-cli' } }),
+      createVsCodeEvent('ai.settings.result', { requestId: 'settings', configuration }),
+      createVsCodeEvent('ai.settings.error', { requestId: 'settings', reason: 'unsupported' }),
+    ];
+
+    for (const message of messages) {
+      assertOk(parseVsCodeEvent(message, message.type));
+      assertErr(parseVsCodeEvent({ ...message, payload: { ...message.payload, apiKey: 'secret' } }, message.type));
+    }
+
+    const save = createVsCodeEvent('ai.settings.save', {
+      requestId: 'settings', configuration: { backend: 'openai-api', credential: { provider: 'openai', apiKey: 'new-key' } },
+    });
+    assertOk(parseVsCodeEvent(save, save.type));
+
+    for (const backend of ['claude-api', 'codex-cli']) {
+      assertErr(parseVsCodeEvent({ ...save, payload: { ...save.payload, configuration: { ...save.payload.configuration, backend } } }, save.type));
+    }
+
+    const response = createVsCodeEvent('ai.settings.result', { requestId: 'settings', configuration });
+    assertErr(parseVsCodeEvent({ ...response, payload: { ...response.payload, configuration: { ...configuration, apiKey: 'secret' } } }, response.type));
+    assertErr(parseVsCodeEvent({ ...response, payload: { ...response.payload, configuration: { ...configuration, credentialPresence: { openai: 'secret', anthropic: false } } } }, response.type));
+  });
+
   it('validates credential-free recovery messages and optional HTTP status', () => {
     const messages = [
       createVsCodeEvent('ai.configure', { requestId: 'request' }),

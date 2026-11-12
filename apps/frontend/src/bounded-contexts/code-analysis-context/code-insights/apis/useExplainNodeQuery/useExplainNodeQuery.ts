@@ -6,7 +6,7 @@ import { graphFacade } from '#code-analysis-context/graph-visualization/adapters
 import { useVsCodeApi } from '#common/hooks/useVsCodeApi.ts'
 import type { FunctionExplanation } from '@flowlens/code-insights/domain/function-explanation-contract'
 import { requestNodeExplanationViaVsCode, type ExplanationErrorReason } from './requestNodeExplanation'
-import type { AiBackend } from '../../domain/ai-config'
+import type { AiBackend } from '#code-analysis-context/code-insights/domain/ai-config.ts'
 
 export function useExplainNodeQuery(nodeId: NodeId, backend: AiBackend): UseQueryResult<FunctionExplanation, VsCodeQueryError<ExplanationErrorReason>> {
   const graphId = graphFacade.data.useGraphId()

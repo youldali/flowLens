@@ -1,10 +1,11 @@
 // @vitest-environment jsdom
 import assert from 'node:assert/strict'
+import { VSCODE_REQUEST_TIMEOUT_MS } from '#common/config/index.ts'
 import { afterEach, describe, it, vi } from 'vitest'
 import { createVsCodeEvent, type VsCodeEventRegistry } from '@flowlens/registries/vscode-events'
 import { requestConfigureAiProviderViaVsCode } from './requestConfigureAiProvider'
 
-afterEach(() => vi.restoreAllMocks())
+afterEach(() => { vi.restoreAllMocks(); vi.useRealTimers() })
 
 function reply(message: unknown, outcome: 'saved' | 'cancelled' | 'failed') {
   const { payload } = message as VsCodeEventRegistry['ai.configure']
@@ -15,8 +16,22 @@ function reply(message: unknown, outcome: 'saved' | 'cancelled' | 'failed') {
 }
 
 describe('requestConfigureAiProviderViaVsCode', () => {
+  it('uses the shared timeout and cleans up unanswered requests', async () => {
+    vi.useFakeTimers()
+    const remove = vi.spyOn(window, 'removeEventListener')
+    const rejection = assert.rejects(requestConfigureAiProviderViaVsCode({ postMessage() {} }), { reason: 'timed-out', operation: 'ai.configure' })
+    await vi.advanceTimersByTimeAsync(VSCODE_REQUEST_TIMEOUT_MS - 1)
+    assert.equal(remove.mock.calls.length, 0)
+    await vi.advanceTimersByTimeAsync(1)
+    await rejection
+    assert.equal(remove.mock.calls.length, 1)
+    assert.equal(vi.getTimerCount(), 0)
+  })
+
   it('filters malformed and unrelated replies, accepts synchronous outcomes, and cleans up listeners', async () => {
     const remove = vi.spyOn(window, 'removeEventListener')
+
+    vi.useFakeTimers()
 
     for (const outcome of ['saved', 'cancelled'] as const) {
       const controller = new AbortController()
@@ -36,6 +51,7 @@ describe('requestConfigureAiProviderViaVsCode', () => {
     }
 
     assert.equal(remove.mock.calls.filter(([type]) => type === 'message').length, 2)
+    assert.equal(vi.getTimerCount(), 0)
   })
 
   it('normalizes remote and delivery failures and cleans up', async () => {

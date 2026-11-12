@@ -1,4 +1,4 @@
-import type { ExplanationErrorReason } from '../../../apis/useExplainNodeQuery'
+import type { ExplanationErrorReason } from '#code-analysis-context/code-insights/apis/useExplainNodeQuery/index.ts'
 export type ExplanationRecoveryAction = 'configure-ai-provider' | 'generate-graph' | 'retry'
 export type ExplanationSeverity = 'info' | 'warning' | 'error'
 export interface ExplanationErrorPresentation {
@@ -19,6 +19,7 @@ const presentations = {
   'api-error': { severity: 'error', action: 'retry' },
   'invalid-output': { severity: 'error', action: 'retry' },
   'generation-failed': { severity: 'error', action: 'retry' },
+  'timed-out': { severity: 'error', action: 'retry' },
   'delivery-failed': { severity: 'error', action: 'retry' },
   cancelled: null,
 } satisfies Record<ExplanationErrorReason, { severity: ExplanationSeverity; action?: ExplanationRecoveryAction } | null>

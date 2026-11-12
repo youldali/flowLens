@@ -3,8 +3,8 @@ import { QuerySuspense } from '#common/QuerySuspense.tsx'
 import { useConfig } from '#common/config/index.ts'
 import { useTranslation } from '#common/hooks/useTranslation.ts'
 import { graphFacade } from '#code-analysis-context/graph-visualization/adapters/graphFacade.ts'
-import { useExplainNodeQuery } from '../../apis/useExplainNodeQuery'
-import { useAiBackend } from '../../store/ai-config'
+import { useExplainNodeQuery } from '#code-analysis-context/code-insights/apis/useExplainNodeQuery/index.ts'
+import { useFetchAiConfiguration } from '#code-analysis-context/code-insights/apis/ai-settings/useFetchAiConfiguration.ts'
 import { ExplanationError } from './ExplanationError'
 import { ExplanationContent } from './ExplanationContent'
 import styles from './NodeExplanationSection.module.css'
@@ -35,7 +35,8 @@ export function NodeExplanationSection({ nodeId }: NodeExplanationSectionProps) 
 
 function NodeExplanation({ nodeId }: NodeExplanationSectionProps) {
   const { t } = useTranslation('code-analysis-context')
-  const { backend } = useAiBackend()
+  const { data: configuration } = useFetchAiConfiguration({ enabled: false })
+  const backend = configuration?.backend ?? 'openai-api'
   const query = useExplainNodeQuery(nodeId, backend)
   const isCancelled = query.error?.reason === 'cancelled'
   const showError = query.isError && !query.isFetching && !isCancelled

@@ -1,6 +1,6 @@
 import { useTranslation } from '#common/hooks/useTranslation.ts'
 import { useConfig } from '#common/config/index.ts'
-import { AiBackendSelector } from '#code-analysis-context/code-insights/components/AiBackendSelector/index.ts'
+import { AiSettings } from '#code-analysis-context/code-insights/components/AiSettings/index.ts'
 import { GraphDirectionSelector } from './GraphDirectionSelector'
 import { GraphTransformerSelector } from './GraphTransformerSelector'
 import { RelationshipLegend } from './RelationshipLegend'
@@ -24,7 +24,7 @@ export function GraphToolbar({ onFitView, rootLabel }: GraphToolbarProps) {
       )}
       <GraphTransformerSelector />
       <GraphDirectionSelector />
-      {runtimeHost === 'vscode' && <AiBackendSelector />}
+      {runtimeHost === 'vscode' && <AiSettings />}
       <RelationshipLegend />
       <button className={styles.fitButton} onClick={onFitView} type="button">
         {t('graphVisualization.fit')}

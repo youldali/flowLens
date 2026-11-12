@@ -3,6 +3,22 @@ import { functionExplanationSchema } from '@flowlens/code-insights/domain/functi
 import { err, ok, type Result } from 'neverthrow';
 import { flowGraphSchema } from '@flowlens/analyzer-core/domain/flow-graph-contract';
 import { createEventSchema, type EventDefinition, type EventFromDefinition } from './event-definition.js';
+import { aiBackendSchema, aiProviderSchema } from '@flowlens/code-insights/domain/ai-provider';
+
+const aiConfigurationSchema = z.object({
+  backend: aiBackendSchema,
+  credentialPresence: z.object({ openai: z.boolean(), anthropic: z.boolean() }).strict(),
+}).strict();
+const aiConfigurationChangeSchema = z.object({
+  backend: aiBackendSchema,
+  // Omitted credentials preserve existing secrets. Keys only travel to the host.
+  credential: z.object({ provider: aiProviderSchema, apiKey: z.string().trim().min(1) }).strict().optional(),
+}).strict().refine(({ backend, credential }) => !credential
+  || (backend === 'openai-api' && credential.provider === 'openai')
+  || (backend === 'claude-api' && credential.provider === 'anthropic'));
+
+export type AiConfiguration = z.infer<typeof aiConfigurationSchema>;
+export type AiConfigurationChange = z.infer<typeof aiConfigurationChangeSchema>;
 
 const explanationRequestSchema = z.object({
   graphId: z.string().min(1),
@@ -11,6 +27,19 @@ const explanationRequestSchema = z.object({
 });
 
 export const eventRegistry = {
+  'ai.settings.get': { type: 'ai.settings.get', payload: z.object({ requestId: z.string().min(1) }).strict() },
+  'ai.settings.save': {
+    type: 'ai.settings.save',
+    payload: z.object({ requestId: z.string().min(1), configuration: aiConfigurationChangeSchema }).strict(),
+  },
+  'ai.settings.result': {
+    type: 'ai.settings.result',
+    payload: z.object({ requestId: z.string().min(1), configuration: aiConfigurationSchema }).strict(),
+  },
+  'ai.settings.error': {
+    type: 'ai.settings.error',
+    payload: z.object({ requestId: z.string().min(1), reason: z.enum(['unsupported', 'load-failed', 'save-failed']) }).strict(),
+  },
   'ai.configure': { type: 'ai.configure', payload: z.object({ requestId: z.string().min(1) }).strict() },
   'ai.configure.result': {
     type: 'ai.configure.result',
@@ -66,6 +95,10 @@ export type ParseVsCodeEventError =
   | { kind: 'parsing-vscode-event-failed'; eventType: keyof VsCodeEventRegistry };
 
 export const configureAiEventSchema = createEventSchema(eventRegistry['ai.configure']);
+export const aiSettingsGetEventSchema = createEventSchema(eventRegistry['ai.settings.get']);
+export const aiSettingsSaveEventSchema = createEventSchema(eventRegistry['ai.settings.save']);
+export const aiSettingsResultEventSchema = createEventSchema(eventRegistry['ai.settings.result']);
+export const aiSettingsErrorEventSchema = createEventSchema(eventRegistry['ai.settings.error']);
 export const configureAiResultEventSchema = createEventSchema(eventRegistry['ai.configure.result']);
 export const generateGraphEventSchema = createEventSchema(eventRegistry['graph.generate']);
 export const explainNodeEventSchema = createEventSchema(eventRegistry['explain.node']);
@@ -80,6 +113,10 @@ type VsCodeEventRegistryGuards = {
 };
 
 export const vscodeEventRegistryGuards = {
+  'ai.settings.get': isAiSettingsGetEvent,
+  'ai.settings.save': isAiSettingsSaveEvent,
+  'ai.settings.result': isAiSettingsResultEvent,
+  'ai.settings.error': isAiSettingsErrorEvent,
   'ai.configure': isConfigureAiEvent,
   'ai.configure.result': isConfigureAiResultEvent,
   'graph.generate': isGenerateGraphEvent,
@@ -158,6 +195,22 @@ export function isConfigureAiResultEvent(event: unknown): event is VsCodeEventRe
 
 export function isGenerateGraphEvent(event: unknown): event is VsCodeEventRegistry['graph.generate'] {
   return generateGraphEventSchema.safeParse(event).success;
+}
+
+export function isAiSettingsGetEvent(event: unknown): event is VsCodeEventRegistry['ai.settings.get'] {
+  return aiSettingsGetEventSchema.safeParse(event).success;
+}
+
+export function isAiSettingsSaveEvent(event: unknown): event is VsCodeEventRegistry['ai.settings.save'] {
+  return aiSettingsSaveEventSchema.safeParse(event).success;
+}
+
+export function isAiSettingsResultEvent(event: unknown): event is VsCodeEventRegistry['ai.settings.result'] {
+  return aiSettingsResultEventSchema.safeParse(event).success;
+}
+
+export function isAiSettingsErrorEvent(event: unknown): event is VsCodeEventRegistry['ai.settings.error'] {
+  return aiSettingsErrorEventSchema.safeParse(event).success;
 }
 
 function isVsCodeEventType(type: string): type is keyof VsCodeEventRegistry {

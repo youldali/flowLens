@@ -1,19 +1,33 @@
 // @vitest-environment jsdom
 import assert from 'node:assert/strict'
+import { VSCODE_REQUEST_TIMEOUT_MS } from '#common/config/index.ts'
 import { afterEach, describe, it, vi } from 'vitest'
 import { createVsCodeEvent, type ExplainNodeEvent } from '@flowlens/registries/vscode-events'
 import { requestNodeExplanationViaVsCode } from './requestNodeExplanation'
 
 const explanation = { purpose: 'Test', behavior: [], sideEffects: [], failureCases: [], uncertainties: [] }
-afterEach(() => vi.restoreAllMocks())
+afterEach(() => { vi.restoreAllMocks(); vi.useRealTimers() })
 
 function send(data: unknown) {
   window.dispatchEvent(new MessageEvent('message', { data }))
 }
 
 describe('requestNodeExplanationViaVsCode', () => {
+  it('uses the shared timeout and cleans up unanswered requests', async () => {
+    vi.useFakeTimers()
+    const remove = vi.spyOn(window, 'removeEventListener')
+    const rejection = assert.rejects(requestNodeExplanationViaVsCode({ postMessage() {} }, 'graph', 'one', 'openai-api'), { reason: 'timed-out', operation: 'explain.node' })
+    await vi.advanceTimersByTimeAsync(VSCODE_REQUEST_TIMEOUT_MS - 1)
+    assert.equal(remove.mock.calls.length, 0)
+    await vi.advanceTimersByTimeAsync(1)
+    await rejection
+    assert.equal(remove.mock.calls.length, 1)
+    assert.equal(vi.getTimerCount(), 0)
+  })
+
   it('filters malformed and mismatched responses, handles synchronous replies, and removes its listener', async () => {
     const remove = vi.spyOn(window, 'removeEventListener')
+    vi.useFakeTimers()
     const api = { postMessage: (message: unknown) => {
       const { payload } = message as ExplainNodeEvent
 
@@ -27,6 +41,7 @@ describe('requestNodeExplanationViaVsCode', () => {
 
     assert.deepEqual(await requestNodeExplanationViaVsCode(api, 'graph', 'one', 'openai-api'), explanation)
     assert.equal(remove.mock.calls[0]?.[0], 'message')
+    assert.equal(vi.getTimerCount(), 0)
   })
 
   it('preserves only numeric provider status for safe presentation', async () => {

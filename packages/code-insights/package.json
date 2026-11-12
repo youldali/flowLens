@@ -43,6 +43,14 @@
     "#common/*": {
       "development": "./src/common/*.ts",
       "default": "./dist/common/*.js"
+    },
+    "#infrastructure/*": {
+      "development": "./src/infrastructure/*.ts",
+      "default": "./dist/infrastructure/*.js"
+    },
+    "#fixtures/*": {
+      "development": "./src/fixtures/*.ts",
+      "default": "./dist/fixtures/*.js"
     }
   }
 }

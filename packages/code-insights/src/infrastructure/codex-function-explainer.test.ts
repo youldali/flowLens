@@ -9,7 +9,7 @@ import { createFunctionDeclarationNode } from '@flowlens/analyzer-core/fixtures/
 import { assertErr, assertOk } from '@flowlens/common/testing';
 import { z } from 'zod';
 import { functionExplanationSchema } from '#domain/function-explanation-contract';
-import { create as createExplanation } from '../fixtures/function-explanation.js';
+import { create as createExplanation } from '#fixtures/function-explanation';
 import { explainWithCodex } from './codex-function-explainer.js';
 import { buildFunctionExplanationPrompt } from './prompts/function-explanation.js';
 

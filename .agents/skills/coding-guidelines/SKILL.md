@@ -15,6 +15,26 @@ Use these project style preferences when editing FlowLens code.
 - Use `@domain/...`, `@infrastructure/...`, and `@common/...` instead of relative paths such as `../domain/...` or `../../common/...`, including in re-exports.
 - Keep aliases local to the package and ensure its TypeScript and build/runtime tooling resolve them correctly.
 
+## Domain Imports
+
+- When importing more than one export from the same domain file, use a namespace import instead of individual named imports. Count both values and types toward this rule.
+- Name the namespace after the domain concept with a `Domain` suffix, such as `AiConfigDomain`, and reference its members through that namespace.
+- Use `import type * as ...` when all imported members are types. A single export may use a named import.
+- Keep using the package's path aliases when crossing technical folders.
+
+```ts
+import * as AiConfigDomain from '#code-analysis-context/code-insights/domain/ai-config.ts'
+
+const provider = AiConfigDomain.getAiProvider(backend)
+const apiKeyRequired = AiConfigDomain.isApiKeyRequired(backend)
+```
+
+```ts
+import type * as AiConfigDomain from '#code-analysis-context/code-insights/domain/ai-config.ts'
+
+const initialState: { backend: AiConfigDomain.AiBackend } = { backend: 'openai-api' }
+```
+
 ## Shared Generic Functions
 
 - Before writing a generic helper or inline callback, check `packages/common/src` for an existing reusable function, especially `packages/common/src/utils.ts`.

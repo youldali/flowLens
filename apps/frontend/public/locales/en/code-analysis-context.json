@@ -74,7 +74,46 @@
         }
     },
     "ai": {
-        "backend": "AI backend"
+        "backend": "AI backend",
+        "settings": {
+            "title": "AI settings",
+            "subtitle": "Used by all AI actions in FlowLens",
+            "open": "Open AI settings",
+            "close": "Close AI settings",
+            "toolbarLabel": "AI · {{backend}}",
+            "backend": "Backend",
+            "backends": {
+                "openai-api": "OpenAI API",
+                "claude-api": "Claude API",
+                "codex-cli": "Codex CLI"
+            },
+            "apiKey": {
+                "openai": "OpenAI API key",
+                "anthropic": "Claude API key"
+            },
+            "showKey": "Show API key",
+            "hideKey": "Hide API key",
+            "show": "Show",
+            "hide": "Hide",
+            "keyConfigured": "Key configured",
+            "keyNotConfigured": "No key configured",
+            "keepExistingKey": "Leave blank to keep your existing key.",
+            "cliAuthentication": "Uses your Codex CLI authentication",
+            "cliSignIn": "Sign in through Codex CLI to use this backend.",
+            "loading": "Loading AI settings…",
+            "saving": "Saving AI settings…",
+            "savingButton": "Saving…",
+            "save": "Save",
+            "cancel": "Cancel",
+            "retry": "Retry",
+            "errors": {
+                "unsupported": "This extension does not support AI settings yet. Update FlowLens, then reload VS Code and retry.",
+                "saveTimeout": "Save was not confirmed by the extension. Close and reopen AI settings to check the saved configuration before retrying.",
+                "loadTimeout": "The extension did not respond. It may not support AI settings yet. Update FlowLens or reload VS Code, then retry.",
+                "saveFailed": "Could not save AI settings. Check the extension is running, then try Save again. Your changes have not been confirmed.",
+                "loadFailed": "Could not load AI settings. Check the extension is running, then retry or reload VS Code."
+            }
+        }
     },
     "explanation": {
         "title": "Explanation",
@@ -96,6 +135,7 @@
             "api-error": "AI provider request failed",
             "invalid-output": "Couldn't process the AI response",
             "generation-failed": "Couldn't generate explanation",
+            "timed-out": "Explanation timed out",
             "delivery-failed": "Couldn't receive the explanation",
             "cancelled": "The explanation request was cancelled.",
             "unknown": "The explanation could not be loaded. Try again."
@@ -119,6 +159,7 @@
             "api-error": "The AI provider could not complete the request. Try again.",
             "invalid-output": "The AI response could not be read. Try again.",
             "generation-failed": "Try generating the explanation again.",
+            "timed-out": "The extension did not respond in time. Check that it is running, then retry.",
             "delivery-failed": "The extension could not deliver the explanation. Try again."
         },
         "providerDetails": {

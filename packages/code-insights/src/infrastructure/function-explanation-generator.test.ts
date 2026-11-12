@@ -3,7 +3,7 @@ import { describe, it } from 'node:test';
 import { createFunctionDeclarationNode } from '@flowlens/analyzer-core/fixtures/node';
 import { assertErr, assertOk } from '@flowlens/common/testing';
 import { createFunctionExplainer } from './function-explanation-generator.js';
-import { create as createExplanation } from '../fixtures/function-explanation.js';
+import { create as createExplanation } from '#fixtures/function-explanation';
 import { buildFunctionExplanationPrompt } from './prompts/function-explanation.js';
 
 describe('createFunctionExplainer', () => {

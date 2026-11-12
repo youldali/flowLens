@@ -1,9 +1,9 @@
-import type { VsCodeApi } from '#common/config/index.ts'
+import { VSCODE_REQUEST_TIMEOUT_MS, type VsCodeApi } from '#common/config/index.ts'
 import { VsCodeQueryErrorClass } from '#common/utils/QueryError/index.ts'
 import { createVsCodeEvent, isConfigureAiResultEvent, type ConfigureAiOutcome } from '@flowlens/registries/vscode-events'
 
 export type ConfigureAiProviderOutcome = Extract<ConfigureAiOutcome, 'saved'>
-export type ConfigureAiProviderErrorReason = 'configuration-failed' | 'delivery-failed' | 'cancelled'
+export type ConfigureAiProviderErrorReason = 'configuration-failed' | 'delivery-failed' | 'cancelled' | 'timed-out'
 
 export function requestConfigureAiProviderViaVsCode(
   api: VsCodeApi,
@@ -11,7 +11,12 @@ export function requestConfigureAiProviderViaVsCode(
 ): Promise<ConfigureAiProviderOutcome> {
   return new Promise((resolve, reject) => {
     const requestId = crypto.randomUUID()
+    const timeout = setTimeout(() => {
+      cleanup()
+      reject(new VsCodeQueryErrorClass({ reason: 'timed-out', operation: 'ai.configure', requestId }))
+    }, VSCODE_REQUEST_TIMEOUT_MS)
     const cleanup = () => {
+      clearTimeout(timeout)
       window.removeEventListener('message', onMessage)
       signal?.removeEventListener('abort', onAbort)
     }

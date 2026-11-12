@@ -4,6 +4,8 @@ import {
   type VsCodeRuntimeWindow,
 } from '../runtimeHost.ts'
 
+export const VSCODE_REQUEST_TIMEOUT_MS = 60_000
+
 export type VsCodeApi = VsCodeRuntimeWindow['__vscodeApi']
 
 interface BaseConfig {

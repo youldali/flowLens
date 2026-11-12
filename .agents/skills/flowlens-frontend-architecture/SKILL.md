@@ -255,6 +255,19 @@ Only `index.ts` is the public API. Subcomponents are private to the folder and m
 
 For example, `GraphNode` imports `GraphNode.module.css` for its node container, variants, label, category, and file name. `GraphViewContent.module.css` retains the graph workspace layout, React Flow canvas overrides, and inspector placement because `GraphViewContent` owns that composition.
 
+## Translations
+
+- Define all application-authored user-facing text in the appropriate namespace under `apps/frontend/public/locales/en/`; do not hardcode it in components or presentation helpers. This includes labels, buttons, placeholders, tooltips, accessibility labels, loading/status messages, and errors.
+- Render text through the shared `useTranslation` hook from `#common/hooks/useTranslation.ts`, using the owning namespace. Code-analysis UI text belongs in `code-analysis-context.json`.
+- Presentation helpers should return translation keys rather than English messages. Translate those keys during rendering so text follows the active language.
+- Use translation interpolation for dynamic values instead of assembling sentences from string fragments. User content and code identifiers are data, not translation keys.
+
+```tsx
+const { t } = useTranslation('code-analysis-context')
+
+return <button aria-label={t('ai.settings.open')}>{t('ai.settings.title')}</button>
+```
+
 ## Presentation Files
 
 Choose placement by responsibility, not by whether a function imports React.
@@ -334,6 +347,8 @@ Before creating or editing frontend code:
 ## Review Checklist
 
 When reviewing frontend code, flag:
+
+- Hardcoded application-authored UI text or text rendered without the shared translation hook, including accessibility labels and error messages.
 
 - Business rules inside components or pages.
 - Domain files importing React, API clients, routing, or browser globals.

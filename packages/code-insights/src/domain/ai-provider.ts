@@ -3,3 +3,7 @@ import { z } from 'zod';
 export const aiProviderSchema = z.enum(['openai', 'anthropic']);
 
 export type AIProvider = z.infer<typeof aiProviderSchema>;
+
+export const aiBackendSchema = z.enum(['openai-api', 'claude-api', 'codex-cli']);
+
+export type AiBackend = z.infer<typeof aiBackendSchema>;
