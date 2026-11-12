@@ -47,15 +47,16 @@
     "configuration": {
       "title": "FlowLens",
       "properties": {
-        "flowlens.ai.provider": {
+        "flowlens.ai.backend": {
           "type": "string",
           "enum": [
-            "openai",
-            "anthropic"
+            "openai-api",
+            "claude-api",
+            "codex-cli"
           ],
-          "default": "openai",
+          "default": "openai-api",
           "scope": "application",
-          "description": "AI provider used for AI-powered features."
+          "description": "AI backend used for AI-powered features."
         }
       }
     },
@@ -66,7 +67,7 @@
       },
       {
         "command": "flowlens.setAiApiKey",
-        "title": "FlowLens: Configure AI Provider"
+        "title": "FlowLens: Configure AI Backend"
       },
       {
         "command": "flowlens.removeAiApiKey",

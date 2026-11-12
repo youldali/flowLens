@@ -5,7 +5,7 @@ import { afterEach, describe, it, vi } from 'vitest'
 import { useQueryClient } from 'react-query'
 import { createVsCodeEvent, type VsCodeEventRegistry } from '@flowlens/registries/vscode-events'
 import { AppShell } from '#common/test-utils/appShell.tsx'
-import type * as AiConfigDomain from '#code-analysis-context/code-insights/domain/ai-config.ts'
+import type * as AiConfigDomain from '@flowlens/registries/vscode-events'
 import { aiConfigurationQueryKey, useFetchAiConfiguration } from './useFetchAiConfiguration'
 import { useSaveAiConfiguration } from './useSaveAiConfiguration'
 

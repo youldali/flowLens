@@ -61,22 +61,30 @@ are rejected; accepted requests use the captured source snapshot. Replies are
 sent only to the originating panel while it remains open.
 
 `FlowLensGraphWebview` accepts an explanation function from extension setup.
-Before each request the extension reads `flowlens.ai.provider` and retrieves its
-key from VS Code SecretStorage, then calls the shared `createFunctionExplainer`.
+Before each request the extension reads `flowlens.ai.backend`: `openai-api`,
+`claude-api`, or `codex-cli` (default: `openai-api`). API backends retrieve the
+provider key from VS Code SecretStorage and call `createFunctionExplainer`.
+The Codex backend calls `explainWithCodex` without reading an API key; it uses the
+locally installed and authenticated Codex CLI. Select it through the VS Code
+`flowlens.ai.backend` setting.
 OpenAI uses `gpt-4.1-mini`; Anthropic uses `claude-sonnet-5-5`.
 
-Use **FlowLens: Configure AI Provider** from the Command Palette or the explanation
-recovery button to choose OpenAI or Anthropic, then enter its API key. The picker
-initially highlights the current provider, defaulting to OpenAI. Input is masked
+Use **FlowLens: Configure AI Backend** from the Command Palette or the explanation
+recovery button to choose OpenAI API, Claude API, or Codex CLI. API backends prompt
+for an API key; Codex CLI saves the backend selection without accessing stored keys.
+The picker initially highlights the current backend, defaulting to OpenAI API. Input is masked
 and stored securely by VS Code, separately for each provider, across reloads and
-restarts. Saving also updates `flowlens.ai.provider`; cancelling either prompt
+restarts. Saving updates `flowlens.ai.backend`; cancelling either prompt
 leaves settings and keys unchanged. Use **FlowLens: Remove AI API Key** to delete
-the current provider's key after confirmation. Never put API keys in settings.
+the current API backend's provider key after confirmation. With Codex selected,
+this command leaves stored API keys untouched. Never put API keys in settings.
 
-Provider and key changes apply to subsequent requests without reloading; requests
+Backend and key changes apply to subsequent requests without reloading; requests
 already started retain their captured credentials. Missing keys produce
 `missing-api-token`. Credentials never enter the React webview or IPC messages.
-Generator error reasons pass through unchanged; raw provider details are not logged.
+API generator error reasons pass through unchanged. Codex invalid output is reported
+as `invalid-output`; other Codex failures use `generation-failed`. Raw provider
+details are not logged.
 
 To manually verify persistence, save a key, reload the extension or restart VS Code,
 and invoke Remove AI API Key: the confirmation should still appear. Cancel to retain it.

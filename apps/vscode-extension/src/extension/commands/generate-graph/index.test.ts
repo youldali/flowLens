@@ -1,3 +1,4 @@
+import { AiKeyService } from '@services/ai-key-service.js';
 import { ResultFlow } from '@youldali/result-flow';
 import assert from 'node:assert/strict';
 import { registerHooks } from 'node:module';
@@ -37,7 +38,10 @@ describe('registerGenerateGraphCommand', () => {
     let extensionActive = true;
     const disposable = registerGenerateGraphCommand({
       analysisService: new WorkspaceAnalysisService(),
-      graphWebview: new FlowLensGraphWebview(Uri.file('/extension') as VsCodeUri),
+      graphWebview: new FlowLensGraphWebview(Uri.file('/extension') as VsCodeUri, {
+        aiKeyService: new AiKeyService({ get: async () => undefined, set: async () => {}, delete: async () => {} }),
+        getAiBackend: () => 'openai-api',
+      }),
       store,
       isExtensionActive: () => extensionActive,
     });
@@ -75,7 +79,10 @@ describe('registerGenerateGraphCommand', () => {
     let extensionActive = true;
     const disposable = registerGenerateGraphCommand({
       analysisService: new WorkspaceAnalysisService(),
-      graphWebview: new FlowLensGraphWebview(Uri.file('/extension') as VsCodeUri),
+      graphWebview: new FlowLensGraphWebview(Uri.file('/extension') as VsCodeUri, {
+        aiKeyService: new AiKeyService({ get: async () => undefined, set: async () => {}, delete: async () => {} }),
+        getAiBackend: () => 'openai-api',
+      }),
       store,
       isExtensionActive: () => extensionActive,
     });

@@ -18,6 +18,24 @@ const { registerAIKeyCommands, executeSetAiApiKeyCommand } = await import('./ai-
 hooks.deregister();
 
 describe('registerAIKeyCommands', () => {
+  it('leaves stored API keys untouched when removing a key with Codex selected', async context => {
+    const handlers = new Map<string, () => Promise<unknown>>();
+    context.mock.method(commands, 'registerCommand', (id: string, handler: () => Promise<unknown>) => {
+      handlers.set(id, handler);
+      return { dispose() {} };
+    });
+    context.mock.method(workspace, 'getConfiguration', () => ({ get: () => 'codex-cli', update: async () => {} }));
+    const notice = context.mock.method(window, 'showInformationMessage');
+    registerAIKeyCommands(new AiKeyService({
+      get: async () => assert.fail('Must not read API keys for Codex'),
+      set: async () => assert.fail('Must not write API keys for Codex'),
+      delete: async () => assert.fail('Must not delete API keys for Codex'),
+    }));
+
+    await handlers.get('flowlens.removeAiApiKey')!();
+    assert.match(notice.mock.calls[0]!.arguments[0], /Codex CLI does not use a stored API key/);
+  });
+
   it('registers palette commands and handles set, cancel, replace, remove, and failures safely', async context => {
     const handlers = new Map<string, () => Promise<unknown>>();
     const notices: string[] = [];
@@ -36,11 +54,11 @@ describe('registerAIKeyCommands', () => {
       handlers.set(id, handler);
       return { dispose() {} };
     });
-    context.mock.method(workspace, 'getConfiguration', () => ({ get: () => provider, update: async () => {} }));
+    context.mock.method(workspace, 'getConfiguration', () => ({ get: () => provider === 'openai' ? 'openai-api' : 'claude-api', update: async () => {} }));
     context.mock.method(window, 'createQuickPick', () => {
       const picker = new MockQuickPick<import('vscode').QuickPickItem>();
       picker.show = () => {
-        assert.equal(picker.activeItems[0]?.label, provider === 'openai' ? 'OpenAI' : 'Anthropic');
+        assert.equal(picker.activeItems[0]?.label, provider === 'openai' ? 'OpenAI API' : 'Claude API');
         picker.acceptSelection(picker.activeItems[0]!);
       };
       return picker;
@@ -109,13 +127,66 @@ describe('registerAIKeyCommands', () => {
   });
 });
 
-describe('configureAIProvider', () => {
-  it('selects providers, cancels without writes, and reports partial save failures', async context => {
+describe('configureAiBackend', () => {
+  it('selects Codex without prompting for or accessing API keys, and preserves cancellation and save failures', async context => {
+    const handlers = new Map<string, () => Promise<SetAiApiKeyResult>>();
+    let backend = 'openai-api';
+    let cancel = false;
+    let fail = false;
+    const updates: unknown[] = [];
+    context.mock.method(commands, 'registerCommand', (id: string, handler: () => Promise<SetAiApiKeyResult>) => {
+      handlers.set(id, handler);
+      return { dispose() {} };
+    });
+    context.mock.method(workspace, 'getConfiguration', () => ({
+      get: () => backend,
+      update: async (key: string, value: unknown) => {
+        assert.equal(key, 'ai.backend');
+        if (fail) throw new Error('settings failure');
+        updates.push(value);
+        backend = value as string;
+      },
+    }));
+    context.mock.method(window, 'createQuickPick', () => {
+      const picker = new MockQuickPick<import('vscode').QuickPickItem & { backend: string }>();
+      picker.show = () => {
+        assert.equal(picker.activeItems[0]?.backend, backend);
+        return cancel ? picker.cancel() : picker.acceptSelection(picker.items.find(item => item.backend === 'codex-cli')!);
+      };
+      return picker;
+    });
+    context.mock.method(window, 'showInputBox', async () => assert.fail('Codex must not prompt for an API key'));
+    registerAIKeyCommands(new AiKeyService({
+      get: async () => assert.fail('Must not read keys'),
+      set: async () => assert.fail('Must not write keys'),
+      delete: async () => assert.fail('Must not delete keys'),
+    }));
+    const configure = handlers.get('flowlens.setAiApiKey')!;
+
+    assertOk(await configure());
+    assert.equal(backend, 'codex-cli');
+    assert.deepEqual(updates, ['codex-cli']);
+    cancel = true;
+    const cancelled = await configure();
+    assertErr(cancelled);
+    assert.equal(cancelled.error.reason, 'cancelled');
+    assert.deepEqual(updates, ['codex-cli']);
+    cancel = false;
+    fail = true;
+    backend = 'claude-api';
+    const failed = await configure();
+    assertErr(failed);
+    assert.equal(failed.error.reason, 'configuration-failed');
+    assert.equal(backend, 'claude-api');
+    assert.deepEqual(updates, ['codex-cli']);
+  });
+
+  it('selects backends, cancels without writes, and reports partial save failures', async context => {
     const handlers = new Map<string, () => Promise<SetAiApiKeyResult>>();
     const values = new Map<string, string>();
     const updates: unknown[] = [];
-    let provider: string | undefined;
-    let selection: 'OpenAI' | 'Anthropic' | undefined;
+    let backend: string | undefined;
+    let selection: 'OpenAI API' | 'Claude API' | undefined;
     let input: string | undefined = ' new-key ';
     let storageFails = false;
     let settingsFail = false;
@@ -127,19 +198,19 @@ describe('configureAIProvider', () => {
       return { dispose() {} };
     });
     context.mock.method(workspace, 'getConfiguration', () => ({
-      get: (_key: string, fallback: unknown) => provider ?? fallback,
+      get: (_key: string, fallback: unknown) => backend ?? fallback,
       update: async (_key: string, value: unknown) => {
         updates.push(value);
         if (settingsFail) throw new Error('settings failure');
-        provider = value as string;
+        backend = value as string;
       },
     }));
     context.mock.method(window, 'createQuickPick', () => {
       const picker = new MockQuickPick<import('vscode').QuickPickItem>();
       lastPicker = picker;
       picker.show = () => {
-        assert.deepEqual(picker.items.map(item => item.label), ['OpenAI', 'Anthropic']);
-        assert.equal(picker.activeItems[0]?.label, provider === 'anthropic' ? 'Anthropic' : 'OpenAI');
+        assert.deepEqual(picker.items.map(item => item.label), ['OpenAI API', 'Claude API', 'Codex CLI']);
+        assert.equal(picker.activeItems[0]?.label, backend === 'claude-api' ? 'Claude API' : 'OpenAI API');
         return selection ? picker.acceptSelection(picker.items.find(item => item.label === selection)!) : picker.cancel();
       };
       return picker;
@@ -147,7 +218,7 @@ describe('configureAIProvider', () => {
     context.mock.method(window, 'showInputBox', async (options: import('vscode').InputBoxOptions) => {
       inputCalls++;
       assert.equal(lastPicker?.disposed, true);
-      assert.ok(options.title?.includes(selection!.toLowerCase()));
+      assert.ok(options.title?.includes(selection === 'Claude API' ? 'anthropic' : 'openai'));
       assert.equal(options.password, true);
       assert.equal(options.value, undefined);
       return input;
@@ -166,7 +237,7 @@ describe('configureAIProvider', () => {
     assert.deepEqual(cancelledPicker.error, { reason: 'cancelled', cause: undefined });
     assert.equal(inputCalls, 0);
     assert.equal(lastPicker?.disposed, true);
-    selection = 'Anthropic';
+    selection = 'Claude API';
     input = undefined;
     const cancelledKey = await configure();
     assertErr(cancelledKey);
@@ -178,28 +249,28 @@ describe('configureAIProvider', () => {
     const saved = await configure();
     assertOk(saved);
     assert.equal(saved.value, 'saved');
-    assert.equal(provider, 'anthropic');
+    assert.equal(backend, 'claude-api');
     assert.equal(values.get('anthropic'), 'new-key');
-    selection = 'OpenAI';
+    selection = 'OpenAI API';
     storageFails = true;
     assertErr(await configure());
-    assert.deepEqual(updates, ['anthropic']);
-    assert.equal(provider, 'anthropic');
+    assert.deepEqual(updates, ['claude-api']);
+    assert.equal(backend, 'claude-api');
 
     storageFails = false;
     settingsFail = true;
     assertErr(await configure());
     assert.equal(values.get('openai'), 'new-key');
-    assert.equal(provider, 'anthropic');
+    assert.equal(backend, 'claude-api');
     settingsFail = false;
     assertOk(await configure());
-    assert.equal(provider, 'openai');
+    assert.equal(backend, 'openai-api');
     assert.equal(values.get('anthropic'), 'new-key');
     assert.equal(lastPicker?.disposed, true);
   });
 });
 
-describe('selectAIProvider', () => {
+describe('selectAiBackend', () => {
   it('disposes acquired resources when listener registration or showing the picker throws', async t => {
     for (const failureStage of ['subscribe', 'show'] as const) {
       await t.test(failureStage, async t => {

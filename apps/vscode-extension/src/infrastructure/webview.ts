@@ -14,17 +14,20 @@ import {
 } from "@flowlens/registries/vscode-events";
 
 import { executeSetAiApiKeyCommand } from '@infrastructure/ai-key-commands.js';
+import { AiSettingsController, type AiSettingsControllerOptions } from '@services/ai-settings-controller.js';
 import { GraphController, type GraphControllerOptions } from '@services/graph-controller.js';
 
-type FlowLensGraphWebviewOptions = GraphControllerOptions;
+type FlowLensGraphWebviewOptions = GraphControllerOptions & AiSettingsControllerOptions;
 
 export class FlowLensGraphWebview {
   private panel: vscode.WebviewPanel | undefined;
   private graphController: GraphController | undefined;
+  private readonly aiSettingsController: AiSettingsController;
   private isReady = false;
   private readonly frontendDistUri: vscode.Uri;
 
-  constructor(extensionUri: vscode.Uri, private readonly options: FlowLensGraphWebviewOptions = {}) {
+  constructor(extensionUri: vscode.Uri, private readonly options: FlowLensGraphWebviewOptions) {
+    this.aiSettingsController = new AiSettingsController(options);
     this.frontendDistUri = vscode.Uri.file(path.join(extensionUri.fsPath, "media", "frontend"));
   }
 
@@ -99,7 +102,9 @@ export class FlowLensGraphWebview {
         return;
       }
 
-      const response = await this.graphController?.handleEvent(message);
+      const graphController = this.graphController;
+      const response = await this.aiSettingsController.handleEvent(message)
+        ?? await graphController?.handleEvent(message);
 
       // An old panel's request can finish after it closes and a new panel opens.
       if (this.panel !== panel || !response) return;

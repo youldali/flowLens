@@ -1,6 +1,6 @@
 import type { I18nKey_CODE_ANALYSIS_CONTEXT } from '#common/hooks/useTranslation.ts'
 import type { AiSettingsErrorReason } from '#code-analysis-context/code-insights/apis/ai-settings/requestAiSettings.ts'
-import type { AiBackend } from '#code-analysis-context/code-insights/domain/ai-config.ts'
+import type { AiBackend } from '@flowlens/code-insights/domain/ai-provider'
 
 export const aiBackendLabelKeys = {
   'openai-api': 'ai.settings.backends.openai-api',

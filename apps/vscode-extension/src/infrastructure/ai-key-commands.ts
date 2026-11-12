@@ -1,8 +1,8 @@
 import { err, ok, type Result } from 'neverthrow';
 import { ResultFlow } from '@youldali/result-flow';
 import * as vscode from 'vscode';
-import { aiProviderSchema, type AIProvider } from '@flowlens/code-insights/domain/ai-provider';
-import { getAIProvider, updateAIProvider } from '@infrastructure/configuration.js';
+import * as AiProviderDomain from '@flowlens/code-insights/domain/ai-provider';
+import { getAiBackend, updateAiBackend } from '@infrastructure/configuration.js';
 import type { AiKeyService } from '@services/ai-key-service.js';
 
 export type SetAiApiKeyError = {
@@ -18,45 +18,49 @@ export function executeSetAiApiKeyCommand(): ResultFlow<'saved', SetAiApiKeyErro
 
 export function registerAIKeyCommands(aiKeyService: AiKeyService): vscode.Disposable[] {
   return [
-    vscode.commands.registerCommand('flowlens.setAiApiKey', () => configureAIProvider(aiKeyService).run()),
+    vscode.commands.registerCommand('flowlens.setAiApiKey', () => configureAiBackend(aiKeyService).run()),
     vscode.commands.registerCommand('flowlens.removeAiApiKey', () => removeAIKey(aiKeyService)),
   ];
 }
 
-function configureAIProvider(aiKeyService: AiKeyService): ResultFlow<'saved', SetAiApiKeyError> {
+function configureAiBackend(aiKeyService: AiKeyService): ResultFlow<'saved', SetAiApiKeyError> {
   return ResultFlow.gen<'saved', SetAiApiKeyError>(async function* () {
-    const provider = yield* selectAIProvider(getAIProvider());
-    const key = yield* promptAIKey(provider);
+    const backend = yield* selectAiBackend(getAiBackend());
 
-    await aiKeyService.setAiApiKey(provider, key);
-    await updateAIProvider(provider);
-    await vscode.window.showInformationMessage(`FlowLens: AI provider configured for ${provider}.`);
+    if (AiProviderDomain.isApiKeyRequired(backend)) {
+      const provider = AiProviderDomain.getAiProvider(backend);
+      const key = yield* promptAIKey(provider);
+      await aiKeyService.setAiApiKey(provider, key);
+    }
+
+    await updateAiBackend(backend);
+    await vscode.window.showInformationMessage(`FlowLens: AI backend configured for ${backend}.`);
     return 'saved';
   }).catch(async cause => {
-    await vscode.window.showErrorMessage('FlowLens: Could not configure the AI provider.');
+    await vscode.window.showErrorMessage('FlowLens: Could not configure the AI backend.');
     return err({ reason: 'configuration-failed' as const, cause });
   });
 }
 
-function selectAIProvider(currentProvider: AIProvider): ResultFlow<AIProvider, SetAiApiKeyError> {
-  return ResultFlow.from(() => ok(vscode.window.createQuickPick<vscode.QuickPickItem & { provider: AIProvider }>()))
+function selectAiBackend(currentBackend: AiProviderDomain.AiBackend): ResultFlow<AiProviderDomain.AiBackend, SetAiApiKeyError> {
+  return ResultFlow.from(() => ok(vscode.window.createQuickPick<vscode.QuickPickItem & { backend: AiProviderDomain.AiBackend }>()))
     .chain(picker => {
       const subscriptions: vscode.Disposable[] = [];
 
-      return ResultFlow.from(() => new Promise<Result<AIProvider, SetAiApiKeyError>>(resolve => {
-        picker.title = 'FlowLens: Configure AI Provider';
-        picker.placeholder = 'Choose an AI provider';
+      return ResultFlow.from(() => new Promise<Result<AiProviderDomain.AiBackend, SetAiApiKeyError>>(resolve => {
+        picker.title = 'FlowLens: Configure AI Backend';
+        picker.placeholder = 'Choose an AI backend';
         picker.ignoreFocusOut = true;
-        picker.items = aiProviderSchema.options.map(provider => ({
-          label: provider === 'openai' ? 'OpenAI' : 'Anthropic',
-          provider,
+        picker.items = AiProviderDomain.aiBackendSchema.options.map(backend => ({
+          label: { 'openai-api': 'OpenAI API', 'claude-api': 'Claude API', 'codex-cli': 'Codex CLI' }[backend],
+          backend,
         }));
-        picker.activeItems = picker.items.filter(item => item.provider === currentProvider);
+        picker.activeItems = picker.items.filter(item => item.backend === currentBackend);
 
         subscriptions.push(picker.onDidAccept(() => {
           const selected = picker.selectedItems[0];
 
-          if (selected) resolve(ok(selected.provider));
+          if (selected) resolve(ok(selected.backend));
         }));
         subscriptions.push(picker.onDidHide(() => resolve(err({ reason: 'cancelled', cause: undefined }))));
         picker.show();
@@ -67,7 +71,7 @@ function selectAIProvider(currentProvider: AIProvider): ResultFlow<AIProvider, S
     });
 }
 
-function promptAIKey(provider: AIProvider): ResultFlow<string, SetAiApiKeyError> {
+function promptAIKey(provider: AiProviderDomain.AIProvider): ResultFlow<string, SetAiApiKeyError> {
   return ResultFlow.gen<string, SetAiApiKeyError>(async function* ({ fail }) {
     const input = await vscode.window.showInputBox({
       title: `FlowLens: Set ${provider} API Key`,
@@ -91,7 +95,13 @@ function promptAIKey(provider: AIProvider): ResultFlow<string, SetAiApiKeyError>
 
 async function removeAIKey(aiKeyService: AiKeyService): Promise<void> {
   try {
-    const provider = getAIProvider();
+    const backend = getAiBackend();
+    if (!AiProviderDomain.isApiKeyRequired(backend)) {
+      await vscode.window.showInformationMessage('FlowLens: Codex CLI does not use a stored API key.');
+      return;
+    }
+
+    const provider = AiProviderDomain.getAiProvider(backend);
     const key = await aiKeyService.getAiApiKey(provider);
 
     if (key === undefined) {

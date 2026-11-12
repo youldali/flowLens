@@ -6,7 +6,7 @@ import type { FunctionExplanation } from '@flowlens/code-insights/domain/functio
 import {
   createVsCodeEvent, isExplainNodeResultEvent, isExplainNodeErrorEvent, type ExplainNodeErrorEvent, type ExplainNodeEvent,
 } from '@flowlens/registries/vscode-events'
-import type { AiBackend } from '#code-analysis-context/code-insights/domain/ai-config.ts'
+import type { AiBackend } from '@flowlens/code-insights/domain/ai-provider'
 
 export type ExplainNodeRequest = ExplainNodeEvent & {
   payload: { backend: AiBackend }

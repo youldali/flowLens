@@ -3,7 +3,7 @@ import { VsCodeQueryErrorClass } from '#common/utils/QueryError/index.ts'
 import {
   createVsCodeEvent, isAiSettingsResultEvent, isAiSettingsErrorEvent, type VsCodeEventRegistry,
 } from '@flowlens/registries/vscode-events'
-import type * as AiConfigDomain from '#code-analysis-context/code-insights/domain/ai-config.ts'
+import type * as AiConfigDomain from '@flowlens/registries/vscode-events'
 
 export type AiSettingsErrorReason = VsCodeEventRegistry['ai.settings.error']['payload']['reason']
   | 'timed-out' | 'delivery-failed' | 'cancelled'

@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
-import type { AIProvider } from '@flowlens/code-insights/domain/ai-provider'
+import * as AiProviderDomain from '@flowlens/code-insights/domain/ai-provider'
 import { useSaveAiConfiguration } from '#code-analysis-context/code-insights/apis/ai-settings/useSaveAiConfiguration.ts'
-import * as AiConfigDomain from '#code-analysis-context/code-insights/domain/ai-config.ts'
+import type { AiConfiguration } from '@flowlens/registries/vscode-events'
 
 export type UseAiSettingsFormOptions = {
-  configuration: AiConfigDomain.AiConfiguration
+  configuration: AiConfiguration
   onClose: () => void
   onSavingChange: (saving: boolean) => void
 }
@@ -12,11 +12,11 @@ export type UseAiSettingsFormOptions = {
 export function useAiSettingsForm({ configuration, onClose, onSavingChange }: UseAiSettingsFormOptions) {
   const { mutateAsync: saveAiConfiguration, isLoading: saving, error } = useSaveAiConfiguration()
   const [backend, setBackend] = useState(configuration.backend)
-  const [keys, setKeys] = useState<Record<AIProvider, string>>({ openai: '', anthropic: '' })
+  const [keys, setKeys] = useState<Record<AiProviderDomain.AIProvider, string>>({ openai: '', anthropic: '' })
   const [visible, setVisible] = useState(false)
   const pending = useRef<AbortController | null>(null)
-  const provider = AiConfigDomain.getAiProvider(backend)
-  const apiKeyRequired = AiConfigDomain.isApiKeyRequired(backend)
+  const provider = AiProviderDomain.getAiProvider(backend)
+  const apiKeyRequired = AiProviderDomain.isApiKeyRequired(backend)
 
   useEffect(() => () => pending.current?.abort(), [])
 
@@ -48,7 +48,7 @@ export function useAiSettingsForm({ configuration, onClose, onSavingChange }: Us
     }
   }
 
-  const selectBackend = (selectedBackend: AiConfigDomain.AiBackend) => {
+  const selectBackend = (selectedBackend: AiProviderDomain.AiBackend) => {
     setBackend(selectedBackend)
     setVisible(false)
   }

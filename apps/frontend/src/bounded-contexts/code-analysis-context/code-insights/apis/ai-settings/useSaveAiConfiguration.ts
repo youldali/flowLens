@@ -2,7 +2,7 @@ import { useRef } from 'react'
 import { useMutation, useQueryClient, type UseMutationResult } from 'react-query'
 import { useVsCodeApi } from '#common/hooks/useVsCodeApi.ts'
 import type { VsCodeQueryError } from '#common/utils/QueryError/index.ts'
-import type * as AiConfigDomain from '#code-analysis-context/code-insights/domain/ai-config.ts'
+import type * as AiConfigDomain from '@flowlens/registries/vscode-events'
 import { saveAiConfiguration, type AiSettingsErrorReason } from './requestAiSettings'
 import { aiConfigurationQueryKey } from './useFetchAiConfiguration'
 

@@ -7,7 +7,7 @@ import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-libra
 import { afterEach, beforeEach, describe, it, vi } from 'vitest'
 import { createVsCodeEvent, isAiSettingsSaveEvent, type VsCodeEventRegistry } from '@flowlens/registries/vscode-events'
 import { AppShell } from '#common/test-utils/appShell.tsx'
-import type { AiConfiguration } from '#code-analysis-context/code-insights/domain/ai-config.ts'
+import type { AiConfiguration } from '@flowlens/registries/vscode-events'
 import { AiSettings } from './AiSettings'
 
 const i18n = createInstance()

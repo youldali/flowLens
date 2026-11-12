@@ -1,7 +1,7 @@
 import type * as vscode from 'vscode';
 
 import { FlowLensGraphWebview } from "@infrastructure/webview.js";
-import { getAIProvider } from '@infrastructure/configuration.js';
+import { getAiBackend } from '@infrastructure/configuration.js';
 import { registerAIKeyCommands } from '@infrastructure/ai-key-commands.js';
 import { createExplainFunction } from '@infrastructure/explain-function.js';
 import { createAIKeyStorage } from '@infrastructure/ai-key-storage.js';
@@ -22,9 +22,9 @@ export function activate(context: vscode.ExtensionContext): void {
   shuttingDown = false;
   const keyStorage = createAIKeyStorage(context.secrets);
   const aiKeyService = new AiKeyService(keyStorage);
-  const explainFunction = createExplainFunction(provider => aiKeyService.getAiApiKey(provider), getAIProvider);
+  const explainFunction = createExplainFunction(provider => aiKeyService.getAiApiKey(provider), getAiBackend);
   context.subscriptions.push(...registerAIKeyCommands(aiKeyService));
-  const graphWebview = new FlowLensGraphWebview(context.extensionUri, { explainFunction });
+  const graphWebview = new FlowLensGraphWebview(context.extensionUri, { explainFunction, aiKeyService, getAiBackend });
   const store = createExtensionStore();
   context.subscriptions.push(...setupSubscriptions(store));
   context.subscriptions.push(registerGenerateGraphCommand({

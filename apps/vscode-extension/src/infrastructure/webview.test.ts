@@ -1,3 +1,4 @@
+import { AiKeyService } from '@services/ai-key-service.js';
 import { ResultFlow } from '@youldali/result-flow';
 import assert from 'node:assert/strict';
 import { after, describe, it } from 'node:test';
@@ -29,6 +30,17 @@ const graph = { nodes: [node, file], edges: [] };
 const explanation = { purpose: 'Test', behavior: [], sideEffects: [], failureCases: [], uncertainties: [] };
 
 describe('FlowLensGraphWebview', () => {
+  it('returns AI settings through the webview message transport', async () => {
+    const { panel } = await setup();
+    await panel.receive(createVsCodeEvent('ai.settings.get', { requestId: 'settings' }));
+
+    assert.deepEqual(panel.messages.at(-1), createVsCodeEvent('ai.settings.result', {
+      requestId: 'settings',
+      configuration: { backend: 'claude-api', credentialPresence: { openai: false, anthropic: true } },
+    }));
+    assert.equal(JSON.stringify(panel.messages).includes('secret-key'), false);
+  });
+
   it('routes recovery requests through existing commands and returns only configuration outcomes', async context => {
     const { panel } = await setup();
     const calls: string[] = [];
@@ -125,7 +137,15 @@ describe('FlowLensGraphWebview', () => {
 });
 
 async function setup(explain?: NonNullable<ConstructorParameters<typeof FlowLensGraphWebview>[1]>['explainFunction']) {
-  const host = new FlowLensGraphWebview(Uri.file(directory) as import('vscode').Uri, explain ? { explainFunction: explain } : {});
+  const host = new FlowLensGraphWebview(Uri.file(directory) as import('vscode').Uri, {
+    aiKeyService: new AiKeyService({
+      get: async provider => provider === 'anthropic' ? 'secret-key' : undefined,
+      set: async () => {},
+      delete: async () => {},
+    }),
+    getAiBackend: () => 'claude-api',
+    ...(explain ? { explainFunction: explain } : {}),
+  });
   await host.showGraph(graph);
   const panel = panels.at(-1)!;
   await panel.receive(createVsCodeEvent('view.ready', {}));

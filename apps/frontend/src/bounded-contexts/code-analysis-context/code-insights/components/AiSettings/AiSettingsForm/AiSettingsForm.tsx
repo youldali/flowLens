@@ -1,6 +1,6 @@
 import { useTranslation } from '#common/hooks/useTranslation.ts'
 import { useId } from 'react'
-import type { AiBackend } from '#code-analysis-context/code-insights/domain/ai-config.ts'
+import type { AiBackend } from '@flowlens/code-insights/domain/ai-provider'
 import { useAiSettingsForm, type UseAiSettingsFormOptions } from './useAiSettingsForm'
 import { aiBackendLabelKeys, getAiSettingsErrorKey } from '../AiSettings.presentation'
 import styles from './AiSettingsForm.module.css'

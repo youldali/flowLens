@@ -1,7 +1,7 @@
 import { useQuery } from 'react-query'
 import { useVsCodeApi } from '#common/hooks/useVsCodeApi.ts'
 import type { VsCodeQueryError } from '#common/utils/QueryError/index.ts'
-import type { AiConfiguration } from '#code-analysis-context/code-insights/domain/ai-config.ts'
+import type { AiConfiguration } from '@flowlens/registries/vscode-events'
 import { fetchAiConfiguration, type AiSettingsErrorReason } from './requestAiSettings'
 
 export const aiConfigurationQueryKey = ['ai', 'settings'] as const
