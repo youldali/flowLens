@@ -1,8 +1,8 @@
 import type { AIProvider } from '@flowlens/code-insights/domain/ai-provider';
-import type { AIKeyStorage } from '@infrastructure/ai-key-storage.js';
+import type { AIKeyStoragePort } from '@services/ports/ai-key-storage.js';
 
 export class AiKeyService {
-  constructor(private readonly storage: AIKeyStorage) {}
+  constructor(private readonly storage: AIKeyStoragePort) {}
 
   async getAiApiKey(provider: AIProvider): Promise<string | undefined> {
     return this.storage.get(provider);

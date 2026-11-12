@@ -6,7 +6,7 @@ import { registerHooks } from 'node:module';
 import { readFile } from 'node:fs/promises';
 import { describe, it } from 'node:test';
 import { commands, window, workspace, MockQuickPick } from '@mocks/vscode.js';
-import type { AIKeyStorage } from '@infrastructure/ai-key-storage.js';
+import type { AIKeyStoragePort } from '@services/ports/ai-key-storage.js';
 import { AiKeyService } from '@services/ai-key-service.js';
 
 const hooks = registerHooks({
@@ -45,7 +45,7 @@ describe('registerAIKeyCommands', () => {
     let fail = false;
     const storageFailure = new Error('sensitive-key');
     const values = new Map<string, string>();
-    const storage: AIKeyStorage = {
+    const storage: AIKeyStoragePort = {
       get: async selected => { if (fail) throw new Error('sensitive-key'); return values.get(selected); },
       set: async (selected, key) => { if (fail) throw storageFailure; values.set(selected, key); },
       delete: async selected => { if (fail) throw new Error('sensitive-key'); values.delete(selected); },
