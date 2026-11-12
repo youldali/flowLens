@@ -1,5 +1,10 @@
+import type { AiBackendConfigurationPort } from '@services/ports/ai-backend-configuration.js';
 import * as vscode from 'vscode';
 import * as AiProviderDomain from '@flowlens/code-insights/domain/ai-provider';
+
+export function createVsCodeAiBackendConfiguration(): AiBackendConfigurationPort {
+  return { getBackend: getAiBackend, updateBackend: updateAiBackend };
+}
 
 export function getAiBackend(): AiProviderDomain.AiBackend {
   const backend = vscode.workspace.getConfiguration('flowlens').get<unknown>('ai.backend', 'openai-api');

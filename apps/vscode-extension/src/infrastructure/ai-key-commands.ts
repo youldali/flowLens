@@ -2,8 +2,7 @@ import { err, ok, type Result } from 'neverthrow';
 import { ResultFlow } from '@youldali/result-flow';
 import * as vscode from 'vscode';
 import * as AiProviderDomain from '@flowlens/code-insights/domain/ai-provider';
-import { getAiBackend, updateAiBackend } from '@infrastructure/configuration.js';
-import type { AiKeyService } from '@services/ai-key-service.js';
+import type { AiConfigurationService } from '@services/ai-configuration-service.js';
 
 export type SetAiApiKeyError = {
   reason: 'cancelled' | 'command-execution-failed' | 'invalid-api-key' | 'configuration-failed';
@@ -16,24 +15,24 @@ export function executeSetAiApiKeyCommand(): ResultFlow<'saved', SetAiApiKeyErro
     .catch(cause => err({ reason: 'command-execution-failed' as const, cause }));
 }
 
-export function registerAIKeyCommands(aiKeyService: AiKeyService): vscode.Disposable[] {
+export function registerAIKeyCommands(aiConfiguration: AiConfigurationService): vscode.Disposable[] {
   return [
-    vscode.commands.registerCommand('flowlens.setAiApiKey', () => configureAiBackend(aiKeyService).run()),
-    vscode.commands.registerCommand('flowlens.removeAiApiKey', () => removeAIKey(aiKeyService)),
+    vscode.commands.registerCommand('flowlens.setAiApiKey', () => configureAiBackend(aiConfiguration).run()),
+    vscode.commands.registerCommand('flowlens.removeAiApiKey', () => removeAIKey(aiConfiguration)),
   ];
 }
 
-function configureAiBackend(aiKeyService: AiKeyService): ResultFlow<'saved', SetAiApiKeyError> {
+function configureAiBackend(aiConfiguration: AiConfigurationService): ResultFlow<'saved', SetAiApiKeyError> {
   return ResultFlow.gen<'saved', SetAiApiKeyError>(async function* () {
-    const backend = yield* selectAiBackend(getAiBackend());
+    const backend = yield* selectAiBackend(aiConfiguration.getAiBackend());
 
     if (AiProviderDomain.isApiKeyRequired(backend)) {
       const provider = AiProviderDomain.getAiProvider(backend);
       const key = yield* promptAIKey(provider);
-      await aiKeyService.setAiApiKey(provider, key);
+      await aiConfiguration.setAiApiKey(provider, key);
     }
 
-    await updateAiBackend(backend);
+    await aiConfiguration.updateAiBackend(backend);
     await vscode.window.showInformationMessage(`FlowLens: AI backend configured for ${backend}.`);
     return 'saved';
   }).catch(async cause => {
@@ -93,16 +92,16 @@ function promptAIKey(provider: AiProviderDomain.AIProvider): ResultFlow<string, 
   });
 }
 
-async function removeAIKey(aiKeyService: AiKeyService): Promise<void> {
+async function removeAIKey(aiConfiguration: AiConfigurationService): Promise<void> {
   try {
-    const backend = getAiBackend();
+    const backend = aiConfiguration.getAiBackend();
     if (!AiProviderDomain.isApiKeyRequired(backend)) {
       await vscode.window.showInformationMessage('FlowLens: Codex CLI does not use a stored API key.');
       return;
     }
 
     const provider = AiProviderDomain.getAiProvider(backend);
-    const key = await aiKeyService.getAiApiKey(provider);
+    const key = await aiConfiguration.getAiApiKey(provider);
 
     if (key === undefined) {
       await vscode.window.showInformationMessage(`FlowLens: No API key is stored for ${provider}.`);
@@ -114,7 +113,7 @@ async function removeAIKey(aiKeyService: AiKeyService): Promise<void> {
     );
 
     if (confirmation !== 'Remove') return;
-    await aiKeyService.removeAiApiKey(provider);
+    await aiConfiguration.removeAiApiKey(provider);
     await vscode.window.showInformationMessage(`FlowLens: API key removed for ${provider}.`);
   } catch {
     await vscode.window.showErrorMessage('FlowLens: Could not remove the AI API key.');

@@ -1,11 +1,12 @@
 import type * as vscode from 'vscode';
 
 import { FlowLensGraphWebview } from "@infrastructure/webview.js";
-import { getAiBackend } from '@infrastructure/configuration.js';
+import { createVsCodeAiBackendConfiguration } from '@infrastructure/configuration.js';
 import { registerAIKeyCommands } from '@infrastructure/ai-key-commands.js';
-import { createExplainFunction } from '@infrastructure/explain-function.js';
 import { createAIKeyStorage } from '@infrastructure/ai-key-storage.js';
-import { AiKeyService } from '@services/ai-key-service.js';
+import { AiSettingsController } from '@services/ai-settings-controller.js';
+import { GraphController } from '@services/graph-controller.js';
+import { createServices } from './services.js';
 import { WorkspaceAnalysisService } from '@flowlens/analyzer-core/services/workspace-analysis-service';
 import { createExtensionStore } from './state.js';
 import { setupSubscriptions } from './subscription.js';
@@ -20,11 +21,15 @@ export function activate(context: vscode.ExtensionContext): void {
   const activeWorkspaceAnalysisService = new WorkspaceAnalysisService();
   workspaceAnalysisService = activeWorkspaceAnalysisService;
   shuttingDown = false;
-  const keyStorage = createAIKeyStorage(context.secrets);
-  const aiKeyService = new AiKeyService(keyStorage);
-  const explainFunction = createExplainFunction(provider => aiKeyService.getAiApiKey(provider), getAiBackend);
-  context.subscriptions.push(...registerAIKeyCommands(aiKeyService));
-  const graphWebview = new FlowLensGraphWebview(context.extensionUri, { explainFunction, aiKeyService, getAiBackend });
+  const services = createServices({
+    keyStorage: createAIKeyStorage(context.secrets),
+    backendConfiguration: createVsCodeAiBackendConfiguration(),
+  });
+  context.subscriptions.push(...registerAIKeyCommands(services.aiConfiguration));
+  const graphWebview = new FlowLensGraphWebview(context.extensionUri, {
+    aiSettingsController: new AiSettingsController(services),
+    createGraphController: graph => new GraphController(graph, services),
+  });
   const store = createExtensionStore();
   context.subscriptions.push(...setupSubscriptions(store));
   context.subscriptions.push(registerGenerateGraphCommand({

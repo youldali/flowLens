@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import type * as AiProviderDomain from '@flowlens/code-insights/domain/ai-provider';
 import { createVsCodeEvent, isAiSettingsResultEvent, isAiSettingsErrorEvent } from '@flowlens/registries/vscode-events';
-import { AiKeyService } from './ai-key-service.js';
+import { AiConfigurationService } from './ai-configuration-service.js';
 import { AiSettingsController } from './ai-settings-controller.js';
 
 describe('handleEvent', () => {
@@ -10,10 +10,12 @@ describe('handleEvent', () => {
     let backend: AiProviderDomain.AiBackend = 'openai-api';
     const keys: Record<AiProviderDomain.AIProvider, string | undefined> = { openai: undefined, anthropic: undefined };
     const controller = new AiSettingsController({
-      aiKeyService: new AiKeyService({
-        get: async provider => keys[provider], set: async () => {}, delete: async () => {},
+      aiConfiguration: new AiConfigurationService({
+        keyStorage: {
+          get: async provider => keys[provider], set: async () => {}, delete: async () => {},
+        },
+        backendConfiguration: { getBackend: () => backend, updateBackend: async () => {} },
       }),
-      getAiBackend: () => backend,
     });
 
     for (const selectedBackend of ['openai-api', 'claude-api', 'codex-cli'] as const) {
@@ -46,11 +48,13 @@ describe('handleEvent', () => {
     };
     const requested: AiProviderDomain.AIProvider[] = [];
     const controller = new AiSettingsController({
-      aiKeyService: new AiKeyService({
-        get: provider => { requested.push(provider); return pending[provider].promise; },
-        set: async () => {}, delete: async () => {},
+      aiConfiguration: new AiConfigurationService({
+        keyStorage: {
+          get: provider => { requested.push(provider); return pending[provider].promise; },
+          set: async () => {}, delete: async () => {},
+        },
+        backendConfiguration: { getBackend: () => 'openai-api', updateBackend: async () => {} },
       }),
-      getAiBackend: () => 'openai-api',
     });
     const response = controller.handleEvent(createVsCodeEvent('ai.settings.get', { requestId: 'concurrent' }));
     assert.deepEqual(requested, ['openai', 'anthropic']);
@@ -62,17 +66,22 @@ describe('handleEvent', () => {
   it('returns a correlated load failure for backend or credential failures without exposing the cause', async () => {
     for (const failingDependency of ['backend', 'openai', 'anthropic']) {
       const controller = new AiSettingsController({
-        aiKeyService: new AiKeyService({
-          get: async provider => {
-            if (provider === failingDependency) throw new Error('secret-key');
-            return undefined;
+        aiConfiguration: new AiConfigurationService({
+          keyStorage: {
+            get: async provider => {
+              if (provider === failingDependency) throw new Error('secret-key');
+              return undefined;
+            },
+            set: async () => {}, delete: async () => {},
           },
-          set: async () => {}, delete: async () => {},
+          backendConfiguration: {
+            getBackend: () => {
+              if (failingDependency === 'backend') throw new Error('secret-key');
+              return 'openai-api';
+            },
+            updateBackend: async () => {},
+          },
         }),
-        getAiBackend: () => {
-          if (failingDependency === 'backend') throw new Error('secret-key');
-          return 'openai-api';
-        },
       });
       const response = await controller.handleEvent(createVsCodeEvent('ai.settings.get', { requestId: failingDependency }));
 

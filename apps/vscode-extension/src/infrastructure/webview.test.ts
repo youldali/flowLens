@@ -1,4 +1,6 @@
-import { AiKeyService } from '@services/ai-key-service.js';
+import { AiSettingsController } from '@services/ai-settings-controller.js';
+import { GraphController } from '@services/graph-controller.js';
+import { AiConfigurationService } from '@services/ai-configuration-service.js';
 import { ResultFlow } from '@youldali/result-flow';
 import assert from 'node:assert/strict';
 import { after, describe, it } from 'node:test';
@@ -136,15 +138,19 @@ describe('FlowLensGraphWebview', () => {
   });
 });
 
-async function setup(explain?: NonNullable<ConstructorParameters<typeof FlowLensGraphWebview>[1]>['explainFunction']) {
+async function setup(explain?: NonNullable<ConstructorParameters<typeof GraphController>[1]>['explainFunction']) {
   const host = new FlowLensGraphWebview(Uri.file(directory) as import('vscode').Uri, {
-    aiKeyService: new AiKeyService({
-      get: async provider => provider === 'anthropic' ? 'secret-key' : undefined,
-      set: async () => {},
-      delete: async () => {},
+    aiSettingsController: new AiSettingsController({
+      aiConfiguration: new AiConfigurationService({
+        keyStorage: {
+          get: async provider => provider === 'anthropic' ? 'secret-key' : undefined,
+          set: async () => {},
+          delete: async () => {},
+        },
+        backendConfiguration: { getBackend: () => 'claude-api', updateBackend: async () => {} },
+      }),
     }),
-    getAiBackend: () => 'claude-api',
-    ...(explain ? { explainFunction: explain } : {}),
+    createGraphController: graph => new GraphController(graph, explain ? { explainFunction: explain } : {}),
   });
   await host.showGraph(graph);
   const panel = panels.at(-1)!;

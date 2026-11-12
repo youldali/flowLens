@@ -9,7 +9,8 @@ const hooks = registerHooks({
     return nextResolve(specifier === 'vscode' ? new URL('../mocks/vscode.ts', import.meta.url).href : specifier, context);
   },
 });
-const { getAiBackend, updateAiBackend } = await import('./configuration.js');
+const { createVsCodeAiBackendConfiguration } = await import('./configuration.js');
+const { getBackend: getAiBackend, updateBackend: updateAiBackend } = createVsCodeAiBackendConfiguration();
 hooks.deregister();
 afterEach(() => mock.restoreAll());
 

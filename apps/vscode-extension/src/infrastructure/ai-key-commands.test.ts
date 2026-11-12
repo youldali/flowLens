@@ -7,7 +7,7 @@ import { readFile } from 'node:fs/promises';
 import { describe, it } from 'node:test';
 import { commands, window, workspace, MockQuickPick } from '@mocks/vscode.js';
 import type { AIKeyStoragePort } from '@services/ports/ai-key-storage.js';
-import { AiKeyService } from '@services/ai-key-service.js';
+import { AiConfigurationService } from '@services/ai-configuration-service.js';
 
 const hooks = registerHooks({
   resolve(specifier, context, nextResolve) {
@@ -15,6 +15,7 @@ const hooks = registerHooks({
   },
 });
 const { registerAIKeyCommands, executeSetAiApiKeyCommand } = await import('./ai-key-commands.js');
+const { createVsCodeAiBackendConfiguration } = await import('./configuration.js');
 hooks.deregister();
 
 describe('registerAIKeyCommands', () => {
@@ -26,11 +27,13 @@ describe('registerAIKeyCommands', () => {
     });
     context.mock.method(workspace, 'getConfiguration', () => ({ get: () => 'codex-cli', update: async () => {} }));
     const notice = context.mock.method(window, 'showInformationMessage');
-    registerAIKeyCommands(new AiKeyService({
-      get: async () => assert.fail('Must not read API keys for Codex'),
-      set: async () => assert.fail('Must not write API keys for Codex'),
-      delete: async () => assert.fail('Must not delete API keys for Codex'),
-    }));
+    registerAIKeyCommands(new AiConfigurationService({
+      keyStorage: {
+        get: async () => assert.fail('Must not read API keys for Codex'),
+        set: async () => assert.fail('Must not write API keys for Codex'),
+        delete: async () => assert.fail('Must not delete API keys for Codex'),
+      },
+      backendConfiguration: createVsCodeAiBackendConfiguration() }));
 
     await handlers.get('flowlens.removeAiApiKey')!();
     assert.match(notice.mock.calls[0]!.arguments[0], /Codex CLI does not use a stored API key/);
@@ -78,7 +81,7 @@ describe('registerAIKeyCommands', () => {
       assert.equal(options.modal, true);
       return confirmation;
     });
-    assert.equal(registerAIKeyCommands(new AiKeyService(storage)).length, 2);
+    assert.equal(registerAIKeyCommands(new AiConfigurationService({ keyStorage: storage, backendConfiguration: createVsCodeAiBackendConfiguration() })).length, 2);
     const set = handlers.get('flowlens.setAiApiKey')! as () => Promise<SetAiApiKeyResult>;
     const remove = handlers.get('flowlens.removeAiApiKey')!;
     const manifest = JSON.parse(await readFile(new URL('../../package.json', import.meta.url), 'utf8'));
@@ -156,11 +159,13 @@ describe('configureAiBackend', () => {
       return picker;
     });
     context.mock.method(window, 'showInputBox', async () => assert.fail('Codex must not prompt for an API key'));
-    registerAIKeyCommands(new AiKeyService({
-      get: async () => assert.fail('Must not read keys'),
-      set: async () => assert.fail('Must not write keys'),
-      delete: async () => assert.fail('Must not delete keys'),
-    }));
+    registerAIKeyCommands(new AiConfigurationService({
+      keyStorage: {
+        get: async () => assert.fail('Must not read keys'),
+        set: async () => assert.fail('Must not write keys'),
+        delete: async () => assert.fail('Must not delete keys'),
+      },
+      backendConfiguration: createVsCodeAiBackendConfiguration() }));
     const configure = handlers.get('flowlens.setAiApiKey')!;
 
     assertOk(await configure());
@@ -223,14 +228,16 @@ describe('configureAiBackend', () => {
       assert.equal(options.value, undefined);
       return input;
     });
-    registerAIKeyCommands(new AiKeyService({
-      get: async selected => values.get(selected),
-      set: async (selected, key) => {
-        if (storageFails) throw new Error('storage failure');
-        values.set(selected, key);
+    registerAIKeyCommands(new AiConfigurationService({
+      keyStorage: {
+        get: async selected => values.get(selected),
+        set: async (selected, key) => {
+          if (storageFails) throw new Error('storage failure');
+          values.set(selected, key);
+        },
+        delete: async selected => { values.delete(selected); },
       },
-      delete: async selected => { values.delete(selected); },
-    }));
+      backendConfiguration: createVsCodeAiBackendConfiguration() }));
     const configure = handlers.get('flowlens.setAiApiKey')!;
     const cancelledPicker = await configure();
     assertErr(cancelledPicker);
@@ -294,11 +301,13 @@ describe('selectAiBackend', () => {
         const prompt = t.mock.method(window, 'showInputBox');
         const showError = t.mock.method(window, 'showErrorMessage');
         const saveKey = t.mock.fn(async () => {});
-        registerAIKeyCommands(new AiKeyService({
-          get: async () => undefined,
-          set: saveKey,
-          delete: async () => {},
-        }));
+        registerAIKeyCommands(new AiConfigurationService({
+          keyStorage: {
+            get: async () => undefined,
+            set: saveKey,
+            delete: async () => {},
+          },
+          backendConfiguration: createVsCodeAiBackendConfiguration() }));
 
         const result = await handlers.get('flowlens.setAiApiKey')!();
 

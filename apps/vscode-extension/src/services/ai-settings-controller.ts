@@ -4,10 +4,9 @@ import {
   isAiSettingsSaveEvent,
   type VsCodeEventRegistry,
 } from '@flowlens/registries/vscode-events';
-import type { AiBackend } from '@flowlens/code-insights/domain/ai-provider';
-import type { AiKeyService } from './ai-key-service.js';
+import type { AiConfigurationService } from './ai-configuration-service.js';
 
-export type AiSettingsControllerOptions = { aiKeyService: AiKeyService; getAiBackend: () => AiBackend };
+export type AiSettingsControllerOptions = { aiConfiguration: AiConfigurationService };
 export type AiSettingsEvent = VsCodeEventRegistry['ai.settings.get' | 'ai.settings.save'];
 export type AiSettingsEventResult = VsCodeEventRegistry['ai.settings.result' | 'ai.settings.error'];
 
@@ -23,10 +22,10 @@ export class AiSettingsController {
     const { requestId } = request.payload;
 
     try {
-      const backend = this.options.getAiBackend();
+      const backend = this.options.aiConfiguration.getAiBackend();
       const [openaiKey, anthropicKey] = await Promise.all([
-        this.options.aiKeyService.getAiApiKey('openai'),
-        this.options.aiKeyService.getAiApiKey('anthropic'),
+        this.options.aiConfiguration.getAiApiKey('openai'),
+        this.options.aiConfiguration.getAiApiKey('anthropic'),
       ]);
 
       return createVsCodeEvent('ai.settings.result', {

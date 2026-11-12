@@ -14,25 +14,26 @@ import {
 } from "@flowlens/registries/vscode-events";
 
 import { executeSetAiApiKeyCommand } from '@infrastructure/ai-key-commands.js';
-import { AiSettingsController, type AiSettingsControllerOptions } from '@services/ai-settings-controller.js';
-import { GraphController, type GraphControllerOptions } from '@services/graph-controller.js';
+import type { AiSettingsController } from '@services/ai-settings-controller.js';
+import type { GraphController } from '@services/graph-controller.js';
 
-type FlowLensGraphWebviewOptions = GraphControllerOptions & AiSettingsControllerOptions;
+type FlowLensGraphWebviewOptions = {
+  aiSettingsController: AiSettingsController;
+  createGraphController: (graph: FlowGraph) => GraphController;
+};
 
 export class FlowLensGraphWebview {
   private panel: vscode.WebviewPanel | undefined;
   private graphController: GraphController | undefined;
-  private readonly aiSettingsController: AiSettingsController;
   private isReady = false;
   private readonly frontendDistUri: vscode.Uri;
 
   constructor(extensionUri: vscode.Uri, private readonly options: FlowLensGraphWebviewOptions) {
-    this.aiSettingsController = new AiSettingsController(options);
     this.frontendDistUri = vscode.Uri.file(path.join(extensionUri.fsPath, "media", "frontend"));
   }
 
   async showGraph(graph: FlowGraph): Promise<void> {
-    this.graphController = new GraphController(graph, this.options);
+    this.graphController = this.options.createGraphController(graph);
 
     if (!this.panel) {
       await this.createPanel();
@@ -103,7 +104,7 @@ export class FlowLensGraphWebview {
       }
 
       const graphController = this.graphController;
-      const response = await this.aiSettingsController.handleEvent(message)
+      const response = await this.options.aiSettingsController.handleEvent(message)
         ?? await graphController?.handleEvent(message);
 
       // An old panel's request can finish after it closes and a new panel opens.

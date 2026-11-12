@@ -1,4 +1,6 @@
-import { AiKeyService } from '@services/ai-key-service.js';
+import { AiSettingsController } from '@services/ai-settings-controller.js';
+import { GraphController } from '@services/graph-controller.js';
+import { AiConfigurationService } from '@services/ai-configuration-service.js';
 import { ResultFlow } from '@youldali/result-flow';
 import assert from 'node:assert/strict';
 import { registerHooks } from 'node:module';
@@ -39,8 +41,13 @@ describe('registerGenerateGraphCommand', () => {
     const disposable = registerGenerateGraphCommand({
       analysisService: new WorkspaceAnalysisService(),
       graphWebview: new FlowLensGraphWebview(Uri.file('/extension') as VsCodeUri, {
-        aiKeyService: new AiKeyService({ get: async () => undefined, set: async () => {}, delete: async () => {} }),
-        getAiBackend: () => 'openai-api',
+        aiSettingsController: new AiSettingsController({
+          aiConfiguration: new AiConfigurationService({
+            keyStorage: { get: async () => undefined, set: async () => {}, delete: async () => {} },
+            backendConfiguration: { getBackend: () => 'openai-api', updateBackend: async () => {} },
+          }),
+        }),
+        createGraphController: graph => new GraphController(graph),
       }),
       store,
       isExtensionActive: () => extensionActive,
@@ -80,8 +87,13 @@ describe('registerGenerateGraphCommand', () => {
     const disposable = registerGenerateGraphCommand({
       analysisService: new WorkspaceAnalysisService(),
       graphWebview: new FlowLensGraphWebview(Uri.file('/extension') as VsCodeUri, {
-        aiKeyService: new AiKeyService({ get: async () => undefined, set: async () => {}, delete: async () => {} }),
-        getAiBackend: () => 'openai-api',
+        aiSettingsController: new AiSettingsController({
+          aiConfiguration: new AiConfigurationService({
+            keyStorage: { get: async () => undefined, set: async () => {}, delete: async () => {} },
+            backendConfiguration: { getBackend: () => 'openai-api', updateBackend: async () => {} },
+          }),
+        }),
+        createGraphController: graph => new GraphController(graph),
       }),
       store,
       isExtensionActive: () => extensionActive,
