@@ -1,6 +1,7 @@
 import { AiSettingsController } from '@controllers/ai-settings-controller.js';
 import { GraphController } from '@controllers/graph-controller.js';
 import { AiConfigurationService } from '@services/ai-configuration-service.js';
+import type * as AiProviderDomain from '@flowlens/code-insights/domain/ai-provider';
 import { ResultFlow } from '@youldali/result-flow';
 import assert from 'node:assert/strict';
 import { after, describe, it } from 'node:test';
@@ -32,6 +33,37 @@ const graph = { nodes: [node, file], edges: [] };
 const explanation = { purpose: 'Test', behavior: [], sideEffects: [], failureCases: [], uncertainties: [] };
 
 describe('FlowLensGraphWebview', () => {
+  it('persists AI settings and returns correlated save and load responses through the webview', async () => {
+    let backend: AiProviderDomain.AiBackend = 'claude-api';
+    const keys: Partial<Record<AiProviderDomain.AIProvider, string>> = { anthropic: 'existing-secret-key' };
+    const { panel } = await setup(undefined, new AiConfigurationService({
+      backendConfiguration: {
+        getBackend: () => backend,
+        updateBackend: async selected => { backend = selected; },
+      },
+      keyStorage: {
+        get: async provider => keys[provider],
+        set: async (provider, key) => { keys[provider] = key; },
+        delete: async () => {},
+      },
+    }));
+    const count = panel.messages.length;
+    await panel.receive(createVsCodeEvent('ai.settings.save', {
+      requestId: 'save-settings',
+      configuration: { backend: 'openai-api', credential: { provider: 'openai', apiKey: 'new-secret-key' } },
+    }));
+
+    assert.equal(backend, 'openai-api');
+    assert.deepEqual(keys, { openai: 'new-secret-key', anthropic: 'existing-secret-key' });
+    await panel.receive(createVsCodeEvent('ai.settings.get', { requestId: 'load-after-save' }));
+    assert.deepEqual(panel.messages.slice(count), ['save-settings', 'load-after-save'].map(requestId =>
+      createVsCodeEvent('ai.settings.result', {
+        requestId,
+        configuration: { backend: 'openai-api', credentialPresence: { openai: true, anthropic: true } },
+      })));
+    assert.equal(JSON.stringify(panel.messages).includes('secret-key'), false);
+  });
+
   it('returns AI settings through the webview message transport', async () => {
     const { panel } = await setup();
     await panel.receive(createVsCodeEvent('ai.settings.get', { requestId: 'settings' }));
@@ -138,10 +170,13 @@ describe('FlowLensGraphWebview', () => {
   });
 });
 
-async function setup(explain?: NonNullable<ConstructorParameters<typeof GraphController>[1]>['explainFunction']) {
+async function setup(
+  explain?: NonNullable<ConstructorParameters<typeof GraphController>[1]>['explainFunction'],
+  aiConfiguration?: AiConfigurationService,
+) {
   const host = new FlowLensGraphWebview(Uri.file(directory) as import('vscode').Uri, {
     aiSettingsController: new AiSettingsController({
-      aiConfiguration: new AiConfigurationService({
+      aiConfiguration: aiConfiguration ?? new AiConfigurationService({
         keyStorage: {
           get: async provider => provider === 'anthropic' ? 'secret-key' : undefined,
           set: async () => {},

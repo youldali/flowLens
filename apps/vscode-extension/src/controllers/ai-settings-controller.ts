@@ -40,8 +40,33 @@ export class AiSettingsController {
     }
   }
 
-  private async saveSettings(_request: VsCodeEventRegistry['ai.settings.save']): Promise<AiSettingsEventResult | undefined> {
-    // TODO: Save AI settings and return the correlated response.
-    return undefined;
+  private async saveSettings(request: VsCodeEventRegistry['ai.settings.save']): Promise<AiSettingsEventResult> {
+    const { requestId, configuration } = request.payload;
+    const { aiConfiguration } = this.dependencies;
+
+    try {
+      await aiConfiguration.updateAiBackend(configuration.backend);
+
+      if (configuration.credential) {
+        const { provider, apiKey } = configuration.credential;
+        await aiConfiguration.setAiApiKey(provider, apiKey.trim());
+      }
+
+      const backend = aiConfiguration.getAiBackend();
+      const [openaiKey, anthropicKey] = await Promise.all([
+        aiConfiguration.getAiApiKey('openai'),
+        aiConfiguration.getAiApiKey('anthropic'),
+      ]);
+
+      return createVsCodeEvent('ai.settings.result', {
+        requestId,
+        configuration: {
+          backend,
+          credentialPresence: { openai: Boolean(openaiKey), anthropic: Boolean(anthropicKey) },
+        },
+      });
+    } catch {
+      return createVsCodeEvent('ai.settings.error', { requestId, reason: 'save-failed' });
+    }
   }
 }
