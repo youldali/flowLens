@@ -10,6 +10,9 @@
     ],
     "tsBuildInfoFile": "dist/tsconfig.tsbuildinfo",
     "paths": {
+      "@controllers/*": [
+        "./src/controllers/*"
+      ],
       "@infrastructure/*": [
         "./src/infrastructure/*"
       ],

@@ -12,10 +12,10 @@ import {
 } from '@flowlens/registries/vscode-events';
 import { err, ok, type Result } from 'neverthrow';
 import { ResultFlow } from '@youldali/result-flow';
-import { createGraphSession } from './graph-session.js';
+import { createGraphSession } from '@services/graph-session.js';
 
 type ExplainFunction = (node: FunctionDeclarationNode) => ResultFlow<FunctionExplanation, AiApiError>;
-export type GraphControllerOptions = { explainFunction?: ExplainFunction };
+export type GraphControllerDependencies = { explainFunction?: ExplainFunction };
 export type GraphEvent = ExplainNodeEvent;
 export type GraphEventResult = ExplainNodeResultEvent | ExplainNodeErrorEvent;
 type NodeRequest = { graphId: GraphId; nodeId: string };
@@ -25,7 +25,7 @@ type ExplanationError = { reason: 'node-not-explainable' | AiApiError['reason'];
 export class GraphController {
   readonly session: GraphSession;
 
-  constructor(graph: FlowGraph, private readonly options: GraphControllerOptions = {}) {
+  constructor(graph: FlowGraph, private readonly dependencies: GraphControllerDependencies = {}) {
     this.session = createGraphSession(graph);
   }
 
@@ -46,12 +46,12 @@ export class GraphController {
   }
 
   private async explainNode(node: Node, request: ExplainNodeEvent): Promise<GraphEventResult> {
-    const options = this.options;
+    const dependencies = this.dependencies;
     return ResultFlow.gen<FunctionExplanation, ExplanationError>(async function* () {
       // Preconditions validate both values before this body runs.
-      return yield* options.explainFunction!(node as FunctionDeclarationNode);
+      return yield* dependencies.explainFunction!(node as FunctionDeclarationNode);
     }).precondition<ExplanationError>(
-      () => !!options.explainFunction,
+      () => !!dependencies.explainFunction,
       () => ({ reason: 'missing-api-token' } as const),
     ).precondition<ExplanationError>(
       () => isFunctionDeclarationNode(node),

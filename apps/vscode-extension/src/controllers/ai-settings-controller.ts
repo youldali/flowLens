@@ -4,14 +4,14 @@ import {
   isAiSettingsSaveEvent,
   type VsCodeEventRegistry,
 } from '@flowlens/registries/vscode-events';
-import type { AiConfigurationService } from './ai-configuration-service.js';
+import type { AiConfigurationService } from '@services/ai-configuration-service.js';
 
-export type AiSettingsControllerOptions = { aiConfiguration: AiConfigurationService };
+export type AiSettingsControllerDependencies = { aiConfiguration: AiConfigurationService };
 export type AiSettingsEvent = VsCodeEventRegistry['ai.settings.get' | 'ai.settings.save'];
 export type AiSettingsEventResult = VsCodeEventRegistry['ai.settings.result' | 'ai.settings.error'];
 
 export class AiSettingsController {
-  constructor(private readonly options: AiSettingsControllerOptions) {}
+  constructor(private readonly dependencies: AiSettingsControllerDependencies) {}
 
   async handleEvent(message: unknown): Promise<AiSettingsEventResult | undefined> {
     if (isAiSettingsGetEvent(message)) return this.getSettings(message);
@@ -22,10 +22,10 @@ export class AiSettingsController {
     const { requestId } = request.payload;
 
     try {
-      const backend = this.options.aiConfiguration.getAiBackend();
+      const backend = this.dependencies.aiConfiguration.getAiBackend();
       const [openaiKey, anthropicKey] = await Promise.all([
-        this.options.aiConfiguration.getAiApiKey('openai'),
-        this.options.aiConfiguration.getAiApiKey('anthropic'),
+        this.dependencies.aiConfiguration.getAiApiKey('openai'),
+        this.dependencies.aiConfiguration.getAiApiKey('anthropic'),
       ]);
 
       return createVsCodeEvent('ai.settings.result', {

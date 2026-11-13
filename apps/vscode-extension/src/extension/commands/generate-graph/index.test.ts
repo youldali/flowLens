@@ -1,5 +1,5 @@
-import { AiSettingsController } from '@services/ai-settings-controller.js';
-import { GraphController } from '@services/graph-controller.js';
+import { AiSettingsController } from '@controllers/ai-settings-controller.js';
+import { GraphController } from '@controllers/graph-controller.js';
 import { AiConfigurationService } from '@services/ai-configuration-service.js';
 import { ResultFlow } from '@youldali/result-flow';
 import assert from 'node:assert/strict';

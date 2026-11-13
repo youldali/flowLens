@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import type * as AiProviderDomain from '@flowlens/code-insights/domain/ai-provider';
 import { createVsCodeEvent, isAiSettingsResultEvent, isAiSettingsErrorEvent } from '@flowlens/registries/vscode-events';
-import { AiConfigurationService } from './ai-configuration-service.js';
+import { AiConfigurationService } from '@services/ai-configuration-service.js';
 import { AiSettingsController } from './ai-settings-controller.js';
 
 describe('handleEvent', () => {
