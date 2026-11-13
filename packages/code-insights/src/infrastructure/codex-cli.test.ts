@@ -20,7 +20,8 @@ describe('runCodex', () => {
     assert.equal(result.value, undefined);
     const call = spawn.mock.calls[0]!;
     assert.deepEqual(call.arguments, ['codex', [
-      'exec', '--sandbox', 'read-only', '--ephemeral', '--config', 'approval_policy="never"',
+      'exec', '--sandbox', 'read-only', '--ephemeral',
+      '--model', 'gpt-6-luna', '--config', 'approval_policy="never"',
       '--cd', request.workspaceDirectory, '--skip-git-repo-check',
       '--output-schema', request.outputSchemaPath, '--output-last-message', request.outputPath, '-',
     ], {

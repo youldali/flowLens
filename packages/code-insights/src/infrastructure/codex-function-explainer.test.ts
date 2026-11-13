@@ -41,7 +41,8 @@ describe('explainWithCodex', () => {
     const call = codex.calls[0]!;
     assert.equal(call.executable, 'codex');
     assert.deepEqual(call.args, [
-      'exec', '--sandbox', 'read-only', '--ephemeral', '--config', 'approval_policy="never"',
+      'exec', '--sandbox', 'read-only', '--ephemeral',
+      '--model', 'gpt-6-luna', '--config', 'approval_policy="never"',
       '--cd', workspace, '--skip-git-repo-check', '--output-schema', call.explanationSchemaPath,
       '--output-last-message', call.outputPath, '-',
     ]);

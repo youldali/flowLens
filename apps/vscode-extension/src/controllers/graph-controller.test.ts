@@ -80,6 +80,34 @@ describe('GraphController', () => {
     }
   });
 
+  it('returns an error event for explanation exceptions and retains their diagnostic cause and request', async t => {
+    const log = t.mock.method(console, 'error', () => {});
+    const cause = new Error('private failure details');
+
+    for (const stage of ['creation', 'execution'] as const) {
+      const controller = new GraphController(graph, {
+        explainFunction: () => {
+          if (stage === 'creation') throw cause;
+          return ResultFlow.gen(async function* () { throw cause; });
+        },
+      });
+      const request = { graphId: controller.session.graphId, nodeId: node.id, requestId: stage };
+      const event = createVsCodeEvent('explain.node', request);
+      const response = await controller.handleEvent(event);
+
+      assert.deepEqual(response, createVsCodeEvent('explain.node.error', {
+        ...request, reason: 'generation-failed',
+      }));
+      const diagnostic = log.mock.calls.at(-1)!.arguments[1].cause;
+      assert.ok(diagnostic instanceof Error);
+      assert.equal(diagnostic.cause, cause);
+      assert.ok('request' in diagnostic);
+      assert.equal(diagnostic.request, event);
+    }
+
+    assert.equal(log.mock.callCount(), 2);
+  });
+
   it('ignores malformed and unrelated events', async () => {
     const controller = new GraphController(graph, {
       explainFunction: () => ResultFlow.gen(async function* () {

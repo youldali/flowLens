@@ -12,7 +12,7 @@ export function AiSettingsModal({ onClose }: { onClose: () => void }) {
   const titleId = useId()
   const subtitleId = useId()
   const [saving, setSaving] = useState(false)
-  const query = useFetchAiConfiguration()
+  const aiConfigurationQuery = useFetchAiConfiguration()
   const close = () => {
     dialog.current?.close()
     onClose()
@@ -35,23 +35,23 @@ export function AiSettingsModal({ onClose }: { onClose: () => void }) {
         </div>
         <button type="button" className={styles.close} aria-label={t('ai.settings.close')} disabled={saving} onClick={close}>×</button>
       </header>
-      <QuerySuspense queryState={query}
+      <QuerySuspense queryState={aiConfigurationQuery}
         loading={<p role="status">{t('ai.settings.loading')}</p>}
         refetching={<p role="status">{t('ai.settings.loading')}</p>}
         fallback={error => (
           <div className={styles.feedback}>
             <p role="alert">{t(getAiSettingsErrorKey(error.reason))}</p>
-            <button type="button" onClick={() => { void query.refetch() }}>{t('ai.settings.retry')}</button>
+            <button type="button" onClick={() => { void aiConfigurationQuery.refetch() }}>{t('ai.settings.retry')}</button>
           </div>
         )}>
-        {configuration => query.isFetching ? <></> : (
+        {configuration => aiConfigurationQuery.isFetching ? <></> : (
           <AiSettingsForm formId={`${titleId}-form`} configuration={configuration} onClose={close} onSavingChange={setSaving} />
         )}
       </QuerySuspense>
       <footer className={styles.footer}>
         <button type="button" disabled={saving} onClick={close}>{t('ai.settings.cancel')}</button>
         <button type="submit" form={`${titleId}-form`} className={styles.save}
-          disabled={saving || query.isFetching || !query.isSuccess}>
+          disabled={saving || aiConfigurationQuery.isFetching || !aiConfigurationQuery.isSuccess}>
           {t(saving ? 'ai.settings.savingButton' : 'ai.settings.save')}
         </button>
       </footer>

@@ -41,6 +41,7 @@ export function runCodex(request: CodexRequest): Promise<Result<void, CodexExecu
 function spawnCodex({ workspaceDirectory, outputSchemaPath, outputPath }: CodexRequest): Result<ChildProcess, CodexExecutionError> {
   const args = [
     'exec', '--sandbox', 'read-only', '--ephemeral',
+    '--model', 'gpt-6-luna',
     '--config', 'approval_policy="never"',
     '--cd', workspaceDirectory, '--skip-git-repo-check',
     '--output-schema', outputSchemaPath, '--output-last-message', outputPath, '-',

@@ -5,6 +5,9 @@
       "name": "Run FlowLens VS Code Extension",
       "type": "extensionHost",
       "request": "launch",
+      "env": {
+        "PATH": "${env:HOME}/.local/bin:${env:PATH}"
+      },
       "args": [
         "--extensionDevelopmentPath=${workspaceFolder}/apps/vscode-extension"
       ],

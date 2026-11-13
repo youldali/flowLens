@@ -20,7 +20,7 @@ export type GraphEvent = ExplainNodeEvent;
 export type GraphEventResult = ExplainNodeResultEvent | ExplainNodeErrorEvent;
 type NodeRequest = { graphId: GraphId; nodeId: string };
 type NodeResolutionError = 'stale-graph' | 'node-not-found';
-type ExplanationError = { reason: 'node-not-explainable' | AiApiError['reason']; statusCode?: number | undefined };
+type ExplanationError = { reason: 'node-not-explainable' | AiApiError['reason']; statusCode?: number | undefined; cause?: unknown };
 
 export class GraphController {
   readonly session: GraphSession;
@@ -56,12 +56,16 @@ export class GraphController {
     ).precondition<ExplanationError>(
       () => isFunctionDeclarationNode(node),
       () => ({ reason: 'node-not-explainable' } as const),
-    ).runAndMatch<GraphEventResult>({
+    ).catch(cause => err<never, ExplanationError>({
+      reason: 'generation-failed' as const,
+      cause: Object.assign(new Error('Could not generate a function explanation.', { cause }), { request }),
+    })).runAndMatch<GraphEventResult>({
       ok: explanation => createVsCodeEvent('explain.node.result', { ...request.payload, explanation }),
       err: error => {
         console.error('FlowLens: Could not explain node.', {
           ...request.payload,
           reason: error.reason,
+          cause: error.cause,
         });
 
         return createVsCodeEvent('explain.node.error', {
