@@ -73,7 +73,7 @@ describe('createExplainFunction', () => {
     assert.equal(failureResult.error, failure.error);
   });
 
-  it('sanitizes provider lookup failures without intercepting generation exceptions', async () => {
+  it('preserves provider lookup causes without intercepting generation exceptions', async () => {
     const node = createFunctionDeclarationNode();
     const providerFailure = new Error('private provider details');
     const lookupFailure = createExplainFunction(
@@ -86,6 +86,7 @@ describe('createExplainFunction', () => {
     assert.equal(result.error.reason, 'generation-failed');
     assert.ok(result.error.cause instanceof Error);
     assert.equal(result.error.cause.message, 'Could not load AI backend.');
+    assert.equal(result.error.cause.cause, providerFailure);
 
     const generationFailure = new Error('generation failed');
 
@@ -99,13 +100,22 @@ describe('createExplainFunction', () => {
     }
   });
 
-  it('avoids generation for missing keys and sanitizes retrieval failures', async () => {
-    for (const get of [async () => undefined, async () => { throw new Error('sensitive-key'); }]) {
+  it('avoids generation for missing keys and preserves retrieval failure causes', async () => {
+    const retrievalFailure = new Error('Storage unavailable');
+
+    for (const get of [async () => undefined, async () => { throw retrievalFailure; }]) {
       const explain = createExplainFunction(get, () => 'openai-api', () => assert.fail('Must not generate'));
       const result = await explain(createFunctionDeclarationNode()).run();
       assertErr(result);
-      assert.ok(['missing-api-token', 'generation-failed'].includes(result.error.reason));
-      assert.equal(String(result.error.cause).includes('sensitive-key'), false);
+
+      if (result.error.reason === 'missing-api-token') {
+        assert.equal(result.error.cause, undefined);
+      } else {
+        assert.equal(result.error.reason, 'generation-failed');
+        assert.ok(result.error.cause instanceof Error);
+        assert.equal(result.error.cause.message, 'Could not load AI credentials.');
+        assert.equal(result.error.cause.cause, retrievalFailure);
+      }
     }
   });
 });

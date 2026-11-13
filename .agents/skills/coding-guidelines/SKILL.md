@@ -46,6 +46,8 @@ Follow a Rust-inspired distinction between failures that prevent correct operati
 
 - Never fail silently. Do not catch an error and merely log it, skip the failed operation, or return a success-shaped fallback that hides the failure.
 - If a failure prevents the program from functioning correctly, throw an exception. When catching an underlying error, throw a new `Error` with meaningful operation context and preserve the original error in `cause`.
+- Preserve the original caught value whenever wrapping or translating an exception, including in typed `err` payloads and `ResultFlow.catch`. Set `cause` to the caught value directly, or to a contextual `new Error(message, { cause })`. Never replace it with a message-only error, stringify it, or set `cause` to `undefined` when an underlying exception exists; retain the full downstream cause chain.
+- Keep diagnostic causes internally. When producing a user-facing response, expose only the intended public error fields rather than discarding the internal cause chain to sanitize the response.
 - For expected failures or outcomes that are not really errors, return a `Result` from `neverthrow`, using `ok` for success and a typed `err` for the expected alternative. For example, finding no implementations of a type in a package should return `err('not-found')` rather than throw.
 - Callers must handle or propagate these results explicitly. Do not turn unexpected exceptions into an expected result such as `not-found`.
 
@@ -87,6 +89,16 @@ function findImplementations(): Result<ImplementationEntry[], 'not-found'> {
 - Use `.finally(exit => ...)` for cleanup on every outcome, including success. Inspect `exit.kind` (`'ok'`, `'err'`, or `'exception'`) when cleanup must account for the original outcome.
 - Use `.catch(...)` to handle exceptions, including translating recognized boundary failures into typed errors. Scope it to the relevant operation: credential-loading failures must not catch and relabel later generation failures. Typed errors pass through `.catch(...)` unchanged.
 - Preserve the original failure if cleanup also fails, using an `AggregateError` when appropriate. Attempt all required resource disposals even if one fails.
+
+When translating a recognized boundary exception into a typed failure, retain its cause:
+
+```ts
+return ResultFlow.from(async () => ok(await loadCredentials()))
+  .catch(cause => err({
+    reason: 'credentials-load-failed' as const,
+    cause: new Error('Could not load credentials.', { cause }),
+  }));
+```
 
 ### Preconditions
 

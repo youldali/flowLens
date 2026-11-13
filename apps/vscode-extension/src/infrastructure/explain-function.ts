@@ -10,9 +10,9 @@ export function createExplainFunction(
   explainCodex = explainWithCodex,
 ): ReturnType<typeof createFunctionExplainer> {
   return node => ResultFlow.from(() => ok(getBackend()))
-    .catch(() => err({
+    .catch(cause => err({
       reason: 'generation-failed' as const,
-      cause: new Error('Could not load AI backend.'),
+      cause: new Error('Could not load AI backend.', { cause }),
       statusCode: undefined,
     }))
     .chain(backend => {
@@ -26,9 +26,9 @@ export function createExplainFunction(
 
       const provider = AiProviderDomain.getAiProvider(backend);
       return ResultFlow.from(async () => ok(await getApiKey(provider)))
-        .catch(() => err({
+        .catch(cause => err({
           reason: 'generation-failed' as const,
-          cause: new Error('Could not load AI credentials.'),
+          cause: new Error('Could not load AI credentials.', { cause }),
           statusCode: undefined,
         }))
         .chain(apiKey => apiKey
