@@ -23,7 +23,7 @@ beforeEach(async () => {
 })
 afterEach(() => { cleanup(); vi.restoreAllMocks() })
 
-function setup(initial?: AiConfiguration) {
+function setup(initial?: AiConfiguration, { deferLoad = false } = {}) {
   let configuration: AiConfiguration = initial ?? { backend: 'openai-api', credentialPresence: { openai: true, anthropic: false } }
   const saves: VsCodeEventRegistry['ai.settings.save'][] = []
   let loadError = false
@@ -31,6 +31,7 @@ function setup(initial?: AiConfiguration) {
     const request = message as VsCodeEventRegistry['ai.settings.get' | 'ai.settings.save']
     if (isAiSettingsSaveEvent(request)) saves.push(request)
     else if (request.type === 'ai.settings.get') {
+      if (deferLoad) return
       reply(loadError
         ? createVsCodeEvent('ai.settings.error', { requestId: request.payload.requestId, reason: 'unsupported' })
         : createVsCodeEvent('ai.settings.result', { requestId: request.payload.requestId, configuration }))
@@ -68,6 +69,24 @@ function selectBackend(backend: string) {
 }
 
 describe('AiSettings', () => {
+  it('keeps settings accessible without claiming a backend while loading or after an initial failure', async () => {
+    const { postMessage } = setup(undefined, { deferLoad: true })
+    const trigger = screen.getByRole('button', { name: 'Open AI settings' })
+    assert.equal(trigger.textContent, 'Loading AI settings… ⚙')
+    assert.equal(screen.getByRole('status').textContent, 'Loading AI settings…')
+    fireEvent.click(trigger)
+    assert.ok(screen.getByRole('dialog', { name: 'AI settings' }))
+    assert.equal(screen.getAllByRole('status').length, 2)
+
+    const request = postMessage.mock.calls.map(([message]) => message as VsCodeEventRegistry['ai.settings.get'])
+      .find(message => message.type === 'ai.settings.get')!
+    await act(async () => reply(createVsCodeEvent('ai.settings.error', { requestId: request.payload.requestId, reason: 'unsupported' })))
+    await screen.findByRole('alert')
+    assert.equal(trigger.textContent, 'AI settings ⚙')
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
+    assert.equal(document.activeElement, trigger)
+  })
+
   it('wraps keyboard focus at both ends of the dialog', async () => {
     setup()
     await open()
